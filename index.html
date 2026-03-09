@@ -427,6 +427,59 @@
             }
         }
 
+        /* Filter Bar */
+        .filter-bar {
+            background-color: #FFFFFF;
+            border-bottom: 1px solid #C8C5BE;
+            padding: 12px 30px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .filter-group label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #6B6862;
+            letter-spacing: 0.5px;
+        }
+        .filter-group select,
+        .filter-group input[type="date"] {
+            padding: 6px 10px;
+            border: 1px solid #C8C5BE;
+            border-radius: 6px;
+            background-color: #F5F4F1;
+            color: #000000;
+            font-size: 13px;
+            min-width: 110px;
+            cursor: pointer;
+        }
+        .filter-group select:focus,
+        .filter-group input[type="date"]:focus {
+            outline: none;
+            border-color: #209D50;
+        }
+        .reset-button {
+            padding: 6px 16px;
+            background-color: #FFFFFF;
+            border: 1px solid #C8C5BE;
+            border-radius: 6px;
+            color: #000000;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 500;
+            margin-left: auto;
+        }
+        .reset-button:hover {
+            background-color: #F5F4F1;
+        }
+
         /* Footer */
         .footer {
             background-color: #FFFFFF;
@@ -530,6 +583,39 @@
             <button class="tab" onclick="switchTab('funnel')">Funnel & Events</button>
             <button class="tab" onclick="switchTab('creative')">Creative Perf</button>
             <button class="tab" onclick="switchTab('fbSparkLoop')">FB + SparkLoop</button>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar" id="filterBar">
+            <div class="filter-group">
+                <label>Date From</label>
+                <input type="date" id="filterDateFrom" onchange="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label>Date To</label>
+                <input type="date" id="filterDateTo" onchange="applyFilters()">
+            </div>
+            <div class="filter-group">
+                <label>Color</label>
+                <select id="filterColor" onchange="applyFilters()"><option value="">All</option></select>
+            </div>
+            <div class="filter-group">
+                <label>Theme</label>
+                <select id="filterTheme" onchange="applyFilters()"><option value="">All</option></select>
+            </div>
+            <div class="filter-group">
+                <label>Type</label>
+                <select id="filterType" onchange="applyFilters()"><option value="">All</option></select>
+            </div>
+            <div class="filter-group">
+                <label>Landing Page</label>
+                <select id="filterLandingPage" onchange="applyFilters()"><option value="">All</option></select>
+            </div>
+            <div class="filter-group">
+                <label>Campaign Tag</label>
+                <select id="filterCampaignTag" onchange="applyFilters()"><option value="">All</option></select>
+            </div>
+            <button class="reset-button" onclick="resetFilters()">Reset All</button>
         </div>
 
         <!-- Main Content -->
@@ -836,6 +922,11 @@ async function fetchSheetData(sheetName) {
             const results = await Promise.all(sheets.map(sheet => fetchSheetData(sheet)));
             sheets.forEach((sheet, i) => { allData[sheet] = results[i]; });
 
+            // Save original unfiltered data
+            originalData = {};
+            Object.keys(allData).forEach(k => { originalData[k] = [...allData[k]]; });
+            populateFilters();
+
             // Check if any data loaded
             const totalRows = Object.values(allData).reduce((sum, arr) => sum + arr.length, 0);
             if (totalRows === 0) {
@@ -859,6 +950,99 @@ async function fetchSheetData(sheetName) {
             refreshBtn.disabled = false;
             refreshBtn.innerHTML = 'Refresh Data';
             document.getElementById('lastRefreshed').textContent = `Last refreshed: ${new Date().toLocaleString()}`;
+        }
+
+        // Original unfiltered data backup
+        let originalData = {};
+
+        // Populate filter dropdowns from Ad Performance data
+        function populateFilters() {
+            const data = originalData['Ad Performance'] || [];
+            const daily = originalData['Daily Summary'] || [];
+
+            // Date range from Daily Summary
+            const dates = daily.map(r => r['Date']).filter(Boolean).sort();
+            if (dates.length > 0) {
+                document.getElementById('filterDateFrom').value = dates[0];
+                document.getElementById('filterDateTo').value = dates[dates.length - 1];
+            }
+
+            // Dropdown filters
+            const filters = [
+                { id: 'filterColor', field: 'Color' },
+                { id: 'filterTheme', field: 'Theme' },
+                { id: 'filterType', field: 'Ad Type' },
+                { id: 'filterLandingPage', field: 'Landing Page' },
+                { id: 'filterCampaignTag', field: 'Campaign Tag' }
+            ];
+
+            filters.forEach(f => {
+                const sel = document.getElementById(f.id);
+                const vals = [...new Set(data.map(r => (r[f.field] || '').trim()).filter(Boolean))].sort();
+                sel.innerHTML = '<option value="">All</option>';
+                vals.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.textContent = v;
+                    sel.appendChild(opt);
+                });
+            });
+        }
+
+        // Apply filters to data and re-render
+        function applyFilters() {
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            const color = document.getElementById('filterColor').value;
+            const theme = document.getElementById('filterTheme').value;
+            const type = document.getElementById('filterType').value;
+            const lp = document.getElementById('filterLandingPage').value;
+            const tag = document.getElementById('filterCampaignTag').value;
+
+            // Filter Ad Performance
+            let adData = originalData['Ad Performance'] || [];
+            if (color) adData = adData.filter(r => (r['Color'] || '').trim() === color);
+            if (theme) adData = adData.filter(r => (r['Theme'] || '').trim() === theme);
+            if (type) adData = adData.filter(r => (r['Ad Type'] || '').trim() === type);
+            if (lp) adData = adData.filter(r => (r['Landing Page'] || '').trim() === lp);
+            if (tag) adData = adData.filter(r => (r['Campaign Tag'] || '').trim() === tag);
+            allData['Ad Performance'] = adData;
+
+            // Filter Daily Summary by date
+            let dailyData = originalData['Daily Summary'] || [];
+            if (dateFrom) dailyData = dailyData.filter(r => r['Date'] >= dateFrom);
+            if (dateTo) dailyData = dailyData.filter(r => r['Date'] <= dateTo);
+            allData['Daily Summary'] = dailyData;
+
+            // Copy other sheets from original (breakouts aren't filtered by ad-level filters)
+            const otherSheets = Object.keys(originalData).filter(k => k !== 'Ad Performance' && k !== 'Daily Summary');
+            otherSheets.forEach(k => { allData[k] = originalData[k]; });
+
+            // Re-render all tabs
+            updateDashboardTab();
+            updateTrendsTab();
+            updateAdTab();
+            updateComponentTab();
+            updatePlacementTab();
+            updateFunnelTab();
+            updateCreativeTab();
+            updateFBSparkLoopTab();
+        }
+
+        // Reset all filters
+        function resetFilters() {
+            const daily = originalData['Daily Summary'] || [];
+            const dates = daily.map(r => r['Date']).filter(Boolean).sort();
+            if (dates.length > 0) {
+                document.getElementById('filterDateFrom').value = dates[0];
+                document.getElementById('filterDateTo').value = dates[dates.length - 1];
+            }
+            document.getElementById('filterColor').value = '';
+            document.getElementById('filterTheme').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterLandingPage').value = '';
+            document.getElementById('filterCampaignTag').value = '';
+            applyFilters();
         }
 
         // Refresh Data
