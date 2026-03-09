@@ -15,7 +15,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #000000;
+            background-color: #E1DFD9;
             color: #000000;
             line-height: 1.6;
         }
@@ -26,11 +26,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #FFFFFF 0%, #0f1620 100%);
+            background: linear-gradient(135deg, #E1DFD9 0%, #D5D2CB 100%);
         }
 
         .login-box {
-            background-color: #243447;
+            background-color: #FFFFFF;
             padding: 40px;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
@@ -81,7 +81,7 @@
             padding: 12px;
             border: 1px solid #3a4a5c;
             border-radius: 6px;
-            background-color: #000000;
+            background-color: #E1DFD9;
             color: #000000;
             font-size: 14px;
         }
@@ -129,7 +129,7 @@
 
         /* Header */
         .header {
-            background-color: #243447;
+            background-color: #FFFFFF;
             border-bottom: 1px solid #3a4a5c;
             padding: 20px 30px;
             display: flex;
@@ -225,7 +225,7 @@
         .tabs {
             display: flex;
             gap: 0;
-            background-color: #243447;
+            background-color: #FFFFFF;
             border-bottom: 1px solid #3a4a5c;
             overflow-x: auto;
             padding: 0 30px;
@@ -289,7 +289,7 @@
         }
 
         .kpi-card {
-            background-color: #243447;
+            background-color: #FFFFFF;
             padding: 20px;
             border-radius: 8px;
             border: 1px solid #3a4a5c;
@@ -319,7 +319,7 @@
 
         /* Chart Container */
         .chart-container {
-            background-color: #243447;
+            background-color: #FFFFFF;
             padding: 20px;
             border-radius: 8px;
             border: 1px solid #3a4a5c;
@@ -337,7 +337,7 @@
 
         /* Tables */
         .table-container {
-            background-color: #243447;
+            background-color: #FFFFFF;
             border-radius: 8px;
             border: 1px solid #3a4a5c;
             overflow: hidden;
@@ -351,7 +351,7 @@
         }
 
         thead {
-            background-color: #000000;
+            background-color: #F5F4F1;
         }
 
         th {
@@ -366,7 +366,7 @@
         }
 
         th:hover {
-            background-color: #243447;
+            background-color: #FFFFFF;
         }
 
         th.sortable::after {
@@ -389,17 +389,17 @@
 
         td {
             padding: 12px 15px;
-            border-bottom: 1px solid #1e3048;
+            border-bottom: 1px solid #FFFFFF;
             color: #000000;
             white-space: nowrap;
         }
 
         tbody tr:hover {
-            background-color: #2d3e52;
+            background-color: #F5F4F1;
         }
 
         tbody tr:nth-child(even) {
-            background-color: #1e3048;
+            background-color: #FFFFFF;
         }
 
         /* Component Sections */
@@ -429,7 +429,7 @@
 
         /* Footer */
         .footer {
-            background-color: #243447;
+            background-color: #FFFFFF;
             border-top: 1px solid #3a4a5c;
             padding: 15px 30px;
             font-size: 13px;
@@ -709,7 +709,7 @@
 
             isAuthenticated = true;
             document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('dashboardContainer').classList.add('active');
+            document.getElementById('dashboard').classList.add('active');
             document.getElementById('clientNameDisplay').textContent = CLIENT_CONFIG.displayName;
             loadData();
         }
@@ -1218,7 +1218,7 @@ async function fetchSheetData(sheetName) {
                 charts[canvasId].destroy();
             }
 
-            const bgColor = '#1e3048';
+            const bgColor = '#F5F4F1';
             canvas.style.backgroundColor = bgColor;
 
             config.options = config.options || {};
