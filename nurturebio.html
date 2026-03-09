@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cassa Strategy - Meta Ads Dashboard</title>
+    <title>Nurture Bio - Meta Ads Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
@@ -231,9 +231,9 @@
             background-color: #FFFFFF;
             border-bottom: 1px solid #C8C5BE;
             overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
             padding: 0 30px;
             flex-wrap: wrap;
+            -webkit-overflow-scrolling: touch;
         }
 
         .tab {
@@ -446,7 +446,6 @@
             flex-wrap: wrap;
             gap: 12px;
             align-items: flex-end;
-            overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
         .filter-group {
@@ -532,16 +531,21 @@
                 font-size: 20px;
             }
 
+            .main-content {
+                padding: 15px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 10px;
+            }
             .kpi-card {
                 min-width: 120px;
             }
-
             .chart-container {
                 min-width: 100%;
-            }
-
-            .main-content {
-                padding: 15px;
             }
         }
 
@@ -602,7 +606,7 @@
             <button class="tab" onclick="switchTab('byPlacement')">By Placement</button>
             <button class="tab" onclick="switchTab('funnel')">Funnel & Events</button>
             <button class="tab" onclick="switchTab('creative')">Creative Perf</button>
-            <button class="tab" onclick="switchTab('fbSparkLoop')">FB + SparkLoop</button>
+            <button class="tab" onclick="switchTab('fbSparkLoop')">Meta + Google Ads</button>
             <button class="tab" onclick="switchTab('insights')">Insights</button>
         </div>
 
@@ -753,18 +757,18 @@
 
             <!-- FB + SparkLoop Tab -->
             <div id="fbSparkLoop" class="tab-content">
-                <h2 style="margin-bottom: 30px;">Facebook + SparkLoop Performance</h2>
+                <h2 style="margin-bottom: 30px;">Meta + Google Ads Performance</h2>
                 <div class="component-title">Key Metrics</div>
                 <div class="kpi-grid" id="fbSparkLoopKPIs"></div>
 
                 <div class="charts-row">
                     <div class="chart-container">
-                        <div class="chart-title">Revenue Comparison</div>
-                        <canvas id="fbSlRevenueChart"></canvas>
+                        <div class="chart-title">Daily Spend Comparison</div>
+                        <canvas id="metaGoogleSpendChart"></canvas>
                     </div>
                     <div class="chart-container">
-                        <div class="chart-title">LPV & SparkLoop Confirmed Referrals</div>
-                        <canvas id="fbSlLpvRefChart"></canvas>
+                        <div class="chart-title">Meta Revenue vs Google Conversions</div>
+                        <canvas id="metaGooglePerfChart"></canvas>
                     </div>
                 </div>
 
@@ -773,18 +777,15 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th class="text-right">FB Spend</th>
-                                <th class="text-right">FB Impressions</th>
-                                <th class="text-right">FB Clicks</th>
-                                <th class="text-right">FB Purchases</th>
-                                <th class="text-right">FB Revenue</th>
-                                <th class="text-right">FB ROAS</th>
-                                <th class="text-right">SL New Subs</th>
-                                <th class="text-right">SL Confirmed Ref</th>
-                                <th class="text-right">SL Pending Ref</th>
-                                <th class="text-right">SL Earnings</th>
-                                <th class="text-right">Combined Revenue</th>
-                                <th class="text-right">Combined ROAS</th>
+                                <th class="text-right">Meta Spend</th>
+                                <th class="text-right">Meta Impressions</th>
+                                <th class="text-right">Meta Clicks</th>
+                                <th class="text-right">Meta Revenue</th>
+                                <th class="text-right">Google Spend</th>
+                                <th class="text-right">Google Impressions</th>
+                                <th class="text-right">Google Clicks</th>
+                                <th class="text-right">Google Conversions</th>
+                                <th class="text-right">Google Cost/Conv</th>
                             </tr>
                         </thead>
                         <tbody id="fbSparkLoopTableBody"></tbody>
@@ -844,9 +845,9 @@
     <script>
         // Client Configurations
         const CLIENT_CONFIG = {
-            displayName: 'The Unsealed',
-            password: 'unsealed2026',
-            spreadsheetId: '1rEOXHebRMyfbAhldCsoJeLqnpokoqgOZ28yJXztsoZs'
+            displayName: 'Nurture Bio',
+            password: 'nurturebio2026',
+            spreadsheetId: '1vg5UIOdnfzFl1dfY_bP6DEy1DakS1S8i4e4IgqocuL0'
         };
 
         // Global state
@@ -977,8 +978,6 @@ async function fetchSheetData(sheetName) {
             const sheets = [
                 'Ad Performance',
                 'Daily Summary',
-                'Raw Data',
-                'Ad Mapping',
                 'AA - By Color',
                 'AA - By Theme',
                 'AA - By Ad Type',
@@ -988,7 +987,9 @@ async function fetchSheetData(sheetName) {
                 'AA - Funnel Events',
                 'AA - Creative by Type',
                 'AA - Creative by Theme',
-                'AA - FB + SparkLoop'
+                'Google Ads Daily',
+                'Raw Data',
+                'Ad Mapping'
             ];
 
             // Fetch all sheets in parallel for speed
@@ -998,11 +999,8 @@ async function fetchSheetData(sheetName) {
             // Save original unfiltered data
             originalData = {};
             Object.keys(allData).forEach(k => { originalData[k] = [...allData[k]]; });
-
-            // Build joined raw data (Raw Data + Ad Mapping)
-            buildCampaignRawData();
-
             populateFilters();
+            buildCampaignRawData();
 
             // Check if any data loaded
             const totalRows = Object.values(allData).reduce((sum, arr) => sum + arr.length, 0);
@@ -1096,25 +1094,25 @@ async function fetchSheetData(sheetName) {
             allData['Daily Summary'] = dailyData;
 
             // Filter FB + SparkLoop by date too
-            let fbSlData = originalData['AA - FB + SparkLoop'] || [];
+            let fbSlData = originalData['Google Ads Daily'] || [];
             if (dateFrom) fbSlData = fbSlData.filter(r => r['Date'] >= dateFrom);
             if (dateTo) fbSlData = fbSlData.filter(r => r['Date'] <= dateTo);
-            allData['AA - FB + SparkLoop'] = fbSlData;
+            allData['Google Ads Daily'] = fbSlData;
 
-            // Filter _joinedRaw by date AND dropdown filters
-            let joinedRaw = originalData['_joinedRaw'] || [];
-            if (dateFrom) joinedRaw = joinedRaw.filter(r => r['Date'] >= dateFrom);
-            if (dateTo) joinedRaw = joinedRaw.filter(r => r['Date'] <= dateTo);
-            if (campaign) joinedRaw = joinedRaw.filter(r => (r['Campaign Name'] || '').trim() === campaign);
-            if (adSet) joinedRaw = joinedRaw.filter(r => (r['Ad Set Name'] || '').trim() === adSet);
-            if (color) joinedRaw = joinedRaw.filter(r => (r['Color'] || '').trim() === color);
-            if (theme) joinedRaw = joinedRaw.filter(r => (r['Theme'] || '').trim() === theme);
-            if (type) joinedRaw = joinedRaw.filter(r => (r['Ad Type'] || '').trim() === type);
-            if (lp) joinedRaw = joinedRaw.filter(r => (r['Landing Page'] || '').trim() === lp);
-            allData['_joinedRaw'] = joinedRaw;
+            // Filter joined raw data by date AND dropdown filters
+            let joinedData = originalData['_joinedRaw'] || [];
+            if (dateFrom) joinedData = joinedData.filter(r => r['Date'] >= dateFrom);
+            if (dateTo) joinedData = joinedData.filter(r => r['Date'] <= dateTo);
+            if (campaign) joinedData = joinedData.filter(r => r['Campaign Name'] === campaign);
+            if (adSet) joinedData = joinedData.filter(r => r['Ad Set Name'] === adSet);
+            if (color) joinedData = joinedData.filter(r => r['Color'] === color);
+            if (theme) joinedData = joinedData.filter(r => r['Theme'] === theme);
+            if (type) joinedData = joinedData.filter(r => r['Ad Type'] === type);
+            if (lp) joinedData = joinedData.filter(r => r['Landing Page'] === lp);
+            allData['_joinedRaw'] = joinedData;
 
             // Copy other sheets from original (except ones we already filtered)
-            const otherSheets = Object.keys(originalData).filter(k => k !== 'Ad Performance' && k !== 'Daily Summary' && k !== 'AA - FB + SparkLoop' && k !== '_joinedRaw');
+            const otherSheets = Object.keys(originalData).filter(k => k !== 'Ad Performance' && k !== 'Daily Summary' && k !== 'Google Ads Daily' && k !== '_joinedRaw');
             otherSheets.forEach(k => { allData[k] = originalData[k]; });
 
             // Re-render all tabs
@@ -1214,124 +1212,6 @@ async function fetchSheetData(sheetName) {
             return data.reduce((sum, row) => sum + parseValue(row[field]), 0);
         }
 
-        // Aggregate Raw Data into summed KPI object
-        function aggregateRawData(joinedRawData) {
-            if (!joinedRawData || joinedRawData.length === 0) {
-                return [{}]; // Return empty array wrapped for calculateKPI
-            }
-
-            const agg = {
-                'Amount Spent': 0,
-                'Impressions': 0,
-                'Reach': 0,
-                'Clicks (all)': 0,
-                'Adds to cart': 0,
-                'Purchases': 0,
-                'Purchases conversion value': 0,
-                'Landing page views': 0,
-                'Link clicks': 0,
-                'Leads': 0,
-                'ThruPlays': 0,
-                'Post engagements': 0
-            };
-
-            joinedRawData.forEach(row => {
-                agg['Amount Spent'] += parseValue(row['Amount spent (USD)']) || 0;
-                agg['Impressions'] += parseValue(row['Impressions']) || 0;
-                agg['Reach'] += parseValue(row['Reach']) || 0;
-                agg['Clicks (all)'] += parseValue(row['Clicks (all)']) || 0;
-                agg['Adds to cart'] += parseValue(row['Adds to cart']) || 0;
-                agg['Purchases'] += parseValue(row['Purchases']) || 0;
-                agg['Purchases conversion value'] += parseValue(row['Purchases conversion value']) || 0;
-                agg['Landing page views'] += parseValue(row['Landing page views']) || 0;
-                agg['Link clicks'] += parseValue(row['Link clicks']) || 0;
-                agg['Leads'] += parseValue(row['Leads']) || 0;
-                agg['ThruPlays'] += parseValue(row['ThruPlays']) || 0;
-                agg['Post engagements'] += parseValue(row['Post engagements']) || 0;
-            });
-
-            // Map Raw Data field names to expected KPI field names
-            return [{
-                'Amount Spent': agg['Amount Spent'],
-                'Impressions': agg['Impressions'],
-                'Reach': agg['Reach'],
-                'Clicks': agg['Clicks (all)'],
-                'Adds to Cart': agg['Adds to cart'],
-                'Purchases': agg['Purchases'],
-                'Revenue': agg['Purchases conversion value'],
-                'Landing Page Views': agg['Landing page views'],
-                'Link Clicks': agg['Link clicks'],
-                'Leads': agg['Leads'],
-                'ThruPlays': agg['ThruPlays'],
-                'Post Engagements': agg['Post engagements']
-            }];
-        }
-
-        // Build campaign-aware joined raw data
-        function buildCampaignRawData() {
-            const rawDataRows = originalData['Raw Data'] || [];
-            const adMappingRows = originalData['Ad Mapping'] || [];
-
-            // Create Ad Mapping lookup: Ad ID → {Campaign Name, Ad Set Name, Color, Theme, Ad Type, Landing Page}
-            const adMappingLookup = {};
-            adMappingRows.forEach(row => {
-                const adId = row['Ad ID'] || '';
-                if (adId) {
-                    adMappingLookup[adId] = {
-                        'Campaign Name': row['Campaign Name'] || '',
-                        'Ad Set Name': row['Ad Set Name'] || '',
-                        'Color': row['Color'] || '',
-                        'Theme': row['Theme'] || '',
-                        'Ad Type': row['Ad Type'] || '',
-                        'Landing Page': row['Landing Page'] || ''
-                    };
-                }
-            });
-
-            // Process and join Raw Data with Ad Mapping
-            const seenKeys = new Set();
-            const joinedData = [];
-
-            rawDataRows.forEach(row => {
-                // Normalize date (handle both "1/16/2026" and "2026-01-16" formats)
-                let dateStr = row['Reporting starts'] || '';
-                let normalizedDate = dateStr;
-                if (dateStr.includes('/')) {
-                    // Convert M/D/YYYY to YYYY-MM-DD
-                    const [m, d, y] = dateStr.split('/');
-                    normalizedDate = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                }
-
-                // Deduplication key
-                const adId = row['Ad ID'] || '';
-                const placement = row['Placement'] || '';
-                const devicePlatform = row['Device platform'] || '';
-                const dedupKey = `${normalizedDate}|${adId}|${placement}|${devicePlatform}`;
-
-                // Skip if already seen
-                if (seenKeys.has(dedupKey)) return;
-                seenKeys.add(dedupKey);
-
-                // Join with Ad Mapping
-                const adMapping = adMappingLookup[adId] || {};
-                const joinedRow = {
-                    ...row,
-                    'Date': normalizedDate,
-                    'Campaign Name': adMapping['Campaign Name'] || row['Campaign Name'] || '',
-                    'Ad Set Name': adMapping['Ad Set Name'] || row['Ad Set Name'] || '',
-                    'Color': adMapping['Color'] || '',
-                    'Theme': adMapping['Theme'] || '',
-                    'Ad Type': adMapping['Ad Type'] || '',
-                    'Landing Page': adMapping['Landing Page'] || ''
-                };
-                joinedData.push(joinedRow);
-            });
-
-            // Store in allData
-            allData['_joinedRaw'] = joinedData;
-            originalData['_joinedRaw'] = [...joinedData];
-        }
-
         // Dashboard Tab
         function updateDashboardTab() {
             // Check if any dropdown filter is active
@@ -1339,27 +1219,24 @@ async function fetchSheetData(sheetName) {
                 const el = document.getElementById(id);
                 return el && el.value;
             });
-
-            // Check if date filter is active
             const dateFrom = document.getElementById('filterDateFrom').value;
             const dateTo = document.getElementById('filterDateTo').value;
+            const daily = allData['Daily Summary'] || [];
             const hasDateFilter = dateFrom || dateTo;
 
-            // When both date AND dropdown filters are active, use aggregated joined raw data (respects date filtering)
-            // When only dropdown filters are active without date filter, use Ad Performance (no date column)
-            // Otherwise use Daily Summary for better date-level KPIs
             let data;
-            const daily = allData['Daily Summary'] || [];
-            const joinedRaw = allData['_joinedRaw'] || [];
-
-            if (hasDropdownFilter && hasDateFilter && joinedRaw.length > 0) {
-                // Both filters active: use aggregated raw data
-                data = aggregateRawData(joinedRaw);
+            if (hasDropdownFilter && hasDateFilter) {
+                // Both date and dropdown filters - use joined raw data for accurate date+campaign filtering
+                const joinedRaw = allData['_joinedRaw'] || [];
+                if (joinedRaw.length > 0) {
+                    const agg = aggregateRawData(joinedRaw);
+                    data = [agg];
+                } else {
+                    data = allData['Ad Performance'] || [];
+                }
             } else if (hasDropdownFilter) {
-                // Only dropdown filter without date filter: use Ad Performance
                 data = allData['Ad Performance'] || [];
             } else {
-                // No dropdown filter: use Daily Summary (better for date ranges)
                 data = daily.length > 0 ? daily : (allData['Ad Performance'] || []);
             }
 
@@ -2055,7 +1932,7 @@ async function fetchSheetData(sheetName) {
             tbody.innerHTML = '';
 
             data.forEach(row => {
-                const count = parseInt(row.Count) || 0;
+                const count = parseValue(row.Count) || 0;
                 const rateFromImp = parseValue(row['Rate from Impressions']) || 0;
                 const costPer = parseValue(row['Cost Per']) || 0;
 
@@ -2348,68 +2225,70 @@ async function fetchSheetData(sheetName) {
             }
         }
 
-        // FB + SparkLoop Tab
+        // Meta + Google Ads Tab
         function updateFBSparkLoopTab() {
-            const data = allData['AA - FB + SparkLoop'] || [];
+            const data = allData['Google Ads Daily'] || [];
             if (data.length === 0) return;
 
-            const fbSpend = calculateKPI(data, 'FB Spend');
-            const fbRevenue = calculateKPI(data, 'FB Revenue');
-            const fbRoas = fbSpend > 0 ? fbRevenue / fbSpend : 0;
-            const slEarnings = calculateKPI(data, 'SL Earnings');
+            const metaSpend = calculateKPI(data, 'Meta Spend');
+            const metaRevenue = calculateKPI(data, 'Meta Revenue');
+            const metaRoas = metaSpend > 0 ? metaRevenue / metaSpend : 0;
+            const googleSpend = calculateKPI(data, 'Google Spend');
+            const combinedSpend = metaSpend + googleSpend;
             const combinedRevenue = calculateKPI(data, 'Combined Revenue');
-            const combinedRoas = fbSpend > 0 ? combinedRevenue / fbSpend : 0;
+            const combinedRoas = combinedSpend > 0 ? combinedRevenue / combinedSpend : 0;
 
             // KPI Cards
             document.getElementById('fbSparkLoopKPIs').innerHTML = `
                 <div class="kpi-card">
-                    <div class="kpi-label">Total FB Spend</div>
-                    <div class="kpi-value">${formatCurrency(fbSpend)}</div>
+                    <div class="kpi-label">Total Meta Spend</div>
+                    <div class="kpi-value">${formatCurrency(metaSpend)}</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Total FB Revenue</div>
-                    <div class="kpi-value">${formatCurrency(fbRevenue)}</div>
+                    <div class="kpi-label">Total Meta Revenue</div>
+                    <div class="kpi-value">${formatCurrency(metaRevenue)}</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">FB ROAS</div>
-                    <div class="kpi-value ${fbRoas >= 1 ? 'positive' : 'negative'}">${formatROAS(fbRoas)}</div>
+                    <div class="kpi-label">Meta ROAS</div>
+                    <div class="kpi-value ${metaRoas >= 1 ? 'positive' : 'negative'}">${formatROAS(metaRoas)}</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Total SL Earnings</div>
-                    <div class="kpi-value">${formatCurrency(slEarnings)}</div>
+                    <div class="kpi-label">Total Google Spend</div>
+                    <div class="kpi-value">${formatCurrency(googleSpend)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">Combined Spend</div>
+                    <div class="kpi-value">${formatCurrency(combinedSpend)}</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-label">Combined Revenue</div>
                     <div class="kpi-value">${formatCurrency(combinedRevenue)}</div>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Combined ROAS</div>
-                    <div class="kpi-value ${combinedRoas >= 1 ? 'positive' : 'negative'}">${formatROAS(combinedRoas)}</div>
-                </div>
             `;
 
-            // Charts
+            // Charts - Daily Spend Comparison and Revenue vs Conversions
             const dates = data.map(d => d.Date || '');
-            const fbSpends = data.map(d => parseValue(d['FB Spend']) || 0);
-            const fbRevenues = data.map(d => parseValue(d['FB Revenue']) || 0);
-            const slEarningsList = data.map(d => parseValue(d['SL Earnings']) || 0);
+            const metaSpends = data.map(d => parseValue(d['Meta Spend']) || 0);
+            const googleSpends = data.map(d => parseValue(d['Google Spend']) || 0);
+            const metaRevenues = data.map(d => parseValue(d['Meta Revenue']) || 0);
+            const googleConversions = data.map(d => parseValue(d['Google Conversions']) || 0);
 
-            // Chart 1: Revenue Comparison (grouped bar chart, non-stacked)
-            createChart('fbSlRevenueChart', {
+            // Chart 1: Daily Spend Comparison (Bar chart, non-stacked)
+            createChart('metaGoogleSpendChart', {
                 type: 'bar',
                 data: {
                     labels: dates,
                     datasets: [
                         {
-                            label: 'FB Revenue',
-                            data: fbRevenues,
+                            label: 'Meta Spend',
+                            data: metaSpends,
                             backgroundColor: '#209D50',
                             borderRadius: 4
                         },
                         {
-                            label: 'SL Earnings',
-                            data: slEarningsList,
-                            backgroundColor: '#ffa500',
+                            label: 'Google Spend',
+                            data: googleSpends,
+                            backgroundColor: '#4285F4',
                             borderRadius: 4
                         }
                     ]
@@ -2421,54 +2300,38 @@ async function fetchSheetData(sheetName) {
                     scales: {
                         y: {
                             beginAtZero: true,
-                            stacked: false,
                             ticks: { color: '#000000' },
                             grid: { color: '#C8C5BE' }
                         },
                         x: {
                             ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' },
-                            stacked: false
+                            grid: { color: '#C8C5BE' }
                         }
                     }
                 }
             });
 
-            // Chart 2: LPV & SparkLoop Confirmed Referrals (line chart)
-            const daily = allData['Daily Summary'] || [];
-            const lpvByDate = {};
-            daily.forEach(row => {
-                const date = row['Date'] || '';
-                lpvByDate[date] = parseValue(row['Landing Page Views']) || 0;
-            });
-
-            const lpvData = dates.map(d => lpvByDate[d] || 0);
-            const slConfirmedList = data.map(d => parseValue(d['SL Confirmed Referrals']) || 0);
-
-            createChart('fbSlLpvRefChart', {
+            // Chart 2: Meta Revenue vs Google Conversions (Line chart, dual Y-axis)
+            createChart('metaGooglePerfChart', {
                 type: 'line',
                 data: {
                     labels: dates,
                     datasets: [
                         {
-                            label: 'Landing Page Views',
-                            data: lpvData,
+                            label: 'Meta Revenue',
+                            data: metaRevenues,
                             borderColor: '#209D50',
                             backgroundColor: 'rgba(32, 157, 80, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#209D50'
+                            yAxisID: 'y',
+                            tension: 0.3
                         },
                         {
-                            label: 'SL Confirmed Referrals',
-                            data: slConfirmedList,
-                            borderColor: '#ffa500',
-                            backgroundColor: 'rgba(255, 165, 0, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#ffa500'
+                            label: 'Google Conversions',
+                            data: googleConversions,
+                            borderColor: '#4285F4',
+                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.3
                         }
                     ]
                 },
@@ -2478,9 +2341,18 @@ async function fetchSheetData(sheetName) {
                     plugins: { legend: { labels: { color: '#000000' } } },
                     scales: {
                         y: {
-                            beginAtZero: true,
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: 'Meta Revenue ($)', color: '#000000' },
                             ticks: { color: '#000000' },
                             grid: { color: '#C8C5BE' }
+                        },
+                        y1: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: 'Google Conversions', color: '#000000' },
+                            ticks: { color: '#000000' },
+                            grid: { drawOnChartArea: false }
                         },
                         x: {
                             ticks: { color: '#000000' },
@@ -2494,34 +2366,28 @@ async function fetchSheetData(sheetName) {
             const tbody = document.getElementById('fbSparkLoopTableBody');
             tbody.innerHTML = '';
             data.forEach(row => {
-                const fbSpend = parseValue(row['FB Spend']) || 0;
-                const fbImpressions = parseValue(row['FB Impressions']) || 0;
-                const fbClicks = parseValue(row['FB Clicks']) || 0;
-                const fbPurchases = parseValue(row['FB Purchases']) || 0;
-                const fbRev = parseValue(row['FB Revenue']) || 0;
-                const fbRoasVal = fbSpend > 0 ? fbRev / fbSpend : 0;
-                const slNewSubs = parseValue(row['SL New Subscribers']) || 0;
-                const slConfirmed = parseValue(row['SL Confirmed Referrals']) || 0;
-                const slPending = parseValue(row['SL Pending Referrals']) || 0;
-                const slEarn = parseValue(row['SL Earnings']) || 0;
-                const combRev = parseValue(row['Combined Revenue']) || 0;
-                const combRoas = fbSpend > 0 ? combRev / fbSpend : 0;
+                const metaSpd = parseValue(row['Meta Spend']) || 0;
+                const metaImp = parseValue(row['Meta Impressions']) || 0;
+                const metaClk = parseValue(row['Meta Clicks']) || 0;
+                const metaRev = parseValue(row['Meta Revenue']) || 0;
+                const googleSpd = parseValue(row['Google Spend']) || 0;
+                const googleImp = parseValue(row['Google Impressions']) || 0;
+                const googleClk = parseValue(row['Google Clicks']) || 0;
+                const googleConv = parseValue(row['Google Conversions']) || 0;
+                const googleCostConv = googleConv > 0 ? googleSpd / googleConv : 0;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${row.Date || ''}</td>
-                    <td class="text-right">${formatCurrency(fbSpend)}</td>
-                    <td class="text-right">${formatNumber(fbImpressions)}</td>
-                    <td class="text-right">${formatNumber(fbClicks)}</td>
-                    <td class="text-right">${formatNumber(fbPurchases)}</td>
-                    <td class="text-right">${formatCurrency(fbRev)}</td>
-                    <td class="text-right ${fbRoasVal >= 1 ? 'positive' : 'negative'}">${formatROAS(fbRoasVal)}</td>
-                    <td class="text-right">${formatNumber(slNewSubs)}</td>
-                    <td class="text-right">${formatNumber(slConfirmed)}</td>
-                    <td class="text-right">${formatNumber(slPending)}</td>
-                    <td class="text-right">${formatCurrency(slEarn)}</td>
-                    <td class="text-right">${formatCurrency(combRev)}</td>
-                    <td class="text-right ${combRoas >= 1 ? 'positive' : 'negative'}">${formatROAS(combRoas)}</td>
+                    <td class="text-right">${formatCurrency(metaSpd)}</td>
+                    <td class="text-right">${formatNumber(metaImp)}</td>
+                    <td class="text-right">${formatNumber(metaClk)}</td>
+                    <td class="text-right">${formatCurrency(metaRev)}</td>
+                    <td class="text-right">${formatCurrency(googleSpd)}</td>
+                    <td class="text-right">${formatNumber(googleImp)}</td>
+                    <td class="text-right">${formatNumber(googleClk)}</td>
+                    <td class="text-right">${formatNumber(googleConv)}</td>
+                    <td class="text-right">${formatCurrency(googleCostConv)}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -2590,162 +2456,233 @@ async function fetchSheetData(sheetName) {
             th.classList.add(isAsc ? 'sorted-asc' : 'sorted-desc');
         }
 
+        // Build Campaign Raw Data - join Raw Data with Ad Mapping
+        function buildCampaignRawData() {
+            const rawData = allData['Raw Data'] || [];
+            const adMapping = allData['Ad Mapping'] || [];
+
+            // Build Ad ID → mapping lookup
+            const adLookup = {};
+            adMapping.forEach(row => {
+                const adId = (row['Ad ID'] || '').trim();
+                if (adId) {
+                    adLookup[adId] = {
+                        'Campaign Name': (row['Campaign Name'] || '').trim(),
+                        'Ad Set Name': (row['Ad Set Name'] || '').trim(),
+                        'Color': (row['Color'] || '').trim(),
+                        'Theme': (row['Theme'] || '').trim(),
+                        'Ad Type': (row['Ad Type'] || '').trim(),
+                        'Landing Page': (row['Landing Page'] || '').trim()
+                    };
+                }
+            });
+
+            // Normalize date formats and deduplicate
+            function normalizeDate(d) {
+                if (!d) return '';
+                d = String(d).trim();
+                if (d.includes('/')) {
+                    const parts = d.split('/');
+                    if (parts.length === 3) {
+                        const m = parts[0].padStart(2, '0');
+                        const day = parts[1].padStart(2, '0');
+                        const y = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+                        return y + '-' + m + '-' + day;
+                    }
+                }
+                return d;
+            }
+
+            const seen = {};
+            const joined = [];
+
+            rawData.forEach(row => {
+                const date = normalizeDate(row['Reporting starts']);
+                const adId = (row['Ad ID'] || '').trim();
+                const placement = (row['Placement'] || '').trim();
+                const device = (row['Device platform'] || '').trim();
+
+                // Deduplicate by date+adId+placement+device
+                const key = date + '|' + adId + '|' + placement + '|' + device;
+                if (seen[key]) return;
+                seen[key] = true;
+
+                const mapping = adLookup[adId] || {};
+                joined.push({
+                    'Date': date,
+                    'Ad Name': (row['Ad name'] || '').trim(),
+                    'Ad ID': adId,
+                    'Platform': (row['Platform'] || '').trim(),
+                    'Placement': placement,
+                    'Device': device,
+                    'Amount spent (USD)': row['Amount spent (USD)'] || '0',
+                    'Impressions': row['Impressions'] || '0',
+                    'Reach': row['Reach'] || '0',
+                    'Clicks (all)': row['Clicks (all)'] || '0',
+                    'Adds to cart': row['Adds to cart'] || '0',
+                    'Purchases': row['Purchases'] || '0',
+                    'Purchases conversion value': row['Purchases conversion value'] || '0',
+                    'Landing page views': row['Landing page views'] || '0',
+                    'Link clicks': row['Link clicks'] || '0',
+                    'Leads': row['Leads'] || '0',
+                    'ThruPlays': row['ThruPlays'] || '0',
+                    'Post engagements': row['Post engagements'] || '0',
+                    '3-second video plays': row['3-second video plays'] || '0',
+                    'Campaign Name': mapping['Campaign Name'] || '',
+                    'Ad Set Name': mapping['Ad Set Name'] || '',
+                    'Color': mapping['Color'] || '',
+                    'Theme': mapping['Theme'] || '',
+                    'Ad Type': mapping['Ad Type'] || '',
+                    'Landing Page': mapping['Landing Page'] || ''
+                });
+            });
+
+            allData['_joinedRaw'] = joined;
+            originalData['_joinedRaw'] = [...joined];
+        }
+
+        // Aggregate Raw Data - sum metrics from raw data rows
+        function aggregateRawData(data) {
+            const result = {
+                'Amount Spent': 0, 'Impressions': 0, 'Reach': 0, 'Clicks': 0,
+                'Adds to Cart': 0, 'Purchases': 0, 'Revenue': 0,
+                'Landing Page Views': 0, 'Link Clicks': 0, 'Leads': 0,
+                'ThruPlays': 0, 'Post Engagements': 0, '3s Video Plays': 0
+            };
+            data.forEach(row => {
+                result['Amount Spent'] += parseValue(row['Amount spent (USD)']);
+                result['Impressions'] += parseValue(row['Impressions']);
+                result['Reach'] += parseValue(row['Reach']);
+                result['Clicks'] += parseValue(row['Clicks (all)']);
+                result['Adds to Cart'] += parseValue(row['Adds to cart']);
+                result['Purchases'] += parseValue(row['Purchases']);
+                result['Revenue'] += parseValue(row['Purchases conversion value']);
+                result['Landing Page Views'] += parseValue(row['Landing page views']);
+                result['Link Clicks'] += parseValue(row['Link clicks']);
+                result['Leads'] += parseValue(row['Leads']);
+                result['ThruPlays'] += parseValue(row['ThruPlays']);
+                result['Post Engagements'] += parseValue(row['Post engagements']);
+                result['3s Video Plays'] += parseValue(row['3-second video plays']);
+            });
+            return result;
+        }
+
         // Pearson Correlation Coefficient
         function pearsonCorrelation(x, y) {
             const n = x.length;
             if (n === 0) return 0;
-            const sumX = x.reduce((a, b) => a + b, 0);
-            const sumY = y.reduce((a, b) => a + b, 0);
-            const sumXY = x.reduce((a, b, i) => a + b * y[i], 0);
-            const sumX2 = x.reduce((a, b) => a + b * b, 0);
-            const sumY2 = y.reduce((a, b) => a + b * b, 0);
-            const denom = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+            const sumX = x.reduce((a,b) => a+b, 0);
+            const sumY = y.reduce((a,b) => a+b, 0);
+            const sumXY = x.reduce((a,b,i) => a + b*y[i], 0);
+            const sumX2 = x.reduce((a,b) => a + b*b, 0);
+            const sumY2 = y.reduce((a,b) => a + b*b, 0);
+            const denom = Math.sqrt((n*sumX2 - sumX*sumX) * (n*sumY2 - sumY*sumY));
             if (denom === 0) return 0;
-            return (n * sumXY - sumX * sumY) / denom;
+            return (n*sumXY - sumX*sumY) / denom;
         }
 
-        // Insights Tab
+        // Update Insights Tab
         function updateInsightsTab() {
-            const daily = allData['Daily Summary'] || [];
-            if (daily.length === 0) {
-                document.getElementById('correlationValue').textContent = 'No data';
-                return;
-            }
-
             updateScatterPlot();
             updateCppVsLpvChart();
         }
 
+        // Update Scatter Plot
         function updateScatterPlot() {
-            const daily = allData['Daily Summary'] || [];
-            if (daily.length === 0) return;
-
             const xMetric = document.getElementById('scatterX').value;
             const yMetric = document.getElementById('scatterY').value;
+            const data = allData['Daily Summary'] || [];
+            if (data.length === 0) return;
 
-            const xData = daily
-                .map(row => parseValue(row[xMetric]) || 0)
-                .filter(v => v > 0);
-            const yData = daily
-                .map(row => parseValue(row[yMetric]) || 0)
-                .filter(v => v > 0);
+            const xField = xMetric === 'Amount Spent' ? 'Amount Spent' :
+                           xMetric === 'Landing Page Views' ? 'Landing Page Views' : xMetric;
+            const yField = yMetric === 'Amount Spent' ? 'Amount Spent' :
+                           yMetric === 'Landing Page Views' ? 'Landing Page Views' : yMetric;
 
-            const minLength = Math.min(xData.length, yData.length);
-            const xFiltered = xData.slice(0, minLength);
-            const yFiltered = yData.slice(0, minLength);
+            const points = data.map(row => ({
+                x: parseValue(row[xField] || row['Spend'] || 0),
+                y: parseValue(row[yField] || 0)
+            })).filter(p => p.x !== 0 || p.y !== 0);
 
-            const correlation = pearsonCorrelation(xFiltered, yFiltered);
+            const xVals = points.map(p => p.x);
+            const yVals = points.map(p => p.y);
+            const r = pearsonCorrelation(xVals, yVals);
 
-            // Display correlation
-            document.getElementById('correlationValue').textContent = `r = ${correlation.toFixed(3)}`;
-
-            // Create scatter plot data
-            const scatterData = xFiltered.map((x, i) => ({ x, y: yFiltered[i] }));
+            document.getElementById('correlationValue').textContent =
+                `Correlation (r): ${r.toFixed(3)} — ${Math.abs(r) > 0.7 ? 'Strong' : Math.abs(r) > 0.4 ? 'Moderate' : 'Weak'} ${r >= 0 ? 'positive' : 'negative'}`;
 
             createChart('scatterChart', {
                 type: 'scatter',
                 data: {
-                    datasets: [
-                        {
-                            label: `${xMetric} vs ${yMetric}`,
-                            data: scatterData,
-                            backgroundColor: '#209D50',
-                            pointRadius: 5,
-                            pointHoverRadius: 7
-                        }
-                    ]
+                    datasets: [{
+                        label: `${xMetric} vs ${yMetric}`,
+                        data: points,
+                        backgroundColor: '#209D50',
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { labels: { color: '#000000' } }
+                        legend: { labels: { color: '#000000' } },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${xMetric}: ${ctx.parsed.x.toLocaleString()}, ${yMetric}: ${ctx.parsed.y.toLocaleString()}`
+                            }
+                        }
                     },
                     scales: {
-                        x: {
-                            title: { display: true, text: xMetric, color: '#000000' },
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        y: {
-                            title: { display: true, text: yMetric, color: '#000000' },
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        }
+                        x: { title: { display: true, text: xMetric, color: '#000000' }, ticks: { color: '#000000' }, grid: { color: '#C8C5BE' } },
+                        y: { title: { display: true, text: yMetric, color: '#000000' }, ticks: { color: '#000000' }, grid: { color: '#C8C5BE' } }
                     }
                 }
             });
         }
 
+        // Update Cost Per Purchase vs Landing Page Views Chart
         function updateCppVsLpvChart() {
-            const daily = allData['Daily Summary'] || [];
-            if (daily.length === 0) return;
+            const data = allData['Daily Summary'] || [];
+            if (data.length === 0) return;
 
-            const labels = daily.map(d => d.Date || '');
-            const lpvData = daily.map(d => parseValue(d['Landing Page Views']) || 1);
-            const spendData = daily.map(d => parseValue(d['Amount Spent']) || 0);
-            const purchasesData = daily.map(d => parseValue(d['Purchases']) || 1);
-
-            // Calculate CPP (Cost Per Purchase)
-            const cppData = spendData.map((spend, i) =>
-                purchasesData[i] > 0 ? spend / purchasesData[i] : 0
-            );
+            const dates = data.map(d => d.Date || '');
+            const spend = data.map(d => parseValue(d['Amount Spent']) || 0);
+            const purchases = data.map(d => parseValue(d['Purchases']) || 0);
+            const lpv = data.map(d => parseValue(d['Landing Page Views']) || 0);
+            const cpp = spend.map((s, i) => purchases[i] > 0 ? s / purchases[i] : 0);
 
             createChart('cppVsLpvChart', {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: dates,
                     datasets: [
                         {
-                            yAxisID: 'y',
                             label: 'Cost Per Purchase',
-                            data: cppData,
+                            data: cpp,
                             borderColor: '#209D50',
                             backgroundColor: 'rgba(32, 157, 80, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#209D50'
+                            yAxisID: 'y',
+                            tension: 0.3
                         },
                         {
-                            yAxisID: 'y1',
                             label: 'Landing Page Views',
-                            data: lpvData,
-                            borderColor: '#ffa500',
-                            backgroundColor: 'rgba(255, 165, 0, 0.1)',
-                            borderWidth: 2,
-                            tension: 0.4,
-                            fill: true,
-                            pointBackgroundColor: '#ffa500'
+                            data: lpv,
+                            borderColor: '#4285F4',
+                            backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                            yAxisID: 'y1',
+                            tension: 0.3
                         }
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: { mode: 'index', intersect: false },
                     plugins: { legend: { labels: { color: '#000000' } } },
                     scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            title: { display: true, text: 'Cost Per Purchase ($)', color: '#000000' },
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            title: { display: true, text: 'Landing Page Views', color: '#000000' },
-                            ticks: { color: '#000000' },
-                            grid: { drawOnChartArea: false }
-                        },
-                        x: {
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        }
+                        y: { title: { display: true, text: 'Cost Per Purchase ($)', color: '#000000' }, ticks: { color: '#000000' }, grid: { color: '#C8C5BE' } },
+                        y1: { position: 'right', title: { display: true, text: 'Landing Page Views', color: '#000000' }, ticks: { color: '#000000' }, grid: { drawOnChartArea: false } },
+                        x: { ticks: { color: '#000000' }, grid: { color: '#C8C5BE' } }
                     }
                 }
             });
