@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Unsealed - Meta Ads Dashboard</title>
+    <title>Cassa Strategy - Meta Ads Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
     <style>
@@ -15,7 +15,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #E1DFD9;
+            background-color: #000000;
             color: #000000;
             line-height: 1.6;
         }
@@ -26,17 +26,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #E1DFD9 0%, #D5D2CB 100%);
+            background: linear-gradient(135deg, #FFFFFF 0%, #0f1620 100%);
         }
 
         .login-box {
-            background-color: #FFFFFF;
+            background-color: #243447;
             padding: 40px;
             border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             width: 100%;
             max-width: 400px;
-            border: 1px solid #C8C5BE;
         }
 
         .login-logo {
@@ -48,15 +47,14 @@
         }
 
         .login-logo svg {
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
         }
 
         .login-logo h1 {
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 20px;
+            font-weight: 600;
             color: #000000;
-            letter-spacing: 1px;
         }
 
         .login-box h2 {
@@ -74,31 +72,31 @@
             display: block;
             margin-bottom: 8px;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             color: #000000;
         }
 
         .form-group input {
             width: 100%;
             padding: 12px;
-            border: 1px solid #C8C5BE;
+            border: 1px solid #3a4a5c;
             border-radius: 6px;
-            background-color: #FFFFFF;
+            background-color: #000000;
             color: #000000;
             font-size: 14px;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #209D50;
+            border-color: #209d50;
             box-shadow: 0 0 0 3px rgba(32, 157, 80, 0.1);
         }
 
         .login-button {
             width: 100%;
             padding: 12px;
-            background-color: #209D50;
-            color: #FFFFFF;
+            background-color: #209d50;
+            color: #000000;
             border: none;
             border-radius: 6px;
             font-size: 16px;
@@ -108,11 +106,11 @@
         }
 
         .login-button:hover {
-            background-color: #1A7D40;
+            background-color: #1a7d40;
         }
 
         .login-error {
-            color: #dc3545;
+            color: #ff6b6b;
             font-size: 14px;
             margin-top: 15px;
             text-align: center;
@@ -122,7 +120,6 @@
         .dashboard-container {
             min-height: 100vh;
             display: none;
-            flex-direction: column;
         }
 
         .dashboard-container.active {
@@ -132,8 +129,8 @@
 
         /* Header */
         .header {
-            background-color: #FFFFFF;
-            border-bottom: 1px solid #C8C5BE;
+            background-color: #243447;
+            border-bottom: 1px solid #3a4a5c;
             padding: 20px 30px;
             display: flex;
             justify-content: space-between;
@@ -158,22 +155,20 @@
         }
 
         .header-logo svg {
-            width: 28px;
-            height: 28px;
+            width: 24px;
+            height: 24px;
         }
 
         .header-logo-text {
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 600;
             color: #000000;
-            letter-spacing: 0.5px;
         }
 
         .client-name {
             font-size: 16px;
-            color: #209D50;
-            font-weight: 600;
-            border-left: 2px solid #209D50;
+            color: #a0a8b0;
+            border-left: 1px solid #3a4a5c;
             padding-left: 20px;
         }
 
@@ -184,19 +179,18 @@
         }
 
         .refresh-button {
-            background-color: #209D50;
-            color: #FFFFFF;
+            background-color: #209d50;
+            color: #000000;
             border: none;
             padding: 8px 16px;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
             transition: background-color 0.2s;
-            font-weight: 600;
         }
 
         .refresh-button:hover {
-            background-color: #1A7D40;
+            background-color: #1a7d40;
         }
 
         .refresh-button.loading {
@@ -206,20 +200,18 @@
 
         .logout-button {
             background-color: transparent;
-            color: #000000;
-            border: 1px solid #C8C5BE;
+            color: #a0a8b0;
+            border: 1px solid #3a4a5c;
             padding: 8px 16px;
             border-radius: 6px;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
-            font-weight: 600;
         }
 
         .logout-button:hover {
-            color: #209D50;
-            border-color: #209D50;
-            background-color: #F0F7F2;
+            color: #000000;
+            border-color: #000000;
         }
 
         /* Main Content */
@@ -227,15 +219,14 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            background-color: #E1DFD9;
         }
 
         /* Tabs */
         .tabs {
             display: flex;
             gap: 0;
-            background-color: #FFFFFF;
-            border-bottom: 1px solid #C8C5BE;
+            background-color: #243447;
+            border-bottom: 1px solid #3a4a5c;
             overflow-x: auto;
             padding: 0 30px;
         }
@@ -244,22 +235,22 @@
             padding: 15px 20px;
             background: none;
             border: none;
-            color: #666666;
+            color: #a0a8b0;
             cursor: pointer;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 500;
             border-bottom: 2px solid transparent;
             transition: all 0.2s;
             white-space: nowrap;
         }
 
         .tab:hover {
-            color: #209D50;
+            color: #000000;
         }
 
         .tab.active {
-            color: #209D50;
-            border-bottom-color: #209D50;
+            color: #209d50;
+            border-bottom-color: #209d50;
         }
 
         /* Tab Content */
@@ -279,8 +270,8 @@
             display: inline-block;
             width: 16px;
             height: 16px;
-            border: 2px solid #C8C5BE;
-            border-top-color: #209D50;
+            border: 2px solid #3a4a5c;
+            border-top-color: #209d50;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
         }
@@ -298,18 +289,17 @@
         }
 
         .kpi-card {
-            background-color: #FFFFFF;
+            background-color: #243447;
             padding: 20px;
             border-radius: 8px;
-            border: 1px solid #C8C5BE;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border: 1px solid #3a4a5c;
         }
 
         .kpi-label {
             font-size: 13px;
-            color: #666666;
+            color: #a0a8b0;
             margin-bottom: 10px;
-            font-weight: 600;
+            font-weight: 500;
         }
 
         .kpi-value {
@@ -320,23 +310,22 @@
         }
 
         .kpi-value.positive {
-            color: #209D50;
+            color: #209d50;
         }
 
         .kpi-value.negative {
-            color: #dc3545;
+            color: #ff6b6b;
         }
 
         /* Chart Container */
         .chart-container {
-            background-color: #FFFFFF;
+            background-color: #243447;
             padding: 20px;
             border-radius: 8px;
-            border: 1px solid #C8C5BE;
+            border: 1px solid #3a4a5c;
             margin-bottom: 30px;
             position: relative;
             height: 400px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         .chart-title {
@@ -348,12 +337,11 @@
 
         /* Tables */
         .table-container {
-            background-color: #FFFFFF;
+            background-color: #243447;
             border-radius: 8px;
-            border: 1px solid #C8C5BE;
+            border: 1px solid #3a4a5c;
             overflow: hidden;
             margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
 
         table {
@@ -363,7 +351,7 @@
         }
 
         thead {
-            background-color: #F0F7F2;
+            background-color: #000000;
         }
 
         th {
@@ -371,14 +359,14 @@
             text-align: left;
             color: #000000;
             font-weight: 600;
-            border-bottom: 1px solid #C8C5BE;
+            border-bottom: 1px solid #3a4a5c;
             cursor: pointer;
             user-select: none;
             white-space: nowrap;
         }
 
         th:hover {
-            background-color: #E8F1EB;
+            background-color: #243447;
         }
 
         th.sortable::after {
@@ -390,28 +378,28 @@
         th.sorted-asc::after {
             content: ' ↑';
             opacity: 1;
-            color: #209D50;
+            color: #209d50;
         }
 
         th.sorted-desc::after {
             content: ' ↓';
             opacity: 1;
-            color: #209D50;
+            color: #209d50;
         }
 
         td {
             padding: 12px 15px;
-            border-bottom: 1px solid #E8E6E0;
+            border-bottom: 1px solid #1e3048;
             color: #000000;
             white-space: nowrap;
         }
 
         tbody tr:hover {
-            background-color: #F8F6F2;
+            background-color: #2d3e52;
         }
 
         tbody tr:nth-child(even) {
-            background-color: #F5F3F0;
+            background-color: #1e3048;
         }
 
         /* Component Sections */
@@ -441,11 +429,11 @@
 
         /* Footer */
         .footer {
-            background-color: #FFFFFF;
-            border-top: 1px solid #C8C5BE;
+            background-color: #243447;
+            border-top: 1px solid #3a4a5c;
             padding: 15px 30px;
             font-size: 13px;
-            color: #666666;
+            color: #a0a8b0;
             text-align: right;
         }
 
@@ -479,7 +467,7 @@
                 font-size: 20px;
             }
 
-            .tab-content {
+            .main-content {
                 padding: 15px;
             }
         }
@@ -499,11 +487,12 @@
     <div id="loginPage" class="login-container">
         <div class="login-box">
             <div class="login-logo">
-                <svg viewBox="0 0 40 40" width="32" height="32"><path d="M20 2 L38 20 L20 38 L2 20 Z" fill="#209D50"/></svg>
-                <h1>CASSA STRATEGY</h1>
-            </div>
-            <h2>The Unsealed Dashboard</h2>
+                    <img src="data:image/png;base64,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" alt="Cassa Strategy" style="width:80px;height:80px;">
+                    <h1>CASSA STRATEGY</h1>
+                </div>
+            <h2>Meta Ads Dashboard</h2>
             <form id="loginForm" onsubmit="handleLogin(event)">
+                
                 <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" required placeholder="Enter password">
@@ -520,10 +509,10 @@
         <div class="header">
             <div class="header-left">
                 <div class="header-logo">
-                    <svg viewBox="0 0 40 40" width="28" height="28"><path d="M20 2 L38 20 L20 38 L2 20 Z" fill="#209D50"/></svg>
+                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAapklEQVR42u2ceZhV1ZX2f2vvc25NjDIIAZxi2022gIkUyqAx9hcpbJNPIyqgSef5vrRGmlE0sTXp2N3phMGoQZQojpgoouCUJ4iz6YSSKgykny9DdwYx4hBAxoKqe+/Za31/7HOrChKRCIjpeOq5T90H6t577jp7rfW+73r3ETMzPjje9eE+CMEHAfwggB8E8IMAfnD8jwig7fbc2v/BsA8CWDkCiqKdgtPxKKMEAqaGGJgYAUUM1PL/6/wiND6xP6MAOgRnAhK/twBiipiR4MBADEoC//bDu/nmi/eRCTgVxFwMmMTAKQ4jvtehOpL3+gPFpH3lCYDFZyaAKc48JW9c33gvd6x9FA+41DH9pIkkATIf8CgmCWLxPewQxvA9D2Aev92CpwJmhjeh6AJzVt7LwrVLkTpDgmNB4xIkCFOHX4g3I4jHI0jHVeBQhTA5ZGvfDJM8j4PhRSg5Ze7Ke7hz7cOEKqNf2hVcygbbwYLV92MSmFY/gVRdLHvOYj3FHbIVeEi6sJi191YzwxmUXOCbK+/h7pceRxPPQOnBjQ1X8fUzp9Jb6mithgXNDzK/aTHBKSpGwHC4Q9qj5b0WExTy2mVkYiTqCC7wjZX3cOt/PgKJcaT05etnT+e0wwcD8OSrq/ji0/PZHLZTVXRcevJ5TBs2Ma7ESv2T/0ErsDNU6QxTFMiw+GPg85U3u3FRTNtC4EO+J3P+bganHT6YsmUELXLmoJOZdeZ0ekk3igW4efWDzFt9H5lTRA0zqwAcOnCO/j64/FMJoEN2q0qSp60zIzUBFAGCCNetvIvb1jxGseA5ynozZ+xMRvY7Ac2UxDziEsqqNAw4iVkNk+hjtQTvuKn5QW5cfT/BC0EibtTKpVJBcYQ/2RS2jo4ru8Hl2HjFHGWnzGq8mzvWPEIoCANcL+aMncFp/QfTZoECHqcx+uqMYEoqnqdeXcVVT8xjg2uh0CZMOvl8pg+biA+C+rhhDNcJ4ihyEEv9QQmgsQdUESHkbcMbBFFmv3gvt61ZRigIg6Qnc86axqn9PkIIinOVLy/xPTRGQ4PgEmH5+ka+unw+G2hBMphWP57Jw8YjpiAOV4E4kIPuP9kAWmQKlndbhLJTrmu8m4VrH6WUwgDfg7ljZ3JavyGUNcOLB7W4el0OFRVEBBFBVfHe8cT6lVz9xM1s1l34YEwadiHT6i8gMZejwgiT7KCuv4MYwApUCeIQzaGKV65rXMSCHz+KFWCQ68acs67g1P5D0BDAeUQMeZuWaiiGg0xxiWP5+lVcteIm3rKdFNqMqcMvYMrwC3MeLXiEgOD/1AKoEe" alt="Cassa Strategy" style="width:32px;height:32px;">
                     <span class="header-logo-text">CASSA STRATEGY</span>
                 </div>
-                <span class="client-name">The Unsealed</span>
+                <span class="client-name" id="clientNameDisplay"></span>
             </div>
             <div class="header-right">
                 <button id="refreshButton" class="refresh-button" onclick="refreshData()">Refresh Data</button>
@@ -547,7 +536,7 @@
         <div class="main-content">
             <!-- Dashboard Tab -->
             <div id="dashboard" class="tab-content active">
-                <h2 style="margin-bottom: 30px; color: #000000;">Performance Overview</h2>
+                <h2 style="margin-bottom: 30px;">Performance Overview</h2>
 
                 <div class="component-title">Spend & Delivery</div>
                 <div class="kpi-grid" id="spendGrid"></div>
@@ -564,7 +553,7 @@
 
             <!-- Trends Tab -->
             <div id="trends" class="tab-content">
-                <h2 style="margin-bottom: 30px; color: #000000;">Trends & Performance</h2>
+                <h2 style="margin-bottom: 30px;">Trends & Performance</h2>
 
                 <div class="chart-container">
                     <div class="chart-title">Daily Spend</div>
@@ -589,7 +578,7 @@
 
             <!-- By Ad Tab -->
             <div id="byAd" class="tab-content">
-                <h2 style="margin-bottom: 30px; color: #000000;">Ad Performance</h2>
+                <h2 style="margin-bottom: 30px;">Ad Performance</h2>
                 <div class="table-container">
                     <table id="adTable">
                         <thead>
@@ -617,19 +606,19 @@
 
             <!-- By Component Tab -->
             <div id="byComponent" class="tab-content">
-                <h2 style="margin-bottom: 30px; color: #000000;">Performance by Component</h2>
+                <h2 style="margin-bottom: 30px;">Performance by Component</h2>
                 <div id="componentContent"></div>
             </div>
 
             <!-- By Placement Tab -->
             <div id="byPlacement" class="tab-content">
-                <h2 style="margin-bottom: 30px; color: #000000;">Performance by Placement</h2>
+                <h2 style="margin-bottom: 30px;">Performance by Placement</h2>
                 <div id="placementContent"></div>
             </div>
 
             <!-- Funnel & Events Tab -->
             <div id="funnel" class="tab-content">
-                <h2 style="margin-bottom: 30px; color: #000000;">Funnel & Events</h2>
+                <h2 style="margin-bottom: 30px;">Funnel & Events</h2>
                 <div class="table-container">
                     <table id="funnelTable">
                         <thead>
@@ -647,13 +636,13 @@
 
             <!-- Creative Perf Tab -->
             <div id="creative" class="tab-content">
-                <h2 style="margin-bottom: 30px; color: #000000;">Creative Performance</h2>
+                <h2 style="margin-bottom: 30px;">Creative Performance</h2>
                 <div id="creativeContent"></div>
             </div>
 
             <!-- FB + SparkLoop Tab -->
             <div id="fbSparkLoop" class="tab-content">
-                <h2 style="margin-bottom: 30px; color: #000000;">Facebook + SparkLoop Performance</h2>
+                <h2 style="margin-bottom: 30px;">Facebook + SparkLoop Performance</h2>
                 <div class="component-title">Key Metrics</div>
                 <div class="kpi-grid" id="fbSparkLoopKPIs"></div>
 
@@ -694,7 +683,7 @@
     </div>
 
     <script>
-        // Client Configuration
+        // Client Configurations
         const CLIENT_CONFIG = {
             displayName: 'The Unsealed',
             password: 'unsealed2026',
@@ -711,7 +700,6 @@
             event.preventDefault();
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('loginError');
-
             errorDiv.textContent = '';
 
             if (CLIENT_CONFIG.password !== password) {
@@ -721,27 +709,25 @@
 
             isAuthenticated = true;
             document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('dashboard').classList.add('active');
-
+            document.getElementById('dashboardContainer').classList.add('active');
+            document.getElementById('clientNameDisplay').textContent = CLIENT_CONFIG.displayName;
             loadData();
         }
 
-        // Handle Logout
+        
         function handleLogout() {
             isAuthenticated = false;
             allData = {};
             charts = {};
             document.getElementById('dashboard').classList.remove('active');
             document.getElementById('loginPage').style.display = 'flex';
+            
             document.getElementById('password').value = '';
         }
 
         // Fetch Sheet Data with timeout
-        // Normalize column headers to standardized names
+        
         function normalizeHeaders(data, sheetName) {
-            if (!data || data.length === 0) return data;
-
-            // Mapping for Ad Performance sheet
             if (sheetName === 'Ad Performance') {
                 const headerMap = {
                     'Ad name': 'Ad Name',
@@ -757,14 +743,13 @@
                 return data.map(row => {
                     const newRow = {};
                     for (const [key, value] of Object.entries(row)) {
-                        const mappedKey = headerMap[key] || key;
+                        const trimKey = key.trim();
+                        const mappedKey = headerMap[trimKey] || trimKey;
                         newRow[mappedKey] = value;
                     }
                     return newRow;
                 });
             }
-
-            // Mapping for Daily Summary sheet
             if (sheetName === 'Daily Summary') {
                 const headerMap = {
                     'Amount Spent': 'Amount Spent',
@@ -774,18 +759,32 @@
                 return data.map(row => {
                     const newRow = {};
                     for (const [key, value] of Object.entries(row)) {
-                        const mappedKey = headerMap[key] || key;
+                        const trimKey = key.trim();
+                        const mappedKey = headerMap[trimKey] || trimKey;
                         newRow[mappedKey] = value;
                     }
                     return newRow;
                 });
             }
-
-            return data;
+            // For breakout sheets, also normalize
+            const breakoutMap = {
+                'Eng Rate': 'Engagement Rate',
+                'Spend': 'Amount Spent'
+            };
+            return data.map(row => {
+                const newRow = {};
+                for (const [key, value] of Object.entries(row)) {
+                    const trimKey = key.trim();
+                    const mappedKey = breakoutMap[trimKey] || trimKey;
+                    newRow[mappedKey] = value;
+                }
+                return newRow;
+            });
         }
 
-        async function fetchSheetData(sheetName) {
-            const url = `https://docs.google.com/spreadsheets/d/${CLIENT_CONFIG.spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+async function fetchSheetData(sheetName) {
+            const spreadsheetId = CLIENT_CONFIG.spreadsheetId;
+            const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 
             try {
                 const controller = new AbortController();
@@ -799,10 +798,7 @@
                         header: true,
                         skipEmptyLines: true,
                         dynamicTyping: false,
-                        complete: (results) => {
-                            const normalized = normalizeHeaders(results.data, sheetName);
-                            resolve(normalized);
-                        },
+                        complete: (results) => resolve(results.data),
                         error: (error) => reject(error)
                     });
                 });
@@ -915,10 +911,7 @@
         // Calculate KPI
         function calculateKPI(data, field) {
             if (!data || data.length === 0) return 0;
-            return data.reduce((sum, row) => {
-                const value = parseFloat(row[field]);
-                return sum + (isNaN(value) ? 0 : value);
-            }, 0);
+            return data.reduce((sum, row) => sum + (parseFloat(row[field]) || 0), 0);
         }
 
         // Dashboard Tab
@@ -1052,13 +1045,11 @@
             if (data.length === 0) return;
 
             const dates = data.map(d => d.Date || '');
-            const spends = data.map(d => parseFloat(d['Amount Spent']) || 0);
-            const impressions = data.map(d => parseFloat(d.Impressions) || 0);
-            const clicks = data.map(d => parseFloat(d['Link Clicks']) || 0);
-            const cpms = data.map((d, i) => impressions[i] > 0 ? (spends[i] * 1000) / impressions[i] : 0);
-            const cpcs = data.map((d, i) => clicks[i] > 0 ? spends[i] / clicks[i] : 0);
-            const ctrs = data.map((d, i) => impressions[i] > 0 ? (clicks[i] / impressions[i]) * 100 : 0);
-            const hookRates = data.map(d => 0); // Daily Summary doesn't have video metrics
+            const spends = data.map(d => parseFloat(d.Spend) || 0);
+            const cpms = data.map(d => parseFloat(d.CPM) || 0);
+            const cpcs = data.map(d => parseFloat(d.CPC) || 0);
+            const ctrs = data.map(d => (parseFloat(d.CTR) || 0) * 100);
+            const hookRates = data.map(d => (parseFloat(d['3s Video Plays']) || 0) / (parseFloat(d.Impressions) || 1) * 100);
             const purchases = data.map(d => parseFloat(d.Purchases) || 0);
 
             // Daily Spend
@@ -1069,7 +1060,7 @@
                     datasets: [{
                         label: 'Spend',
                         data: spends,
-                        backgroundColor: '#209D50',
+                        backgroundColor: '#4A90D9',
                         borderRadius: 4
                     }]
                 },
@@ -1083,11 +1074,11 @@
                         y: {
                             beginAtZero: true,
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         },
                         x: {
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         }
                     }
                 }
@@ -1102,15 +1093,15 @@
                         {
                             label: 'CPM',
                             data: cpms,
-                            borderColor: '#1A7D40',
-                            backgroundColor: 'rgba(26, 125, 64, 0.1)',
+                            borderColor: '#4A90D9',
+                            backgroundColor: 'rgba(74, 144, 217, 0.1)',
                             yAxisID: 'y',
                             tension: 0.3
                         },
                         {
                             label: 'CPC',
                             data: cpcs,
-                            borderColor: '#209D50',
+                            borderColor: '#209d50',
                             backgroundColor: 'rgba(32, 157, 80, 0.1)',
                             yAxisID: 'y1',
                             tension: 0.3
@@ -1127,17 +1118,17 @@
                         y: {
                             title: { display: true, text: 'CPM', color: '#000000' },
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         },
                         y1: {
                             position: 'right',
                             title: { display: true, text: 'CPC', color: '#000000' },
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         },
                         x: {
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         }
                     }
                 }
@@ -1152,14 +1143,14 @@
                         {
                             label: 'CTR (%)',
                             data: ctrs,
-                            borderColor: '#1A7D40',
-                            backgroundColor: 'rgba(26, 125, 64, 0.1)',
+                            borderColor: '#4A90D9',
+                            backgroundColor: 'rgba(74, 144, 217, 0.1)',
                             tension: 0.3
                         },
                         {
                             label: 'Hook Rate (%)',
                             data: hookRates,
-                            borderColor: '#209D50',
+                            borderColor: '#209d50',
                             backgroundColor: 'rgba(32, 157, 80, 0.1)',
                             tension: 0.3
                         }
@@ -1175,11 +1166,11 @@
                         y: {
                             title: { display: true, text: 'Percentage (%)', color: '#000000' },
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         },
                         x: {
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         }
                     }
                 }
@@ -1193,7 +1184,7 @@
                     datasets: [{
                         label: 'Purchases',
                         data: purchases,
-                        backgroundColor: '#209D50',
+                        backgroundColor: '#209d50',
                         borderRadius: 4
                     }]
                 },
@@ -1207,11 +1198,11 @@
                         y: {
                             beginAtZero: true,
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         },
                         x: {
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         }
                     }
                 }
@@ -1227,7 +1218,7 @@
                 charts[canvasId].destroy();
             }
 
-            const bgColor = '#FFFFFF';
+            const bgColor = '#1e3048';
             canvas.style.backgroundColor = bgColor;
 
             config.options = config.options || {};
@@ -1369,7 +1360,7 @@
                         datasets: [{
                             label: 'Spend',
                             data: spends,
-                            backgroundColor: '#209D50',
+                            backgroundColor: '#4A90D9',
                             borderRadius: 4
                         }]
                     },
@@ -1381,11 +1372,11 @@
                             y: {
                                 beginAtZero: true,
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             },
                             x: {
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             }
                         }
                     }
@@ -1399,7 +1390,7 @@
                         datasets: [{
                             label: 'ROAS',
                             data: roases,
-                            backgroundColor: roases.map(r => r >= 1 ? '#209D50' : '#dc3545'),
+                            backgroundColor: roases.map(r => r >= 1 ? '#209d50' : '#ff6b6b'),
                             borderRadius: 4
                         }]
                     },
@@ -1411,11 +1402,11 @@
                             y: {
                                 beginAtZero: true,
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             },
                             x: {
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             }
                         }
                     }
@@ -1437,7 +1428,7 @@
                     const costPerLead = leads > 0 ? spend / leads : 0;
                     const thruPlays = parseFloat(row.ThruPlays) || 0;
                     const hookRate = impressions > 0 ? thruPlays / impressions : 0;
-                    const engRate = (parseFloat(row['Eng Rate']) || 0) / 100;
+                    const engagements = parseFloat(row['Engagement Rate']) || 0;
 
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -1454,7 +1445,7 @@
                         <td class="text-right">${formatNumber(leads)}</td>
                         <td class="text-right">${formatCurrency(costPerLead)}</td>
                         <td class="text-right">${formatPercentage(hookRate)}</td>
-                        <td class="text-right">${formatPercentage(engRate)}</td>
+                        <td class="text-right">${formatPercentage(engagements / 100)}</td>
                     `;
                     table.appendChild(tr);
                 });
@@ -1517,8 +1508,8 @@
                     labels: names,
                     datasets: [{
                         data: spends,
-                        backgroundColor: ['#209D50', '#1A7D40', '#6CC68A', '#333333', '#888888'],
-                        borderColor: '#FFFFFF'
+                        backgroundColor: ['#4A90D9', '#209d50', '#ff6b6b', '#ffa500', '#9d50d9'],
+                        borderColor: '#243447'
                     }]
                 },
                 options: {
@@ -1536,7 +1527,7 @@
                     datasets: [{
                         label: 'CTR (%)',
                         data: ctrs,
-                        backgroundColor: '#209D50',
+                        backgroundColor: '#4A90D9',
                         borderRadius: 4
                     }]
                 },
@@ -1548,11 +1539,11 @@
                         y: {
                             beginAtZero: true,
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         },
                         x: {
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         }
                     }
                 }
@@ -1574,7 +1565,7 @@
                 const costPerLead = leads > 0 ? spend / leads : 0;
                 const thruPlays = parseFloat(row.ThruPlays) || 0;
                 const hookRate = impressions > 0 ? thruPlays / impressions : 0;
-                const engRate = (parseFloat(row['Eng Rate']) || 0) / 100;
+                const engagementRate = parseFloat(row['Engagement Rate']) || 0;
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -1591,7 +1582,7 @@
                     <td class="text-right">${formatNumber(leads)}</td>
                     <td class="text-right">${formatCurrency(costPerLead)}</td>
                     <td class="text-right">${formatPercentage(hookRate)}</td>
-                    <td class="text-right">${formatPercentage(engRate)}</td>
+                    <td class="text-right">${formatPercentage(engagementRate / 100)}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1723,7 +1714,7 @@
                         datasets: [{
                             label: 'Hook Rate (%)',
                             data: hookRates,
-                            backgroundColor: '#209D50',
+                            backgroundColor: '#4A90D9',
                             borderRadius: 4
                         }]
                     },
@@ -1736,11 +1727,11 @@
                                 beginAtZero: true,
                                 max: 100,
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             },
                             x: {
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             }
                         }
                     }
@@ -1753,7 +1744,7 @@
                         datasets: [{
                             label: 'Engagement Rate (%)',
                             data: engagementRates,
-                            backgroundColor: '#1A7D40',
+                            backgroundColor: '#209d50',
                             borderRadius: 4
                         }]
                     },
@@ -1765,11 +1756,11 @@
                             y: {
                                 beginAtZero: true,
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             },
                             x: {
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             }
                         }
                     }
@@ -1816,7 +1807,7 @@
                         datasets: [{
                             label: 'Hook Rate (%)',
                             data: hookRates,
-                            backgroundColor: '#209D50',
+                            backgroundColor: '#4A90D9',
                             borderRadius: 4
                         }]
                     },
@@ -1829,11 +1820,11 @@
                                 beginAtZero: true,
                                 max: 100,
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             },
                             x: {
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             }
                         }
                     }
@@ -1846,7 +1837,7 @@
                         datasets: [{
                             label: 'Engagement Rate (%)',
                             data: engagementRates,
-                            backgroundColor: '#1A7D40',
+                            backgroundColor: '#209d50',
                             borderRadius: 4
                         }]
                     },
@@ -1858,11 +1849,11 @@
                             y: {
                                 beginAtZero: true,
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             },
                             x: {
                                 ticks: { color: '#000000' },
-                                grid: { color: '#E8E6E0' }
+                                grid: { color: '#3a4a5c' }
                             }
                         }
                     }
@@ -1950,13 +1941,13 @@
                         {
                             label: 'FB Revenue',
                             data: fbRevenues,
-                            backgroundColor: '#1A7D40',
+                            backgroundColor: '#4A90D9',
                             borderRadius: 4
                         },
                         {
                             label: 'SL Earnings',
                             data: slEarningsList,
-                            backgroundColor: '#209D50',
+                            backgroundColor: '#209d50',
                             borderRadius: 4
                         }
                     ]
@@ -1970,11 +1961,11 @@
                             beginAtZero: true,
                             stacked: true,
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' }
+                            grid: { color: '#3a4a5c' }
                         },
                         x: {
                             ticks: { color: '#000000' },
-                            grid: { color: '#E8E6E0' },
+                            grid: { color: '#3a4a5c' },
                             stacked: true
                         }
                     }
