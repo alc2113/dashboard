@@ -656,7 +656,7 @@
                 </div>
 
                 <div class="chart-container">
-                    <div class="chart-title">CTR & Hook Rate</div>
+                    <div class="chart-title">CTR & Creative Theme</div>
                     <canvas id="ctrHookChart"></canvas>
                 </div>
 
@@ -685,7 +685,7 @@
                                 <th class="sortable text-right" onclick="sortTable('adTable', 9)">ROAS</th>
                                 <th class="sortable text-right" onclick="sortTable('adTable', 10)">Leads</th>
                                 <th class="sortable text-right" onclick="sortTable('adTable', 11)">Cost/Lead</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 12)">Hook Rate</th>
+                                <th class="sortable text-right" onclick="sortTable('adTable', 12)">Creative Theme</th>
                                 <th class="sortable text-right" onclick="sortTable('adTable', 13)">Eng Rate</th>
                             </tr>
                         </thead>
@@ -714,9 +714,9 @@
                         <thead>
                             <tr>
                                 <th>Stage</th>
-                                <th class="text-right">Count</th>
+                                <th class="text-right">Volume</th>
                                 <th class="text-right">% of Impressions</th>
-                                <th class="text-right">Cost Per</th>
+                                <th class="text-right">Cost Per Event</th>
                             </tr>
                         </thead>
                         <tbody id="funnelTableBody"></tbody>
@@ -1019,8 +1019,14 @@ async function fetchSheetData(sheetName) {
             if (dateTo) dailyData = dailyData.filter(r => r['Date'] <= dateTo);
             allData['Daily Summary'] = dailyData;
 
-            // Copy other sheets from original
-            const otherSheets = Object.keys(originalData).filter(k => k !== 'Ad Performance' && k !== 'Daily Summary');
+            // Filter FB + SparkLoop by date too
+            let fbSlData = originalData['AA - FB + SparkLoop'] || [];
+            if (dateFrom) fbSlData = fbSlData.filter(r => r['Date'] >= dateFrom);
+            if (dateTo) fbSlData = fbSlData.filter(r => r['Date'] <= dateTo);
+            allData['AA - FB + SparkLoop'] = fbSlData;
+
+            // Copy other sheets from original (except ones we already filtered)
+            const otherSheets = Object.keys(originalData).filter(k => k !== 'Ad Performance' && k !== 'Daily Summary' && k !== 'AA - FB + SparkLoop');
             otherSheets.forEach(k => { allData[k] = originalData[k]; });
 
             // Re-render all tabs
@@ -1121,9 +1127,15 @@ async function fetchSheetData(sheetName) {
 
         // Dashboard Tab
         function updateDashboardTab() {
-            // Use Daily Summary for KPIs so date filtering works
+            // Check if any dropdown filter is active
+            const hasDropdownFilter = ['filterColor','filterTheme','filterType','filterLandingPage','filterCampaign','filterAdSet'].some(id => {
+                const el = document.getElementById(id);
+                return el && el.value;
+            });
+            // When dropdown filters are active, use filtered Ad Performance data
+            // Otherwise use Daily Summary for better date-level KPIs
             const daily = allData['Daily Summary'] || [];
-            const data = daily.length > 0 ? daily : (allData['Ad Performance'] || []);
+            const data = hasDropdownFilter ? (allData['Ad Performance'] || []) : (daily.length > 0 ? daily : (allData['Ad Performance'] || []));
 
             const spend = calculateKPI(data, 'Amount Spent');
             const impressions = calculateKPI(data, 'Impressions');
@@ -1236,7 +1248,7 @@ async function fetchSheetData(sheetName) {
                     <div class="kpi-value">${formatNumber(thruPlays)}</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-label">Hook Rate</div>
+                    <div class="kpi-label">Creative Theme</div>
                     <div class="kpi-value">${formatPercentage(hookRate)}</div>
                 </div>
                 <div class="kpi-card">
@@ -1256,7 +1268,7 @@ async function fetchSheetData(sheetName) {
             const cpms = data.map(d => parseValue(d.CPM) || 0);
             const cpcs = data.map(d => parseValue(d.CPC) || 0);
             const ctrs = data.map(d => parseValue(d.CTR));
-            const hookRates = data.map(d => parseValue(d['Hook Rate']));
+            const hookRates = data.map(d => parseValue(d['Creative Theme']));
             const purchases = data.map(d => parseValue(d.Purchases) || 0);
 
             // Daily Spend
@@ -1341,7 +1353,7 @@ async function fetchSheetData(sheetName) {
                 }
             });
 
-            // CTR & Hook Rate
+            // CTR & Creative Theme
             createChart('ctrHookChart', {
                 type: 'line',
                 data: {
@@ -1355,7 +1367,7 @@ async function fetchSheetData(sheetName) {
                             tension: 0.3
                         },
                         {
-                            label: 'Hook Rate (%)',
+                            label: 'Creative Theme (%)',
                             data: hookRates,
                             borderColor: '#209d50',
                             backgroundColor: 'rgba(32, 157, 80, 0.1)',
@@ -1532,7 +1544,7 @@ async function fetchSheetData(sheetName) {
                                         <th class="sortable text-right" onclick="sortComponentTable(this)">ROAS</th>
                                         <th class="sortable text-right" onclick="sortComponentTable(this)">Leads</th>
                                         <th class="sortable text-right" onclick="sortComponentTable(this)">Cost/Lead</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Hook Rate</th>
+                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Creative Theme</th>
                                         <th class="sortable text-right" onclick="sortComponentTable(this)">Eng Rate</th>
                                     </tr>
                                 </thead>
@@ -1697,7 +1709,7 @@ async function fetchSheetData(sheetName) {
                                     <th class="sortable text-right" onclick="sortTable('placementTable', 9)">ROAS</th>
                                     <th class="sortable text-right" onclick="sortTable('placementTable', 10)">Leads</th>
                                     <th class="sortable text-right" onclick="sortTable('placementTable', 11)">Cost/Lead</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 12)">Hook Rate</th>
+                                    <th class="sortable text-right" onclick="sortTable('placementTable', 12)">Creative Theme</th>
                                     <th class="sortable text-right" onclick="sortTable('placementTable', 13)">Eng Rate</th>
                                 </tr>
                             </thead>
@@ -1711,19 +1723,32 @@ async function fetchSheetData(sheetName) {
 
             // Spend Chart
             createChart('spendPlacementChart', {
-                type: 'doughnut',
+                type: 'bar',
                 data: {
                     labels: names,
                     datasets: [{
+                        label: 'Spend ($)',
                         data: spends,
-                        backgroundColor: ['#209D50', '#209d50', '#ff6b6b', '#ffa500', '#9d50d9'],
-                        borderColor: '#C8C5BE'
+                        backgroundColor: '#209D50',
+                        borderRadius: 4
                     }]
                 },
                 options: {
+                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#000000' } } }
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { color: '#000000' },
+                            grid: { color: '#C8C5BE' }
+                        },
+                        y: {
+                            ticks: { color: '#000000' },
+                            grid: { color: '#C8C5BE' }
+                        }
+                    }
                 }
             });
 
@@ -1812,7 +1837,7 @@ async function fetchSheetData(sheetName) {
                 tr.innerHTML = `
                     <td>${row.Stage || ''}</td>
                     <td class="text-right">${formatNumber(count)}</td>
-                    <td class="text-right">${formatPercentage(rateFromImp)}</td>
+                    <td class="text-right">${formatPercentageRaw(rateFromImp)}</td>
                     <td class="text-right">${formatCurrency(costPer)}</td>
                 `;
                 tbody.appendChild(tr);
@@ -1829,7 +1854,7 @@ async function fetchSheetData(sheetName) {
             // By Type
             if (typeData.length > 0) {
                 const names = typeData.map(d => d['Ad Type'] || d['Type'] || '');
-                const hookRates = typeData.map(d => (parseValue(d['Hook Rate']) || 0));
+                const hookRates = typeData.map(d => (parseValue(d['Creative Theme']) || 0));
                 const engagementRates = typeData.map(d => (parseValue(d['Engagement Rate']) || 0));
 
                 html += `
@@ -1837,7 +1862,7 @@ async function fetchSheetData(sheetName) {
                         <div class="component-title">By Creative Type</div>
                         <div class="charts-row">
                             <div class="chart-container">
-                                <div class="chart-title">Hook Rate by Type</div>
+                                <div class="chart-title">Creative Theme by Type</div>
                                 <canvas id="hookTypeChart"></canvas>
                             </div>
                             <div class="chart-container">
@@ -1853,7 +1878,7 @@ async function fetchSheetData(sheetName) {
                                         <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 1)">Imp</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 2)">3s Plays</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 3)">ThruPlays</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 4)">Hook Rate</th>
+                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 4)">Creative Theme</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 5)">Hold Rate</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 6)">Engagement</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 7)">Eng Rate</th>
@@ -1870,7 +1895,7 @@ async function fetchSheetData(sheetName) {
             // By Theme
             if (themeData.length > 0) {
                 const names = themeData.map(d => d.Theme || '');
-                const hookRates = themeData.map(d => (parseValue(d['Hook Rate']) || 0));
+                const hookRates = themeData.map(d => (parseValue(d['Creative Theme']) || 0));
                 const engagementRates = themeData.map(d => (parseValue(d['Engagement Rate']) || 0));
 
                 html += `
@@ -1878,7 +1903,7 @@ async function fetchSheetData(sheetName) {
                         <div class="component-title">By Theme</div>
                         <div class="charts-row">
                             <div class="chart-container">
-                                <div class="chart-title">Hook Rate by Theme</div>
+                                <div class="chart-title">Creative Theme by Theme</div>
                                 <canvas id="hookThemeChart"></canvas>
                             </div>
                             <div class="chart-container">
@@ -1894,7 +1919,7 @@ async function fetchSheetData(sheetName) {
                                         <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 1)">Imp</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 2)">3s Plays</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 3)">ThruPlays</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 4)">Hook Rate</th>
+                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 4)">Creative Theme</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 5)">Hold Rate</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 6)">Engagement</th>
                                         <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 7)">Eng Rate</th>
@@ -1913,7 +1938,7 @@ async function fetchSheetData(sheetName) {
             // Populate Type Data
             if (typeData.length > 0) {
                 const names = typeData.map(d => d['Ad Type'] || d['Type'] || '');
-                const hookRates = typeData.map(d => parseValue(d['Hook Rate']));
+                const hookRates = typeData.map(d => parseValue(d['Creative Theme']));
                 const engagementRates = typeData.map(d => parseValue(d['Engagement Rate']));
 
                 createChart('hookTypeChart', {
@@ -1921,7 +1946,7 @@ async function fetchSheetData(sheetName) {
                     data: {
                         labels: names,
                         datasets: [{
-                            label: 'Hook Rate (%)',
+                            label: 'Creative Theme (%)',
                             data: hookRates,
                             backgroundColor: '#209D50',
                             borderRadius: 4
@@ -1981,7 +2006,7 @@ async function fetchSheetData(sheetName) {
                     const impressions = parseValue(row['Impressions']) || 0;
                     const videoPlays = parseValue(row['3s Video Plays']) || 0;
                     const thruPlays = parseValue(row['ThruPlays']) || 0;
-                    const hookRate = parseValue(row['Hook Rate']) || 0;
+                    const hookRate = parseValue(row['Creative Theme']) || 0;
                     const holdRate = videoPlays > 0 ? thruPlays / videoPlays : 0;
                     const engagements = parseValue(row['Engagements']) || 0;
                     const engRate = parseValue(row['Engagement Rate']) || 0;
@@ -2006,7 +2031,7 @@ async function fetchSheetData(sheetName) {
             // Populate Theme Data
             if (themeData.length > 0) {
                 const names = themeData.map(d => d.Theme || '');
-                const hookRates = themeData.map(d => parseValue(d['Hook Rate']));
+                const hookRates = themeData.map(d => parseValue(d['Creative Theme']));
                 const engagementRates = themeData.map(d => parseValue(d['Engagement Rate']));
 
                 createChart('hookThemeChart', {
@@ -2014,7 +2039,7 @@ async function fetchSheetData(sheetName) {
                     data: {
                         labels: names,
                         datasets: [{
-                            label: 'Hook Rate (%)',
+                            label: 'Creative Theme (%)',
                             data: hookRates,
                             backgroundColor: '#209D50',
                             borderRadius: 4
@@ -2074,7 +2099,7 @@ async function fetchSheetData(sheetName) {
                     const impressions = parseValue(row['Impressions']) || 0;
                     const videoPlays = parseValue(row['3s Video Plays']) || 0;
                     const thruPlays = parseValue(row['ThruPlays']) || 0;
-                    const hookRate = parseValue(row['Hook Rate']) || 0;
+                    const hookRate = parseValue(row['Creative Theme']) || 0;
                     const holdRate = videoPlays > 0 ? thruPlays / videoPlays : 0;
                     const engagements = parseValue(row['Engagements']) || 0;
                     const engRate = parseValue(row['Engagement Rate']) || 0;
@@ -2156,7 +2181,7 @@ async function fetchSheetData(sheetName) {
                         {
                             label: 'SL Earnings',
                             data: slEarningsList,
-                            backgroundColor: '#209d50',
+                            backgroundColor: '#ffa500',
                             borderRadius: 4
                         }
                     ]
