@@ -2535,6 +2535,12 @@ function bindEvents() {
 // ========================================================================
 document.addEventListener('DOMContentLoaded', function() {
   bindEvents();
+  // Auto-bypass login when embedded (Squarespace password handles auth)
+  if (new URLSearchParams(window.location.search).get('embed') === '1') {
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    loadData();
+  }
 });
 </script>
 </body>
