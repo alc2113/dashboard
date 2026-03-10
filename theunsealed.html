@@ -270,7 +270,7 @@ tr.clickable:hover td{background:#f0f9f3;}
   font-size:22px;color:var(--border);line-height:1;
   padding:4px 0;
 }
-.funnel-stage-drop{font-size:11px;color:var(--red);margin-top:2px;font-weight:500;}
+.funnel-stage-drop{font-size:11px;color:var(--blue);margin-top:2px;font-weight:500;}
 
 /* ===== BADGES ===== */
 .badge{
@@ -407,6 +407,7 @@ tr.clickable:hover td{background:#f0f9f3;}
     <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
     <button class="tab-btn" data-tab="explorer">Ad Explorer</button>
     <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
+    <button class="tab-btn" data-tab="creative">Creative</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="sparkloop">FB + SparkLoop</button>
   </div>
@@ -515,7 +516,7 @@ tr.clickable:hover td{background:#f0f9f3;}
     </div>
     <div class="leader-cards" id="leaderCards"></div>
     <div class="chart-container">
-      <div class="chart-title">Ad Scatter Plot</div>
+      <div class="chart-title">Cost per Purchase vs Landing Page Views (bubble size = spend, green = ROAS &ge; 1x)</div>
       <div class="chart-wrap"><canvas id="chartScatter"></canvas></div>
     </div>
   </div>
@@ -569,7 +570,7 @@ tr.clickable:hover td{background:#f0f9f3;}
         <div class="chart-wrap"><canvas id="chartBreakSpend"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">ROAS by Dimension</div>
+        <div class="chart-title">Cost per Purchase by Dimension</div>
         <div class="chart-wrap"><canvas id="chartBreakROAS"></canvas></div>
       </div>
     </div>
@@ -578,6 +579,27 @@ tr.clickable:hover td{background:#f0f9f3;}
         <thead><tr id="breakdownHead"></tr></thead>
         <tbody id="breakdownBody"></tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- CREATIVE TAB -->
+  <div id="tab-creative" class="tab-content">
+    <h2 style="margin-bottom:24px">Creative Performance</h2>
+    <div style="margin-bottom:20px">
+      <h3 style="margin-bottom:12px">By Ad Type</h3>
+      <div class="chart-row">
+        <div class="chart-container"><div class="chart-title">Spend by Ad Type</div><div class="chart-wrap"><canvas id="chartCreativeTypeSpend"></canvas></div></div>
+        <div class="chart-container"><div class="chart-title">CPA by Ad Type</div><div class="chart-wrap"><canvas id="chartCreativeTypeCPA"></canvas></div></div>
+      </div>
+      <div class="table-wrap"><table id="creativeTypeTable"><thead id="creativeTypeHead"></thead><tbody id="creativeTypeBody"></tbody></table></div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:12px">By Theme</h3>
+      <div class="chart-row">
+        <div class="chart-container"><div class="chart-title">Spend by Theme</div><div class="chart-wrap"><canvas id="chartCreativeThemeSpend"></canvas></div></div>
+        <div class="chart-container"><div class="chart-title">CPA by Theme</div><div class="chart-wrap"><canvas id="chartCreativeThemeCPA"></canvas></div></div>
+      </div>
+      <div class="table-wrap"><table id="creativeThemeTable"><thead id="creativeThemeHead"></thead><tbody id="creativeThemeBody"></tbody></table></div>
     </div>
   </div>
 
@@ -1325,7 +1347,7 @@ function renderTrends() {
         {
           label: 'CPM',
           data: grouped.map(function(g) { return g.cpm; }),
-          borderColor: '#FFA500',
+          borderColor: '#1565C0',
           backgroundColor: 'transparent',
           yAxisID: 'y1',
           tension: 0.3,
@@ -1363,7 +1385,7 @@ function renderTrends() {
         {
           label: 'Purchases',
           data: grouped.map(function(g) { return g.purchases; }),
-          backgroundColor: '#9D50D9',
+          backgroundColor: '#7B1FA2',
           borderRadius: 4,
           yAxisID: 'y'
         },
@@ -1386,7 +1408,8 @@ function renderTrends() {
       scales: {
         y: {
           type: 'linear', position: 'left', beginAtZero: true,
-          title: { display: true, text: 'Purchases' }
+          title: { display: true, text: 'Purchases' },
+          ticks: { callback: function(v) { return v.toLocaleString(); } }
         },
         y1: {
           type: 'linear', position: 'right', beginAtZero: true,
@@ -1476,24 +1499,25 @@ function renderLeaderboard() {
   container.appendChild(buildCol('Top 5', top5, 'top'));
   container.appendChild(buildCol('Bottom 5', bottom5, 'bottom'));
 
-  // --- Scatter (bubble) plot ---
+  // --- Scatter (bubble) plot: CPA vs LPV ---
   var scatterData = validAds.map(function(a) {
     return {
-      x: a.spend,
-      y: a[metric],
-      r: Math.max(3, Math.min(20, Math.sqrt(a.impressions) / 50)),
-      label: a.key
+      x: a.lpv,
+      y: a.costPerPurchase,
+      r: Math.max(4, Math.min(25, Math.sqrt(a.spend) / 3)),
+      label: a.key,
+      roas: a.roas
     };
-  });
+  }).filter(function(d) { return d.y > 0 && d.y < Infinity; });
 
   createChart('chartScatter', {
     type: 'bubble',
     data: {
       datasets: [{
-        label: metricLabel(metric) + ' vs Spend',
+        label: 'Ads',
         data: scatterData,
-        backgroundColor: 'rgba(32,157,80,0.35)',
-        borderColor: '#209D50',
+        backgroundColor: scatterData.map(function(d) { return d.roas >= 1 ? 'rgba(32,157,80,0.45)' : 'rgba(229,57,53,0.45)'; }),
+        borderColor: scatterData.map(function(d) { return d.roas >= 1 ? '#209D50' : '#E53935'; }),
         borderWidth: 1
       }]
     },
@@ -1506,19 +1530,20 @@ function renderLeaderboard() {
           callbacks: {
             label: function(ctx) {
               var p = ctx.raw;
-              return p.label + ' | Spend: ' + formatCurrency(p.x) + ' | ' + metricLabel(metric) + ': ' + metricDisplay(metric, p.y);
+              return p.label + ' | LPV: ' + p.x.toLocaleString() + ' | CPA: $' + p.y.toFixed(2) + ' | ROAS: ' + p.roas.toFixed(2) + 'x';
             }
           }
         }
       },
       scales: {
         x: {
-          title: { display: true, text: 'Spend ($)' },
-          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
+          title: { display: true, text: 'Landing Page Views' },
+          ticks: { callback: function(v) { return v.toLocaleString(); } }
         },
         y: {
-          title: { display: true, text: metricLabel(metric) },
-          beginAtZero: true
+          title: { display: true, text: 'Cost per Purchase ($)' },
+          beginAtZero: true,
+          ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
         }
       }
     }
@@ -1534,6 +1559,12 @@ function renderExplorer() {
 
   var byAd = groupBy(filtered, function(r) { return r.adName; }).filter(function(a) {
     return a.key && a.key !== '(none)';
+  });
+
+  // Look up adId for each ad
+  var adIdLookup = {};
+  filtered.forEach(function(r) {
+    if (r.adName && r.adId) adIdLookup[r.adName] = r.adId;
   });
 
   if (search) {
@@ -1560,8 +1591,10 @@ function renderExplorer() {
     var tr = document.createElement('tr');
     tr.className = 'clickable';
     var displayName = a.key.length > 65 ? a.key.substring(0, 62) + '...' : a.key;
+    var adId = adIdLookup[a.key] || '';
+    var adLink = adId ? '<a href="https://www.facebook.com/ads/library/?id=' + adId + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#4A90D9;text-decoration:underline">' + escHtml(displayName) + '</a>' : escHtml(displayName);
     tr.innerHTML =
-      '<td title="' + escHtml(a.key) + '">' + escHtml(displayName) + '</td>' +
+      '<td title="' + escHtml(a.key) + '">' + adLink + '</td>' +
       '<td>' + formatCurrency(a.spend) + '</td>' +
       '<td>' + formatNumber(a.impressions) + '</td>' +
       '<td>' + formatNumber(a.clicks) + '</td>' +
@@ -1779,14 +1812,14 @@ function renderBreakdowns() {
     }
   });
 
-  // ROAS horizontal bar
+  // Cost per Purchase horizontal bar
   createChart('chartBreakROAS', {
     type: 'bar',
     data: {
       labels: chartLabels,
       datasets: [{
-        label: 'ROAS',
-        data: chartSorted.map(function(g) { return g.roas; }),
+        label: 'Cost per Purchase',
+        data: chartSorted.map(function(g) { return g.costPerPurchase; }),
         backgroundColor: chartColors,
         borderRadius: 4
       }]
@@ -1799,7 +1832,7 @@ function renderBreakdowns() {
       scales: {
         x: {
           beginAtZero: true,
-          ticks: { callback: function(v) { return v.toFixed(1) + 'x'; } }
+          ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
         }
       }
     }
@@ -1826,6 +1859,9 @@ function renderBreakdowns() {
     '<th data-col="purchases">Purch</th>' +
     '<th data-col="revenue">Revenue</th>' +
     '<th data-col="roas">ROAS</th>' +
+    '<th data-col="costPerPurchase">CPA</th>' +
+    '<th data-col="atc">ATC</th>' +
+    '<th data-col="costPerATC">Cost/ATC</th>' +
     '<th data-col="leads">Leads</th>' +
     '<th data-col="costPerLead">CPL</th>' +
     '<th data-col="hookRate">Hook%</th>' +
@@ -1845,6 +1881,7 @@ function renderBreakdowns() {
   var tbody = document.getElementById('breakdownBody');
   tbody.innerHTML = '';
   tableSorted.forEach(function(g) {
+    var costPerATC = g.atc > 0 ? g.spend / g.atc : 0;
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td title="' + escHtml(g.key) + '">' + escHtml(g.key.length > 50 ? g.key.substring(0, 47) + '...' : g.key) + '</td>' +
@@ -1857,6 +1894,9 @@ function renderBreakdowns() {
       '<td>' + formatNumber(g.purchases) + '</td>' +
       '<td>' + formatCurrency(g.revenue) + '</td>' +
       '<td>' + formatROAS(g.roas) + '</td>' +
+      '<td>' + formatCurrency(g.costPerPurchase) + '</td>' +
+      '<td>' + formatNumber(g.atc) + '</td>' +
+      '<td>' + formatCurrency(costPerATC) + '</td>' +
       '<td>' + formatNumber(g.leads) + '</td>' +
       '<td>' + formatCurrency(g.costPerLead) + '</td>' +
       '<td>' + formatPct(g.hookRate) + '</td>' +
@@ -1920,7 +1960,8 @@ function renderFunnel() {
 
     var dropHtml = '';
     if (i > 0) {
-      dropHtml = '<div class="funnel-stage-drop">' + formatPct(dropPct) + ' drop-off from previous</div>';
+      var convRate = (stages[i - 1].value > 0) ? s.value / stages[i - 1].value : 0;
+      dropHtml = '<div class="funnel-stage-drop">' + formatPct(convRate) + ' conversion from ' + stages[i-1].label + '</div>';
     }
 
     div.innerHTML =
@@ -2105,6 +2146,71 @@ function renderSparkLoop() {
 }
 
 // ========================================================================
+// TAB: CREATIVE PERFORMANCE
+// ========================================================================
+function renderCreative() {
+  var filtered = getFilteredData();
+
+  function renderCreativeSection(groupKeyFn, groupLabel, spendChartId, cpaChartId, headId, bodyId) {
+    var grouped = groupBy(filtered, groupKeyFn).filter(function(g) {
+      return g.key && g.key !== '(none)' && g.key.trim() !== '';
+    });
+    var sorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; });
+
+    var chartColors = [];
+    for (var i = 0; i < sorted.length; i++) chartColors.push(COLORS[i % COLORS.length]);
+    var labels = sorted.map(function(g) { return g.key; });
+
+    createChart(spendChartId, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Spend', data: sorted.map(function(g) { return g.spend; }), backgroundColor: chartColors, borderRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } } }
+    });
+
+    createChart(cpaChartId, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Cost/Purchase', data: sorted.map(function(g) { return g.costPerPurchase; }), backgroundColor: chartColors, borderRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(2); } } } } }
+    });
+
+    var head = document.getElementById(headId);
+    head.innerHTML = '<tr><th>' + groupLabel + '</th><th>Spend</th><th>Imp</th><th>Clicks</th><th>CTR</th><th>Purchases</th><th>Revenue</th><th>ROAS</th><th>CPA</th><th>ATC</th><th>Cost/ATC</th><th>LPV</th><th>Hook%</th><th>Eng%</th></tr>';
+
+    var body = document.getElementById(bodyId);
+    body.innerHTML = '';
+    sorted.forEach(function(g) {
+      var costPerATC = g.atc > 0 ? g.spend / g.atc : 0;
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + escHtml(g.key) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + '</td>' +
+        '<td>' + formatNumber(g.impressions) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + '</td>' +
+        '<td>' + formatPct(g.ctr) + '</td>' +
+        '<td>' + formatNumber(g.purchases) + '</td>' +
+        '<td>' + formatCurrency(g.revenue) + '</td>' +
+        '<td>' + formatROAS(g.roas) + '</td>' +
+        '<td>' + formatCurrency(g.costPerPurchase) + '</td>' +
+        '<td>' + formatNumber(g.atc) + '</td>' +
+        '<td>' + formatCurrency(costPerATC) + '</td>' +
+        '<td>' + formatNumber(g.lpv) + '</td>' +
+        '<td>' + formatPct(g.hookRate) + '</td>' +
+        '<td>' + formatPct(g.engRate) + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  renderCreativeSection(
+    function(r) { return r.type || '(none)'; }, 'Ad Type',
+    'chartCreativeTypeSpend', 'chartCreativeTypeCPA', 'creativeTypeHead', 'creativeTypeBody'
+  );
+  renderCreativeSection(
+    function(r) { return r.theme || '(none)'; }, 'Theme',
+    'chartCreativeThemeSpend', 'chartCreativeThemeCPA', 'creativeThemeHead', 'creativeThemeBody'
+  );
+}
+
+// ========================================================================
 // RENDER CURRENT TAB
 // ========================================================================
 function renderCurrentTab() {
@@ -2114,6 +2220,7 @@ function renderCurrentTab() {
     case 'leaderboard': renderLeaderboard(); break;
     case 'explorer':    renderExplorer(); break;
     case 'breakdowns':  renderBreakdowns(); break;
+    case 'creative':    renderCreative(); break;
     case 'funnel':      renderFunnel(); break;
     case 'sparkloop':   renderSparkLoop(); break;
   }
