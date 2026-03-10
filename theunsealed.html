@@ -1,2260 +1,2393 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cassa Strategy - Meta Ads Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background-color: #E1DFD9;
-            color: #000000;
-            line-height: 1.6;
-        }
-
-        /* Login Page */
-        .login-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, #E1DFD9 0%, #D5D2CB 100%);
-        }
-
-        .login-box {
-            background-color: #FFFFFF;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .login-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 30px;
-            gap: 10px;
-        }
-
-        .login-logo svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        .login-logo h1 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #000000;
-        }
-
-        .login-box h2 {
-            font-size: 24px;
-            margin-bottom: 30px;
-            text-align: center;
-            color: #000000;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            color: #000000;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #C8C5BE;
-            border-radius: 6px;
-            background-color: #E1DFD9;
-            color: #000000;
-            font-size: 14px;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #209d50;
-            box-shadow: 0 0 0 3px rgba(32, 157, 80, 0.1);
-        }
-
-        .login-button {
-            width: 100%;
-            padding: 12px;
-            background-color: #209d50;
-            color: #000000;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .login-button:hover {
-            background-color: #1a7d40;
-        }
-
-        .login-error {
-            color: #ff6b6b;
-            font-size: 14px;
-            margin-top: 15px;
-            text-align: center;
-        }
-
-        /* Dashboard */
-        .dashboard-container {
-            min-height: 100vh;
-            display: none;
-        }
-
-        .dashboard-container.active {
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Header */
-        .header {
-            background-color: #FFFFFF;
-            border-bottom: 1px solid #C8C5BE;
-            padding: 20px 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .header-logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            text-decoration: none;
-            color: #000000;
-        }
-
-        .header-logo svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        .header-logo-text {
-            font-size: 18px;
-            font-weight: 600;
-            color: #000000;
-        }
-
-        .client-name {
-            font-size: 16px;
-            color: #6B6862;
-            border-left: 1px solid #C8C5BE;
-            padding-left: 20px;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .refresh-button {
-            background-color: #209d50;
-            color: #000000;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-
-        .refresh-button:hover {
-            background-color: #1a7d40;
-        }
-
-        .refresh-button.loading {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .logout-button {
-            background-color: transparent;
-            color: #6B6862;
-            border: 1px solid #C8C5BE;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .logout-button:hover {
-            color: #000000;
-            border-color: #000000;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 0;
-            background-color: #FFFFFF;
-            border-bottom: 1px solid #C8C5BE;
-            overflow-x: auto;
-            padding: 0 30px;
-        }
-
-        .tab {
-            padding: 15px 20px;
-            background: none;
-            border: none;
-            color: #6B6862;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-
-        .tab:hover {
-            color: #000000;
-        }
-
-        .tab.active {
-            color: #209d50;
-            border-bottom-color: #209d50;
-        }
-
-        /* Tab Content */
-        .tab-content {
-            display: none;
-            flex: 1;
-            padding: 30px;
-            overflow-y: auto;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* Loading Spinner */
-        .loading {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #C8C5BE;
-            border-top-color: #209d50;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* KPI Cards */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .kpi-card {
-            background-color: #FFFFFF;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #C8C5BE;
-        }
-
-        .kpi-label {
-            font-size: 13px;
-            color: #6B6862;
-            margin-bottom: 10px;
-            font-weight: 500;
-        }
-
-        .kpi-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #000000;
-            word-break: break-word;
-        }
-
-        .kpi-value.positive {
-            color: #209d50;
-        }
-
-        .kpi-value.negative {
-            color: #ff6b6b;
-        }
-
-        /* Chart Container */
-        .chart-container {
-            background-color: #FFFFFF;
-            padding: 20px;
-            border-radius: 8px;
-            border: 1px solid #C8C5BE;
-            margin-bottom: 30px;
-            position: relative;
-            height: 400px;
-        }
-
-        .chart-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #000000;
-            margin-bottom: 15px;
-        }
-
-        /* Tables */
-        .table-container {
-            background-color: #FFFFFF;
-            border-radius: 8px;
-            border: 1px solid #C8C5BE;
-            overflow: hidden;
-            margin-bottom: 30px;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
-        thead {
-            background-color: #F5F4F1;
-        }
-
-        th {
-            padding: 15px;
-            text-align: left;
-            color: #000000;
-            font-weight: 600;
-            border-bottom: 1px solid #C8C5BE;
-            cursor: pointer;
-            user-select: none;
-            white-space: nowrap;
-        }
-
-        th:hover {
-            background-color: #FFFFFF;
-        }
-
-        th.sortable::after {
-            content: ' ⇅';
-            opacity: 0.3;
-            font-size: 12px;
-        }
-
-        th.sorted-asc::after {
-            content: ' ↑';
-            opacity: 1;
-            color: #209d50;
-        }
-
-        th.sorted-desc::after {
-            content: ' ↓';
-            opacity: 1;
-            color: #209d50;
-        }
-
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #FFFFFF;
-            color: #000000;
-            white-space: nowrap;
-        }
-
-        tbody tr:hover {
-            background-color: #F5F4F1;
-        }
-
-        tbody tr:nth-child(even) {
-            background-color: #FFFFFF;
-        }
-
-        /* Component Sections */
-        .component-section {
-            margin-bottom: 40px;
-        }
-
-        .component-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #000000;
-            margin-bottom: 20px;
-        }
-
-        .charts-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 1200px) {
-            .charts-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Filter Bar */
-        .filter-bar {
-            background-color: #FFFFFF;
-            border-bottom: 1px solid #C8C5BE;
-            padding: 12px 30px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            align-items: flex-end;
-        }
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 3px;
-        }
-        .filter-group label {
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: #6B6862;
-            letter-spacing: 0.5px;
-        }
-        .filter-group select,
-        .filter-group input[type="date"] {
-            padding: 6px 10px;
-            border: 1px solid #C8C5BE;
-            border-radius: 6px;
-            background-color: #F5F4F1;
-            color: #000000;
-            font-size: 13px;
-            min-width: 110px;
-            cursor: pointer;
-        }
-        .filter-group select:focus,
-        .filter-group input[type="date"]:focus {
-            outline: none;
-            border-color: #209D50;
-        }
-        .reset-button {
-            padding: 6px 16px;
-            background-color: #FFFFFF;
-            border: 1px solid #C8C5BE;
-            border-radius: 6px;
-            color: #000000;
-            font-size: 13px;
-            cursor: pointer;
-            font-weight: 500;
-            margin-left: auto;
-        }
-        .reset-button:hover {
-            background-color: #F5F4F1;
-        }
-
-        /* Footer */
-        .footer {
-            background-color: #FFFFFF;
-            border-top: 1px solid #C8C5BE;
-            padding: 15px 30px;
-            font-size: 13px;
-            color: #6B6862;
-            text-align: right;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 15px;
-            }
-
-            .header-right {
-                width: 100%;
-                justify-content: flex-end;
-            }
-
-            .tabs {
-                padding: 0;
-            }
-
-            .tab {
-                padding: 12px 15px;
-                font-size: 12px;
-            }
-
-            .kpi-grid {
-                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            }
-
-            .kpi-value {
-                font-size: 20px;
-            }
-
-            .main-content {
-                padding: 15px;
-            }
-        }
-
-        /* Utility */
-        .text-right {
-            text-align: right;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Unsealed — Meta Ads Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:#E1DFD9;
+  color:#1a1a1a;
+  min-height:100vh;
+  line-height:1.5;
+}
+:root{
+  --primary:#209D50;
+  --primary-dark:#1a8a44;
+  --bg:#E1DFD9;
+  --card:#ffffff;
+  --border:#C8C5BE;
+  --header-bg:#F5F4F1;
+  --text:#1a1a1a;
+  --text-muted:#666;
+  --green:#209D50;
+  --red:#E53935;
+  --blue:#4A90D9;
+  --orange:#FFA500;
+  --purple:#9D50D9;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:#aaa;}
+
+/* ===== LOGIN PAGE ===== */
+.login-wrap{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;background:#E1DFD9;
+}
+.login-card{
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:48px 40px;width:400px;max-width:90vw;text-align:center;
+  box-shadow:0 4px 24px rgba(0,0,0,0.08);
+}
+.login-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;}
+.login-logo svg{width:36px;height:36px;}
+.login-brand{font-size:20px;font-weight:700;letter-spacing:2.5px;color:var(--primary);}
+.login-sub{font-size:13px;color:var(--text-muted);margin-bottom:32px;}
+.login-client{font-size:17px;font-weight:600;margin-bottom:28px;color:var(--text);}
+.login-input{
+  width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:8px;
+  font-size:15px;outline:none;transition:border 0.2s;
+}
+.login-input:focus{border-color:var(--primary);}
+.login-btn{
+  width:100%;padding:12px;background:var(--primary);color:#fff;border:none;
+  border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;
+  transition:background 0.2s;
+}
+.login-btn:hover{background:var(--primary-dark);}
+.login-err{color:var(--red);font-size:13px;margin-top:12px;min-height:20px;}
+
+/* ===== HEADER ===== */
+.header{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 24px;position:sticky;top:0;z-index:100;display:none;
+}
+.header-inner{
+  max-width:1440px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;height:56px;
+}
+.header-left{display:flex;align-items:center;gap:10px;}
+.header-left svg{width:28px;height:28px;}
+.header-brand{font-size:14px;font-weight:700;letter-spacing:1.5px;color:var(--primary);}
+.header-client{
+  font-size:18px;font-weight:700;margin-left:16px;padding-left:16px;
+  border-left:1px solid var(--border);
+}
+.header-right{font-size:13px;color:var(--text-muted);}
+
+/* ===== TABS ===== */
+.tabs-bar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 24px;display:none;
+}
+.tabs-inner{
+  max-width:1440px;margin:0 auto;display:flex;gap:0;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.tab-btn{
+  padding:12px 20px;font-size:14px;font-weight:500;border:none;background:none;
+  cursor:pointer;border-bottom:2px solid transparent;color:var(--text-muted);
+  white-space:nowrap;transition:color 0.2s,border-color 0.2s;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+
+/* ===== FILTER BAR ===== */
+.filter-bar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:12px 24px;display:none;
+}
+.filter-inner{
+  max-width:1440px;margin:0 auto;display:flex;flex-wrap:wrap;
+  align-items:center;gap:10px;
+}
+.filter-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.filter-label{
+  font-size:11px;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.5px;
+}
+.filter-input{
+  padding:6px 10px;border:1px solid var(--border);border-radius:6px;
+  font-size:13px;background:#fff;outline:none;
+}
+.filter-input:focus{border-color:var(--primary);}
+.filter-select{
+  padding:6px 10px;border:1px solid var(--border);border-radius:6px;
+  font-size:13px;background:#fff;outline:none;max-width:160px;
+}
+.filter-select:focus{border-color:var(--primary);}
+.preset-btn{
+  padding:4px 12px;border:1px solid var(--border);border-radius:12px;
+  font-size:12px;background:#fff;cursor:pointer;transition:all 0.2s;white-space:nowrap;
+}
+.preset-btn:hover,.preset-btn.active{
+  background:var(--primary);color:#fff;border-color:var(--primary);
+}
+.compare-label{
+  display:flex;align-items:center;gap:5px;font-size:13px;
+  cursor:pointer;white-space:nowrap;
+}
+.compare-label input{accent-color:var(--primary);}
+.reset-btn{
+  padding:4px 14px;border:1px solid var(--red);border-radius:6px;
+  font-size:12px;color:var(--red);background:#fff;cursor:pointer;transition:all 0.2s;
+}
+.reset-btn:hover{background:var(--red);color:#fff;}
+
+/* ===== MAIN CONTENT ===== */
+.main{max-width:1440px;margin:0 auto;padding:24px;display:none;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ===== LOADING ===== */
+.loading-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(225,223,217,0.92);display:flex;align-items:center;
+  justify-content:center;z-index:200;
+}
+.loading-spinner{text-align:center;}
+.loading-spinner .spin{
+  width:48px;height:48px;border:4px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin 0.8s linear infinite;margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:14px;color:var(--text-muted);}
+
+/* ===== KPI CARDS ===== */
+.kpi-section{margin-bottom:24px;}
+.kpi-section-title{
+  font-size:13px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1px;color:var(--text-muted);margin-bottom:10px;
+}
+.kpi-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;
+}
+.kpi-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:16px;
+}
+.kpi-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-bottom:4px;}
+.kpi-value{font-size:22px;font-weight:700;line-height:1.2;}
+.kpi-delta{font-size:12px;margin-top:4px;font-weight:600;}
+.kpi-delta.good{color:var(--green);}
+.kpi-delta.bad{color:var(--red);}
+.kpi-delta.neutral{color:var(--text-muted);}
+
+/* ===== CHARTS ===== */
+.chart-container{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:20px;margin-bottom:16px;
+}
+.chart-title{font-size:14px;font-weight:600;margin-bottom:12px;}
+.chart-wrap{position:relative;height:320px;}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+
+/* ===== TOGGLE BUTTONS ===== */
+.toggle-group{display:flex;gap:0;margin-bottom:16px;}
+.toggle-btn{
+  padding:6px 16px;border:1px solid var(--border);font-size:13px;
+  cursor:pointer;background:#fff;transition:all 0.2s;
+}
+.toggle-btn:first-child{border-radius:6px 0 0 6px;}
+.toggle-btn:last-child{border-radius:0 6px 6px 0;}
+.toggle-btn:not(:first-child){border-left:none;}
+.toggle-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+/* ===== TABLES ===== */
+.table-wrap{
+  overflow-x:auto;background:var(--card);
+  border:1px solid var(--border);border-radius:8px;
+}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{
+  background:var(--header-bg);padding:10px 12px;text-align:left;
+  font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;
+  border-bottom:1px solid var(--border);position:relative;
+}
+th:hover{background:#eae8e3;}
+th .sort-arrow{font-size:10px;margin-left:4px;color:var(--text-muted);}
+td{padding:8px 12px;border-bottom:1px solid #f0efec;white-space:nowrap;}
+tr:hover td{background:#fafaf8;}
+tr.clickable{cursor:pointer;}
+tr.clickable:hover td{background:#f0f9f3;}
+
+/* ===== LEADERBOARD ===== */
+.leader-cards{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
+.leader-col-title{font-size:14px;font-weight:700;margin-bottom:10px;}
+.leader-col-title.top{color:var(--green);}
+.leader-col-title.bottom{color:var(--red);}
+.leader-card{
+  background:var(--card);border:2px solid var(--border);
+  border-radius:8px;padding:14px;margin-bottom:8px;
+}
+.leader-card.top{border-color:var(--green);}
+.leader-card.bottom{border-color:var(--red);}
+.leader-card-rank{font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px;}
+.leader-card-name{
+  font-size:13px;font-weight:600;margin-bottom:6px;
+  word-break:break-word;white-space:normal;
+}
+.leader-card-stats{display:flex;gap:12px;flex-wrap:wrap;}
+.leader-card-stat{font-size:12px;color:var(--text-muted);}
+.leader-card-stat span{font-weight:600;color:var(--text);}
+.leader-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px;}
+.leader-controls label{font-size:13px;font-weight:500;}
+.leader-controls select,.leader-controls input{
+  padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;
+}
+
+/* ===== SEARCH BOX ===== */
+.search-box{
+  padding:10px 16px;border:1px solid var(--border);border-radius:8px;
+  font-size:14px;width:100%;max-width:400px;margin-bottom:16px;outline:none;
+}
+.search-box:focus{border-color:var(--primary);}
+
+/* ===== FUNNEL ===== */
+.funnel-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:0;
+  margin-bottom:24px;padding:20px 0;
+}
+.funnel-stage{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:16px 24px;text-align:center;transition:all 0.2s;
+}
+.funnel-stage:hover{box-shadow:0 2px 12px rgba(0,0,0,0.08);}
+.funnel-stage-label{font-size:14px;font-weight:700;margin-bottom:4px;}
+.funnel-stage-count{font-size:24px;font-weight:700;color:var(--primary);}
+.funnel-stage-pct{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.funnel-stage-cost{font-size:12px;color:var(--text-muted);}
+.funnel-arrow{
+  font-size:22px;color:var(--border);line-height:1;
+  padding:4px 0;
+}
+.funnel-stage-drop{font-size:11px;color:var(--red);margin-top:2px;font-weight:500;}
+
+/* ===== BADGES ===== */
+.badge{
+  display:inline-block;padding:2px 10px;border-radius:10px;
+  font-size:11px;font-weight:500;margin-right:4px;margin-bottom:4px;
+}
+.badge-color{background:#e8f5e9;color:#2e7d32;}
+.badge-theme{background:#e3f2fd;color:#1565c0;}
+.badge-type{background:#fff3e0;color:#e65100;}
+.badge-lp{background:#f3e5f5;color:#7b1fa2;}
+.badge-tag{background:#fce4ec;color:#c62828;}
+
+/* ===== MODAL ===== */
+.modal-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(0,0,0,0.4);z-index:300;display:none;
+  justify-content:flex-end;
+}
+.modal-overlay.open{display:flex;}
+.modal-panel{
+  width:720px;max-width:100vw;background:#fff;height:100%;
+  overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,0.15);
+  animation:slideIn 0.25s ease-out;
+}
+@keyframes slideIn{from{transform:translateX(100%);}to{transform:translateX(0);}}
+.modal-header{
+  padding:20px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;
+  position:sticky;top:0;background:#fff;z-index:1;
+}
+.modal-title{font-size:16px;font-weight:700;max-width:600px;word-break:break-word;}
+.modal-subtitle{font-size:13px;color:var(--text-muted);margin-top:4px;}
+.modal-close{
+  width:32px;height:32px;border:none;background:var(--header-bg);
+  border-radius:6px;font-size:18px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.modal-close:hover{background:#ddd;}
+.modal-body{padding:24px;}
+.modal-kpis{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+  gap:10px;margin-bottom:20px;
+}
+.modal-kpi{
+  background:var(--header-bg);border-radius:8px;padding:12px;text-align:center;
+}
+.modal-kpi-label{font-size:11px;color:var(--text-muted);margin-bottom:2px;}
+.modal-kpi-value{font-size:18px;font-weight:700;}
+
+/* ===== ERROR STATE ===== */
+.error-card{
+  background:#fff;border:1px solid var(--red);border-radius:12px;
+  padding:32px;text-align:center;max-width:480px;
+}
+.error-card h3{color:var(--red);margin-bottom:8px;}
+.error-card p{color:var(--text-muted);font-size:14px;margin-bottom:16px;}
+.error-card button{
+  padding:8px 24px;border:1px solid var(--border);border-radius:6px;
+  background:#fff;cursor:pointer;font-size:14px;
+}
+.error-card button:hover{background:var(--header-bg);}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:900px){
+  .chart-row{grid-template-columns:1fr;}
+  .leader-cards{grid-template-columns:1fr;}
+  .kpi-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+  .modal-panel{width:100vw;}
+}
+@media(max-width:600px){
+  .header-inner{flex-direction:column;height:auto;padding:10px 0;gap:4px;}
+  .header-client{margin-left:0;padding-left:0;border-left:none;}
+  .filter-inner{flex-direction:column;align-items:flex-start;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .modal-kpis{grid-template-columns:repeat(auto-fill,minmax(100px,1fr));}
+  .login-card{padding:32px 24px;}
+}
+</style>
 </head>
 <body>
-    <!-- Login Page -->
-    <div id="loginPage" class="login-container">
-        <div class="login-box">
-            <div class="login-logo">
-                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAapklEQVR42u2ceZhV1ZX2f2vvc25NjDIIAZxi2022gIkUyqAx9hcpbJNPIyqgSef5vrRGmlE0sTXp2N3phMGoQZQojpgoouCUJ4iz6YSSKgykny9DdwYx4hBAxoKqe+/Za31/7HOrChKRCIjpeOq5T90H6t577jp7rfW+73r3ETMzPjje9eE+CMEHAfwggB8E8IMAfnD8jwig7fbc2v/BsA8CWDkCiqKdgtPxKKMEAqaGGJgYAUUM1PL/6/wiND6xP6MAOgRnAhK/twBiipiR4MBADEoC//bDu/nmi/eRCTgVxFwMmMTAKQ4jvtehOpL3+gPFpH3lCYDFZyaAKc48JW9c33gvd6x9FA+41DH9pIkkATIf8CgmCWLxPewQxvA9D2Aev92CpwJmhjeh6AJzVt7LwrVLkTpDgmNB4xIkCFOHX4g3I4jHI0jHVeBQhTA5ZGvfDJM8j4PhRSg5Ze7Ke7hz7cOEKqNf2hVcygbbwYLV92MSmFY/gVRdLHvOYj3FHbIVeEi6sJi191YzwxmUXOCbK+/h7pceRxPPQOnBjQ1X8fUzp9Jb6mithgXNDzK/aTHBKSpGwHC4Q9qj5b0WExTy2mVkYiTqCC7wjZX3cOt/PgKJcaT05etnT+e0wwcD8OSrq/ji0/PZHLZTVXRcevJ5TBs2Ma7ESv2T/0ErsDNU6QxTFMiw+GPg85U3u3FRTNtC4EO+J3P+bganHT6YsmUELXLmoJOZdeZ0ekk3igW4efWDzFt9H5lTRA0zqwAcOnCO/j64/FMJoEN2q0qSp60zIzUBFAGCCNetvIvb1jxGseA5ynozZ+xMRvY7Ac2UxDziEsqqNAw4iVkNk+hjtQTvuKn5QW5cfT/BC0EibtTKpVJBcYQ/2RS2jo4ru8Hl2HjFHGWnzGq8mzvWPEIoCANcL+aMncFp/QfTZoECHqcx+uqMYEoqnqdeXcVVT8xjg2uh0CZMOvl8pg+biA+C+rhhDNcJ4ihyEEv9QQmgsQdUESHkbcMbBFFmv3gvt61ZRigIg6Qnc86axqn9PkIIinOVLy/xPTRGQ4PgEmH5+ka+unw+G2hBMphWP57Jw8YjpiAOV4E4kIPuP9kAWmQKlndbhLJTrmu8m4VrH6WUwgDfg7ljZ3JavyGUNcOLB7W4el0OFRVEBBFBVfHe8cT6lVz9xM1s1l34YEwadiHT6i8gMZejwgiT7KCuv4MYwApUCeIQzaGKV65rXMSCHz+KFWCQ68acs67g1P5D0BDAeUQMeZuWaiiGg0xxiWP5+lVcteIm3rKdFNqMqcMvYMrwC3MeLXiEgOD/1AKoEeMCSiZCokLmArMaF3HbmqVQk3CE68usMycxuv+JaBbAg+BoyVpY/LOn2VZs5aITPsG2YisP/eIZju3el3P+6kwS50lUUDVc4vjeayv5lydvZaNtxe8U/nHEBUwZNpEkx0sR4hw8jPOuV3dA2yWnPaFKCUXNMBOSHKrMabyX2196BNe1mlJbkU8cNyIGTwOSeBQhE2NzuY35P1rKNc/dyu93beIXG17hK08tYOFL36NoGQ5QAUkEC4GzB4zk5IHHUyy24romzFu1hJua76Ns4okpASXbQ8WxA4Zv3jWVkxwQs0fDEIRC3gvFHCVnzHrxLm5f8zhJrcdlShocVeow60hXn7+mh6/l84PPZkPbZgZUH0Zdz4QvDp/Isb0HUYPHqetgvuLIzEgtRcxFLFhjzG9agpkwY/iFOHURvO/BmW03Ln0IAujMvS1UqSzuojdmv7iI29c+ilUrtVINTtgpOwmiIJKLUpXcF7oVavn8qRdgQDXG4V368JWGKQiKtwQzMNfp00QwPGVz9E6qsWBsL7SyYPWDBK/MPGkiPhNCojgJEPWdAxK8/Uphk07Ba1dVXNTuAHXK3JWLuKdpGSaOo30fpn/8M3RPupGpgUSoLUgMCmBOeKu4hRnf+xrnPXQ5v9r+Ks2v/oxP3TeDf35uPkUtEiXDkAfU8ChelCxkHFPdh6vO+Bx9pTtZknFz0xJubH6AkMSmFnL9UA6g0u32q9NWnonkcMNIVCiJMrvxTm7/yVLK1cKHkl7MabiSjw04mXJZcRJBsmGYxt6aYZQxdmXCT119heZ1P2VHscyWXS00/+Yn/PL1Vwg5HBKNCo5prLkqhohSKkPDoNF8vWEKvaUHWcG4uXkJNzZ/lyCGV49oftaiBySA+1UDc1pBQHKqBmWfMbfxO9y65ntolXKE78l1Y2dyyuF/w89aXiXJ0WEEy4L4eCliDVT613TjX8ZOZptu5dge/elf153bJ15Nv5rDqUuqIkUU334JLa+FgoF4XDnjEwNPQs+ezDXL57Mp2cotTQ/gBKYOm4Bo1B99Tij3N5OT/V+BOcNAyHxgduO9LHzpEZKahG6+jsmf+Bx/0esYNrRt4a1sK0FK4IwdVmRjqYWitoIkudRfwsRzwpF/iUMplkpI6jnjmFGg8GZxC4KjJAExxasD79llrRHzWeD18jZaQ8ZH+vwNkz9+EXOfv4OdSZlbGh8Cg0n1EyiYYDj8AaiBe8WBgZDTIteuJFeCl1ERBuLLy6Jc13gP316zDNctJSlDF9eFvjU9KZdKVJHSRpF1YSMlC/R13emTdMM0YJLLD6aYEGmfQUoUCIIJOCU1cOrJkoAZOEtIRHkj28S2chu1Ukuf2h4U1CEBXLXjldIGdmkbiRXIdpaYMvx8Zgy7OILtvDu7yphBLK5Jk33GjnsNoJLh8GD5zCKfkBmuIofi1BG8MqfxLhaseRxqoFjaQRpSVBNK1goO1BxOhJraGgrmKZXKFMvFnPTmsxIBzQdGe5DBqLggJMGhTlERlBSvGVU1njSthjK0tbZSljikygSqJI0rTYSqQjUUM6bUX8Dl9RehaqiDJF8IHYhCDswK/H1VpTKOzDGcQdkbc1Yt4o6XllFKhSPTvnzs6KEkmqCSIJJFfOgSNmc7eGFdEztKuxja+y848fDjKIUMp5G3qsTO2n5yOf+tnIMzh5hHJVYvtQTzxqrXfswvtq2nf1UvzjiqnoKkOLM4FjXBm6MobTz3m5d4I2wlCTBlWFRxXABzhoiheSWOEEcraHc/aqB0np6BSUxlxUiAzBmzGu9h4dplaMFxhPRg9ph/ZHT/EzvU506n8N+l37H2t/+PN7OtnHLkEP6p/jNk+UlUWMwfy1sDcNUz3+LHG35Fnx6HMfP0z9KHrrt97cp3+P6xP+LqJ25jQ2EL81bfhyExiGZkOaQX++NmVMk7ctpKGCoDIIzEhJILXLfybu5c+yha5RjgejB77BWM7jcY1XKk8CKR9BmIeMqlNsxCrDOlgJnFYmeCoDgnecL+IW3H2lc/okQM41AvZBowZ5gpUsogNYIZLhdtvRmBjLMGjsKNKXD1kzeyxbcwv+kBMGFK/QWk1lEu1MXPcfuLAwXNQXLuATDDqVF2GXMbF3Hb2u9FPc8dxtyxV3Bqv8FopjhJEXF5CnoQnz9PCA6CM1yeng4BJ5h3IILk16rjIfnDIZX3wUP7Z7iovFjEoEn+uc7F1zgR1AnmUlSVhkH1fH3MNHpKd0IBFjQ9yLzmxagYzjQypIr4u78BjNcwoveKLJl5ZfbKRdyxZhnlgjLA9WLu2Gmc1m8wGhR8h9Ag+fxD84sg7RzadeRIJ2dGZAjyBx+GoJ3It4q1d021WL8CQmiflObiV56SPsQ6WlKlYeBwZo2dSh/qKFWVWdC8lBubF5M5135uzmyfsti9s+IS+WpiStEpcxoXcet/PkZbdeAo143ZZ01ndL8TKWtAxIE4tPK985QXVzmVMs4Ur5LPL2IBN9mXq92pO+erRNqhdMCcEpxGUA8k+eoDxYsgPq7uRAQtK2cOGMa/j51Mb6kjK2gcVDUvjhcgZzwZHYKu/cGy8g4BjIpQQAyKosxdeTd3rH4cTQNHSC9mnRWVZA2KF485aMta2Vzczs6sFQy2lVvY3LYNC4ZTT5nOlbqyvivqiu21oAgdM0whknHDgXnEHN6UFGjJirzSsom32nZQFmVTcQe/3bmBHeVdsWSkLqbzgJH8e8M0DpNasjRwS9Nibmi+L5YSBCXCod0GfnsIJ3sNoDcXcZ4Icxq/w+1rHyWrhqPow/UNX+TUfieSacBJ5MEOeOinT3HOohnc0fwYJWf843PfZtx3L+fZ9T8hqapqn5QdOBU3/yImuJBRnSQs//VKPnnPFL72H3dRxnPTj+7jk3dO4eFf/iAiCwuIM4IqYweMYPaYafRyPWmrgYWrHuRbTYvJHBQsDrQq0KBDSuwoQe7tTyu6oEpemNv4HRaueYRyFfTzXfjG2dMZ2T82DJwnONrr0+ut23hxw895ZfsGAo7/2vYqTRt/xu/CVkwsds8DK6ojopgUKbvIy1uyFl5teY2trVtJMLYUN/HKztfZme1orwCGYM4RgnLmwJOZ1TCZ3tqFUpWxoGkxN69+gExcFDA6Z8keODt522tqEDBm/fAu7lz7OFIL/Qpdua7hSk7tHQdASeJxlWrkIjcZf/wZDOv/1wzq1ocU49rTp3BFfQuD+x3HxvIOvBx4O47gwFLEVdEWAv/7L07npM8fT8+qrniUK0/7PP/n5PEMrOsVv5z3OAMnSvAQQmDMh4bD2TOY+dT1bE9auWHVffg2z6TR48A00k2TfWsinSNdlaR4URL1JEXlylETuXToOFQtlqX9APXvOoDWybEnZgSB+U2Lmb/qQeiWoCi1knBEehitJTCfECxjY3ETqhk9fHe6p13ihcils8hqAqoZiuGpxsShZHgLeDwqDiTLEUKEJ2/qZtrKbRSkhn7pYaTqCZJRSB3ri1sphzKalAmtxpUjPsekoedgIWDOxTJySJwJeWOJdjNHqjB1+HiCCPOblkBdhDOfPmUsYwadCuXAr9ve4EuPfZP1OzYy7iMjuax+HMVQpiCS95VHgpCmHsRRLkfmUp2mmJUolcsoDslFMTNBvWf287ex9JfP8NFeRzYhkER7W4el0OFRVEBBFBVfHe8cT6lVz9xM1s1l34YEwadiHT6i8gMZejwgiT7KCuv4MYwApUCeIQzaGKV65rXMSCHz+KFWCQ68acs67g1P5D0BDAeUQMeZuWaiiGg0xxiWP5+lVcteIm3rKdFNqMqcMvYMrwC3MeLXiEgOD/1AKoEe" alt="Cassa Strategy" style="width:80px;height:80px;">
-                    <h1>CASSA STRATEGY</h1>
-                </div>
-            <h2>Meta Ads Dashboard</h2>
-            <form id="loginForm" onsubmit="handleLogin(event)">
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" required placeholder="Enter password">
-                </div>
-                <button type="submit" class="login-button">Login</button>
-                <div id="loginError" class="login-error"></div>
-            </form>
-        </div>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginWrap" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 36 36" fill="none">
+        <rect x="2" y="24" width="6" height="10" rx="1" fill="#209D50"/>
+        <rect x="11" y="18" width="6" height="16" rx="1" fill="#209D50" opacity="0.8"/>
+        <rect x="20" y="12" width="6" height="22" rx="1" fill="#209D50" opacity="0.6"/>
+        <rect x="29" y="4" width="6" height="30" rx="1" fill="#209D50" opacity="0.4"/>
+        <line x1="1" y1="35" x2="36" y2="35" stroke="#209D50" stroke-width="1.5"/>
+      </svg>
+      <span class="login-brand">CASSA STRATEGY</span>
     </div>
+    <div class="login-sub">Meta Ads Dashboard</div>
+    <div class="login-client">The Unsealed</div>
+    <input type="password" id="loginPw" class="login-input" placeholder="Enter password" autofocus>
+    <button id="loginBtn" class="login-btn">Sign In</button>
+    <div id="loginErr" class="login-err"></div>
+  </div>
+</div>
 
-    <!-- Dashboard -->
-    <div id="dashboard" class="dashboard-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="header-left">
-                <div class="header-logo">
-                    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAapklEQVR42u2ceZhV1ZX2f2vvc25NjDIIAZxi2022gIkUyqAx9hcpbJNPIyqgSef5vrRGmlE0sTXp2N3phMGoQZQojpgoouCUJ4iz6YSSKgykny9DdwYx4hBAxoKqe+/Za31/7HOrChKRCIjpeOq5T90H6t577jp7rfW+73r3ETMzPjje9eE+CMEHAfwggB8E8IMAfnD8jwig7fbc2v/BsA8CWDkCiqKdgtPxKKMEAqaGGJgYAUUM1PL/6/wiND6xP6MAOgRnAhK/twBiipiR4MBADEoC//bDu/nmi/eRCTgVxFwMmMTAKQ4jvtehOpL3+gPFpH3lCYDFZyaAKc48JW9c33gvd6x9FA+41DH9pIkkATIf8CgmCWLxPewQxvA9D2Aev92CpwJmhjeh6AJzVt7LwrVLkTpDgmNB4xIkCFOHX4g3I4jHI0jHVeBQhTA5ZGvfDJM8j4PhRSg5Ze7Ke7hz7cOEKqNf2hVcygbbwYLV92MSmFY/gVRdLHvOYj3FHbIVeEi6sJi191YzwxmUXOCbK+/h7pceRxPPQOnBjQ1X8fUzp9Jb6mithgXNDzK/aTHBKSpGwHC4Q9qj5b0WExTy2mVkYiTqCC7wjZX3cOt/PgKJcaT05etnT+e0wwcD8OSrq/ji0/PZHLZTVXRcevJ5TBs2Ma7ESv2T/0ErsDNU6QxTFMiw+GPg85U3u3FRTNtC4EO+J3P+bganHT6YsmUELXLmoJOZdeZ0ekk3igW4efWDzFt9H5lTRA0zqwAcOnCO/j64/FMJoEN2q0qSp60zIzUBFAGCCNetvIvb1jxGseA5ynozZ+xMRvY7Ac2UxDziEsqqNAw4iVkNk+hjtQTvuKn5QW5cfT/BC0EibtTKpVJBcYQ/2RS2jo4ru8Hl2HjFHGWnzGq8mzvWPEIoCANcL+aMncFp/QfTZoECHqcx+uqMYEoqnqdeXcVVT8xjg2uh0CZMOvl8pg+biA+C+rhhDNcJ4ihyEEv9QQmgsQdUESHkbcMbBFFmv3gvt61ZRigIg6Qnc86axqn9PkIIinOVLy/xPTRGQ4PgEmH5+ka+unw+G2hBMphWP57Jw8YjpiAOV4E4kIPuP9kAWmQKlndbhLJTrmu8m4VrH6WUwgDfg7ljZ3JavyGUNcOLB7W4el0OFRVEBBFBVfHe8cT6lVz9xM1s1l34YEwadiHT6i8gMZejwgiT7KCuv4MYwApUCeIQzaGKV65rXMSCHz+KFWCQ68acs67g1P5D0BDAeUQMeZuWaiiGg0xxiWP5+lVcteIm3rKdFNqMqcMvYMrwC3MeLXiEgOD/1AKoEe" alt="Cassa Strategy" style="width:32px;height:32px;">
-                    <span class="header-logo-text">CASSA STRATEGY</span>
-                </div>
-                <span class="client-name" id="clientNameDisplay"></span>
-            </div>
-            <div class="header-right">
-                <button id="refreshButton" class="refresh-button" onclick="refreshData()">Refresh Data</button>
-                <button class="logout-button" onclick="handleLogout()">Logout</button>
-            </div>
-        </div>
+<!-- ===== LOADING OVERLAY ===== -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none;">
+  <div class="loading-spinner">
+    <div class="spin"></div>
+    <div class="loading-text">Loading dashboard data...</div>
+  </div>
+</div>
 
-        <!-- Tabs -->
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('dashboardTab')">Dashboard</button>
-            <button class="tab" onclick="switchTab('trends')">Trends</button>
-            <button class="tab" onclick="switchTab('byAd')">By Ad</button>
-            <button class="tab" onclick="switchTab('byComponent')">By Component</button>
-            <button class="tab" onclick="switchTab('byPlacement')">By Placement</button>
-            <button class="tab" onclick="switchTab('funnel')">Funnel & Events</button>
-            <button class="tab" onclick="switchTab('creative')">Creative Perf</button>
-            <button class="tab" onclick="switchTab('fbSparkLoop')">FB + SparkLoop</button>
-        </div>
-
-        <!-- Filter Bar -->
-        <div class="filter-bar" id="filterBar">
-            <div class="filter-group">
-                <label>Date From</label>
-                <input type="date" id="filterDateFrom" onchange="applyFilters()">
-            </div>
-            <div class="filter-group">
-                <label>Date To</label>
-                <input type="date" id="filterDateTo" onchange="applyFilters()">
-            </div>
-            <div class="filter-group">
-                <label>Color</label>
-                <select id="filterColor" onchange="applyFilters()"><option value="">All</option></select>
-            </div>
-            <div class="filter-group">
-                <label>Theme</label>
-                <select id="filterTheme" onchange="applyFilters()"><option value="">All</option></select>
-            </div>
-            <div class="filter-group">
-                <label>Type</label>
-                <select id="filterType" onchange="applyFilters()"><option value="">All</option></select>
-            </div>
-            <div class="filter-group">
-                <label>Landing Page</label>
-                <select id="filterLandingPage" onchange="applyFilters()"><option value="">All</option></select>
-            </div>
-            <div class="filter-group">
-                <label>Campaign Tag</label>
-                <select id="filterCampaignTag" onchange="applyFilters()"><option value="">All</option></select>
-            </div>
-            <button class="reset-button" onclick="resetFilters()">Reset All</button>
-        </div>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <!-- Dashboard Tab -->
-            <div id="dashboardTab" class="tab-content active">
-                <h2 style="margin-bottom: 30px;">Performance Overview</h2>
-
-                <div class="component-title">Spend & Delivery</div>
-                <div class="kpi-grid" id="spendGrid"></div>
-
-                <div class="component-title">Efficiency</div>
-                <div class="kpi-grid" id="efficiencyGrid"></div>
-
-                <div class="component-title">Conversions</div>
-                <div class="kpi-grid" id="conversionGrid"></div>
-
-                <div class="component-title">Engagement</div>
-                <div class="kpi-grid" id="engagementGrid"></div>
-            </div>
-
-            <!-- Trends Tab -->
-            <div id="trends" class="tab-content">
-                <h2 style="margin-bottom: 30px;">Trends & Performance</h2>
-
-                <div class="chart-container">
-                    <div class="chart-title">Daily Spend</div>
-                    <canvas id="dailySpendChart"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-title">CPM & CPC Trends</div>
-                    <canvas id="cpmCpcChart"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-title">CTR & Hook Rate</div>
-                    <canvas id="ctrHookChart"></canvas>
-                </div>
-
-                <div class="chart-container">
-                    <div class="chart-title">Daily Conversions</div>
-                    <canvas id="dailyConversionsChart"></canvas>
-                </div>
-            </div>
-
-            <!-- By Ad Tab -->
-            <div id="byAd" class="tab-content">
-                <h2 style="margin-bottom: 30px;">Ad Performance</h2>
-                <div class="table-container">
-                    <table id="adTable">
-                        <thead>
-                            <tr>
-                                <th class="sortable" onclick="sortTable('adTable', 0)">Ad Name</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 1)">Spend</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 2)">Imp</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 3)">Clicks</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 4)">CTR</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 5)">CPC</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 6)">CPM</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 7)">Purchases</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 8)">Revenue</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 9)">ROAS</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 10)">Leads</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 11)">Cost/Lead</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 12)">Hook Rate</th>
-                                <th class="sortable text-right" onclick="sortTable('adTable', 13)">Eng Rate</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- By Component Tab -->
-            <div id="byComponent" class="tab-content">
-                <h2 style="margin-bottom: 30px;">Performance by Component</h2>
-                <div id="componentContent"></div>
-            </div>
-
-            <!-- By Placement Tab -->
-            <div id="byPlacement" class="tab-content">
-                <h2 style="margin-bottom: 30px;">Performance by Placement</h2>
-                <div id="placementContent"></div>
-            </div>
-
-            <!-- Funnel & Events Tab -->
-            <div id="funnel" class="tab-content">
-                <h2 style="margin-bottom: 30px;">Funnel & Events</h2>
-                <div class="table-container">
-                    <table id="funnelTable">
-                        <thead>
-                            <tr>
-                                <th>Stage</th>
-                                <th class="text-right">Count</th>
-                                <th class="text-right">% of Impressions</th>
-                                <th class="text-right">Cost Per</th>
-                            </tr>
-                        </thead>
-                        <tbody id="funnelTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Creative Perf Tab -->
-            <div id="creative" class="tab-content">
-                <h2 style="margin-bottom: 30px;">Creative Performance</h2>
-                <div id="creativeContent"></div>
-            </div>
-
-            <!-- FB + SparkLoop Tab -->
-            <div id="fbSparkLoop" class="tab-content">
-                <h2 style="margin-bottom: 30px;">Facebook + SparkLoop Performance</h2>
-                <div class="component-title">Key Metrics</div>
-                <div class="kpi-grid" id="fbSparkLoopKPIs"></div>
-
-                <div class="chart-container">
-                    <div class="chart-title">Daily Revenue Comparison</div>
-                    <canvas id="fbSparkLoopChart"></canvas>
-                </div>
-
-                <div class="table-container">
-                    <table id="fbSparkLoopTable">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th class="text-right">FB Spend</th>
-                                <th class="text-right">FB Impressions</th>
-                                <th class="text-right">FB Clicks</th>
-                                <th class="text-right">FB Purchases</th>
-                                <th class="text-right">FB Revenue</th>
-                                <th class="text-right">FB ROAS</th>
-                                <th class="text-right">SL New Subs</th>
-                                <th class="text-right">SL Confirmed Ref</th>
-                                <th class="text-right">SL Pending Ref</th>
-                                <th class="text-right">SL Earnings</th>
-                                <th class="text-right">Combined Revenue</th>
-                                <th class="text-right">Combined ROAS</th>
-                            </tr>
-                        </thead>
-                        <tbody id="fbSparkLoopTableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer">
-            <span id="lastRefreshed">Last refreshed: Never</span>
-        </div>
+<!-- ===== HEADER ===== -->
+<div id="headerBar" class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <svg viewBox="0 0 36 36" fill="none">
+        <rect x="2" y="24" width="6" height="10" rx="1" fill="#209D50"/>
+        <rect x="11" y="18" width="6" height="16" rx="1" fill="#209D50" opacity="0.8"/>
+        <rect x="20" y="12" width="6" height="22" rx="1" fill="#209D50" opacity="0.6"/>
+        <rect x="29" y="4" width="6" height="30" rx="1" fill="#209D50" opacity="0.4"/>
+        <line x1="1" y1="35" x2="36" y2="35" stroke="#209D50" stroke-width="1.5"/>
+      </svg>
+      <span class="header-brand">CASSA STRATEGY</span>
+      <span class="header-client">The Unsealed</span>
     </div>
+    <div class="header-right" id="headerDateRange"></div>
+  </div>
+</div>
 
-    <script>
-        // Client Configurations
-        const CLIENT_CONFIG = {
-            displayName: 'The Unsealed',
-            password: 'unsealed2026',
-            spreadsheetId: '1rEOXHebRMyfbAhldCsoJeLqnpokoqgOZ28yJXztsoZs'
-        };
+<!-- ===== TABS BAR ===== -->
+<div id="tabsBar" class="tabs-bar">
+  <div class="tabs-inner">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="trends">Trends</button>
+    <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
+    <button class="tab-btn" data-tab="explorer">Ad Explorer</button>
+    <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
+    <button class="tab-btn" data-tab="funnel">Funnel</button>
+    <button class="tab-btn" data-tab="sparkloop">FB + SparkLoop</button>
+  </div>
+</div>
 
-        // Global state
-        let isAuthenticated = false;
-        let allData = {};
-        let charts = {};
+<!-- ===== FILTER BAR ===== -->
+<div id="filterBar" class="filter-bar">
+  <div class="filter-inner">
+    <div class="filter-group">
+      <span class="filter-label">From</span>
+      <input type="date" id="filterFrom" class="filter-input">
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">To</span>
+      <input type="date" id="filterTo" class="filter-input">
+    </div>
+    <div class="filter-group">
+      <button class="preset-btn" data-preset="7d">7d</button>
+      <button class="preset-btn" data-preset="14d">14d</button>
+      <button class="preset-btn" data-preset="30d">30d</button>
+      <button class="preset-btn" data-preset="thisMonth">This Mo</button>
+      <button class="preset-btn" data-preset="lastMonth">Last Mo</button>
+      <button class="preset-btn active" data-preset="all">All</button>
+    </div>
+    <label class="compare-label">
+      <input type="checkbox" id="compareToggle"> vs Previous Period
+    </label>
+    <div class="filter-group">
+      <select id="filterColor" class="filter-select"><option value="">All Colors</option></select>
+      <select id="filterTheme" class="filter-select"><option value="">All Themes</option></select>
+      <select id="filterType" class="filter-select"><option value="">All Types</option></select>
+      <select id="filterLP" class="filter-select"><option value="">All Landing Pages</option></select>
+      <select id="filterTag" class="filter-select"><option value="">All Campaign Tags</option></select>
+      <select id="filterCampaign" class="filter-select"><option value="">All Campaigns</option></select>
+      <select id="filterPlatform" class="filter-select"><option value="">All Platforms</option></select>
+    </div>
+    <button class="reset-btn" id="resetFilters">Reset All</button>
+  </div>
+</div>
 
-        // Handle Login
-        function handleLogin(event) {
-            event.preventDefault();
-            const password = document.getElementById('password').value;
-            const errorDiv = document.getElementById('loginError');
-            errorDiv.textContent = '';
+<!-- ===== MAIN CONTENT ===== -->
+<div id="mainContent" class="main">
 
-            if (CLIENT_CONFIG.password !== password) {
-                errorDiv.textContent = 'Invalid password';
-                return;
-            }
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview" class="tab-content active">
+    <div class="kpi-section">
+      <div class="kpi-section-title">Spend &amp; Delivery</div>
+      <div class="kpi-grid" id="kpiSpend"></div>
+    </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Efficiency</div>
+      <div class="kpi-grid" id="kpiEfficiency"></div>
+    </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Conversions</div>
+      <div class="kpi-grid" id="kpiConversions"></div>
+    </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Engagement</div>
+      <div class="kpi-grid" id="kpiEngagement"></div>
+    </div>
+  </div>
 
-            isAuthenticated = true;
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('dashboard').classList.add('active');
-            document.getElementById('clientNameDisplay').textContent = CLIENT_CONFIG.displayName;
-            loadData();
-        }
+  <!-- TRENDS TAB -->
+  <div id="tab-trends" class="tab-content">
+    <div class="toggle-group" id="trendsToggle">
+      <button class="toggle-btn active" data-gran="daily">Daily</button>
+      <button class="toggle-btn" data-gran="weekly">Weekly</button>
+      <button class="toggle-btn" data-gran="monthly">Monthly</button>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Spend Over Time</div>
+      <div class="chart-wrap"><canvas id="chartSpend"></canvas></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">ROAS Over Time</div>
+      <div class="chart-wrap"><canvas id="chartROAS"></canvas></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">CPC &amp; CPM</div>
+        <div class="chart-wrap"><canvas id="chartCpcCpm"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Purchases &amp; Revenue</div>
+        <div class="chart-wrap"><canvas id="chartPurchRev"></canvas></div>
+      </div>
+    </div>
+  </div>
 
-        
-        function handleLogout() {
-            isAuthenticated = false;
-            allData = {};
-            charts = {};
-            document.getElementById('dashboard').classList.remove('active');
-            document.getElementById('loginPage').style.display = 'flex';
-            
-            document.getElementById('password').value = '';
-        }
+  <!-- LEADERBOARD TAB -->
+  <div id="tab-leaderboard" class="tab-content">
+    <div class="leader-controls">
+      <label>Metric:
+        <select id="leaderMetric">
+          <option value="roas">ROAS</option>
+          <option value="costPerPurchase">Cost / Purchase</option>
+          <option value="costPerLead">Cost / Lead</option>
+          <option value="cpc">CPC</option>
+          <option value="cpm">CPM</option>
+          <option value="hookRate">Hook Rate</option>
+        </select>
+      </label>
+      <label>Min Spend: $<input type="number" id="leaderMinSpend" value="10" min="0" max="500" step="5" style="width:75px;"></label>
+    </div>
+    <div class="leader-cards" id="leaderCards"></div>
+    <div class="chart-container">
+      <div class="chart-title">Ad Scatter Plot</div>
+      <div class="chart-wrap"><canvas id="chartScatter"></canvas></div>
+    </div>
+  </div>
 
-        // Fetch Sheet Data with timeout
-        
-        function normalizeHeaders(data, sheetName) {
-            if (sheetName === 'Ad Performance') {
-                const headerMap = {
-                    'Ad name': 'Ad Name',
-                    'Amount spent (USD)': 'Amount Spent',
-                    'Clicks (all)': 'Clicks',
-                    'Purchases conversion value': 'Revenue',
-                    'Landing page views': 'Landing Page Views',
-                    'Link clicks': 'Link Clicks',
-                    'Post engagements': 'Post Engagements',
-                    'Adds to cart': 'Adds to Cart',
-                    'Cost per Purchase': 'Cost/Purchase'
-                };
-                return data.map(row => {
-                    const newRow = {};
-                    for (const [key, value] of Object.entries(row)) {
-                        const trimKey = key.trim();
-                        const mappedKey = headerMap[trimKey] || trimKey;
-                        newRow[mappedKey] = value;
-                    }
-                    return newRow;
-                });
-            }
-            if (sheetName === 'Daily Summary') {
-                const headerMap = {
-                    'Amount Spent': 'Amount Spent',
-                    'Link Clicks': 'Link Clicks',
-                    'Adds to Cart': 'Adds to Cart'
-                };
-                return data.map(row => {
-                    const newRow = {};
-                    for (const [key, value] of Object.entries(row)) {
-                        const trimKey = key.trim();
-                        const mappedKey = headerMap[trimKey] || trimKey;
-                        newRow[mappedKey] = value;
-                    }
-                    return newRow;
-                });
-            }
-            // For breakout sheets, also normalize
-            const breakoutMap = {
-                'Eng Rate': 'Engagement Rate',
-                'Spend': 'Amount Spent'
-            };
-            return data.map(row => {
-                const newRow = {};
-                for (const [key, value] of Object.entries(row)) {
-                    const trimKey = key.trim();
-                    const mappedKey = breakoutMap[trimKey] || trimKey;
-                    newRow[mappedKey] = value;
-                }
-                return newRow;
-            });
-        }
+  <!-- AD EXPLORER TAB -->
+  <div id="tab-explorer" class="tab-content">
+    <input type="text" class="search-box" id="explorerSearch" placeholder="Search by ad name...">
+    <div class="table-wrap">
+      <table id="explorerTable">
+        <thead><tr>
+          <th data-col="adName">Ad Name</th>
+          <th data-col="spend">Spend</th>
+          <th data-col="impressions">Imp</th>
+          <th data-col="clicks">Clicks</th>
+          <th data-col="ctr">CTR</th>
+          <th data-col="cpc">CPC</th>
+          <th data-col="cpm">CPM</th>
+          <th data-col="purchases">Purch</th>
+          <th data-col="revenue">Revenue</th>
+          <th data-col="roas">ROAS</th>
+          <th data-col="leads">Leads</th>
+          <th data-col="costPerLead">CPL</th>
+          <th data-col="hookRate">Hook%</th>
+          <th data-col="engRate">Eng%</th>
+        </tr></thead>
+        <tbody id="explorerBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- BREAKDOWNS TAB -->
+  <div id="tab-breakdowns" class="tab-content">
+    <div class="leader-controls">
+      <label>Dimension:
+        <select id="breakdownDim">
+          <option value="color">Color</option>
+          <option value="theme">Theme</option>
+          <option value="type">Ad Type</option>
+          <option value="landingPage">Landing Page</option>
+          <option value="campaignTag">Campaign Tag</option>
+          <option value="platform">Platform</option>
+          <option value="placement">Placement</option>
+          <option value="campaign">Campaign</option>
+          <option value="adSet">Ad Set</option>
+        </select>
+      </label>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Spend by Dimension</div>
+        <div class="chart-wrap"><canvas id="chartBreakSpend"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">ROAS by Dimension</div>
+        <div class="chart-wrap"><canvas id="chartBreakROAS"></canvas></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="breakdownTable">
+        <thead><tr id="breakdownHead"></tr></thead>
+        <tbody id="breakdownBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- FUNNEL TAB -->
+  <div id="tab-funnel" class="tab-content">
+    <div class="funnel-wrap" id="funnelWrap"></div>
+    <div class="chart-container">
+      <div class="chart-title">Funnel Visualization</div>
+      <div class="chart-wrap"><canvas id="chartFunnel"></canvas></div>
+    </div>
+  </div>
+
+  <!-- FB + SPARKLOOP TAB -->
+  <div id="tab-sparkloop" class="tab-content">
+    <div class="kpi-grid" id="slKpis" style="margin-bottom:16px;"></div>
+    <div class="chart-container">
+      <div class="chart-title">FB Revenue + SparkLoop Earnings Over Time</div>
+      <div class="chart-wrap"><canvas id="chartSL"></canvas></div>
+    </div>
+    <div class="table-wrap" style="margin-top:16px;">
+      <table id="slTable">
+        <thead><tr>
+          <th data-col="date">Date</th>
+          <th data-col="fbSpend">FB Spend</th>
+          <th data-col="fbImpressions">FB Imp</th>
+          <th data-col="fbClicks">FB Clicks</th>
+          <th data-col="fbPurchases">FB Purch</th>
+          <th data-col="fbRevenue">FB Rev</th>
+          <th data-col="fbRoas">FB ROAS</th>
+          <th data-col="slNewSubs">SL New Subs</th>
+          <th data-col="slConfirmed">SL Confirmed</th>
+          <th data-col="slPending">SL Pending</th>
+          <th data-col="slEarnings">SL Earnings</th>
+          <th data-col="combinedRevenue">Combined Rev</th>
+          <th data-col="combinedRoas">Combined ROAS</th>
+        </tr></thead>
+        <tbody id="slBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== AD DETAIL MODAL ===== -->
+<div id="adModal" class="modal-overlay">
+  <div class="modal-panel">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-subtitle" id="modalSubtitle"></div>
+        <div id="modalBadges" style="margin-top:8px;"></div>
+      </div>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-kpis" id="modalKpis"></div>
+      <div class="chart-container">
+        <div class="chart-title">Daily Performance</div>
+        <div class="chart-wrap"><canvas id="chartModal"></canvas></div>
+      </div>
+      <div class="table-wrap" style="margin-top:16px;">
+        <table id="modalTable">
+          <thead><tr>
+            <th>Date</th>
+            <th>Spend</th>
+            <th>Imp</th>
+            <th>Clicks</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            <th>Purch</th>
+            <th>Revenue</th>
+            <th>ROAS</th>
+          </tr></thead>
+          <tbody id="modalBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   THE UNSEALED — META ADS DASHBOARD
+   Self-contained single-file dashboard
+   ================================================================ */
+
+// ========================================================================
+// CONSTANTS
+// ========================================================================
+const SHEET_ID = '1rEOXHebRMyfbAhldCsoJeLqnpokoqgOZ28yJXztsoZs';
+const COLORS = [
+  '#209D50','#4A90D9','#FF6B6B','#FFA500','#9D50D9',
+  '#50C8D9','#D4A843','#E8527A','#7BC67E','#6B8DE3'
+];
+const PASSWORD = 'unsealed2026';
+
+// ========================================================================
+// GLOBAL STATE
+// ========================================================================
+let rawData = [];          // normalized rows from Raw Data sheet
+let adPerfData = [];       // raw rows from Ad Performance sheet
+let sparkLoopData = [];    // normalized rows from FB + SparkLoop sheet
+let tagLookup = {};        // adName -> {color, theme, type, landingPage, campaignTag}
+let enrichedData = [];     // rawData enriched with tags
+let chartInstances = {};   // canvasId -> Chart instance (for cleanup)
+let currentTab = 'overview';
+let explorerSort = { col: 'spend', asc: false };
+let breakdownSort = { col: 'spend', asc: false };
+let slSort = { col: 'date', asc: false };
+
+// ========================================================================
+// PARSING HELPER
+// ========================================================================
+function pv(val) {
+  if (val === null || val === undefined || val === '' || val === '-') return 0;
+  if (typeof val === 'number') return val;
+  return parseFloat(String(val).replace(/[$,%]/g, '').replace(/,/g, '')) || 0;
+}
+
+// ========================================================================
+// FORMATTERS
+// ========================================================================
+function formatCurrency(v) {
+  if (v === null || v === undefined || isNaN(v)) return '$0.00';
+  return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatNumber(v) {
+  if (v === null || v === undefined || isNaN(v)) return '0';
+  return Math.round(v).toLocaleString('en-US');
+}
+
+function formatPct(v) {
+  if (v === null || v === undefined || isNaN(v) || !isFinite(v)) return '0.00%';
+  return (v * 100).toFixed(2) + '%';
+}
+
+function formatROAS(v) {
+  if (v === null || v === undefined || isNaN(v) || !isFinite(v)) return '0.00x';
+  return v.toFixed(2) + 'x';
+}
+
+function formatDelta(current, previous, invertColor) {
+  if (!previous || previous === 0) return { text: '\u2014', cls: 'neutral' };
+  const pctChange = (current - previous) / Math.abs(previous);
+  const arrow = pctChange >= 0 ? '\u2191' : '\u2193';
+  const text = (pctChange >= 0 ? '+' : '') + (pctChange * 100).toFixed(1) + '% ' + arrow;
+  let cls;
+  if (invertColor) {
+    cls = pctChange <= 0 ? 'good' : 'bad';
+  } else {
+    cls = pctChange >= 0 ? 'good' : 'bad';
+  }
+  if (Math.abs(pctChange) < 0.001) cls = 'neutral';
+  return { text, cls };
+}
+
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ========================================================================
+// DATE HELPERS
+// ========================================================================
+function parseDate(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  if (!s) return null;
+  // Try YYYY-MM-DD first
+  const isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+  }
+  // Try M/D/YYYY or M/D/YY
+  const usMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (usMatch) {
+    let y = parseInt(usMatch[3]);
+    if (y < 100) y += 2000;
+    return new Date(y, parseInt(usMatch[1]) - 1, parseInt(usMatch[2]));
+  }
+  // Fallback
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDateStr(d) {
+  if (!d || isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + day;
+}
+
+function normalizeDateStr(raw) {
+  const d = parseDate(raw);
+  return d ? formatDateStr(d) : String(raw || '').trim();
+}
+
+function getWeekKey(dateStr) {
+  const d = parseDate(dateStr);
+  if (!d) return dateStr;
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d.getFullYear(), d.getMonth(), diff);
+  return formatDateStr(monday);
+}
+
+function getMonthKey(dateStr) {
+  const d = parseDate(dateStr);
+  if (!d) return dateStr;
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function daysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return formatDateStr(d);
+}
+
+function todayStr() {
+  return formatDateStr(new Date());
+}
+
+// ========================================================================
+// SHEET DATA FETCHING
+// ========================================================================
+function sheetUrl(sheetName) {
+  return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+         '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheetName);
+}
 
 async function fetchSheetData(sheetName) {
-            const spreadsheetId = CLIENT_CONFIG.spreadsheetId;
-            const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const resp = await fetch(sheetUrl(sheetName), { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!resp.ok) throw new Error('Failed to fetch "' + sheetName + '": HTTP ' + resp.status);
+    const text = await resp.text();
+    return new Promise((resolve, reject) => {
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        dynamicTyping: false,
+        complete: function(results) { resolve(results.data); },
+        error: function(err) { reject(err); }
+      });
+    });
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
 
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-                const response = await fetch(url, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const csv = await response.text();
-                return new Promise((resolve, reject) => {
-                    Papa.parse(csv, {
-                        header: true,
-                        skipEmptyLines: true,
-                        dynamicTyping: false,
-                        complete: (results) => resolve(normalizeHeaders(results.data, sheetName)),
-                        error: (error) => reject(error)
-                    });
-                });
-            } catch (error) {
-                console.error(`Error fetching ${sheetName}:`, error);
-                if (error.name === 'AbortError') {
-                    console.error(`Timeout fetching ${sheetName}. Make sure the Google Sheet is shared as "Anyone with the link can view".`);
-                }
-                return [];
+// ========================================================================
+// DATA NORMALIZATION
+// ========================================================================
+function normalizeRow(r) {
+  return {
+    date: normalizeDateStr(r['Reporting starts']),
+    adName: String(r['Ad name'] || '').trim(),
+    adId: String(r['Ad ID'] || '').trim(),
+    platform: String(r['Platform'] || '').trim(),
+    placement: String(r['Placement'] || '').trim(),
+    device: String(r['Device platform'] || '').trim(),
+    campaign: String(r['Campaign name'] || '').trim(),
+    adSet: String(r['Ad set name'] || '').trim(),
+    impressions: pv(r['Impressions']),
+    reach: pv(r['Reach']),
+    spend: pv(r['Amount spent (USD)']),
+    clicks: pv(r['Clicks (all)']),
+    atc: pv(r['Adds to cart']),
+    atcValue: pv(r['Adds to cart conversion value']),
+    purchases: pv(r['Purchases']),
+    revenue: pv(r['Purchases conversion value']),
+    lpv: pv(r['Landing page views']),
+    linkClicks: pv(r['Link clicks']),
+    leads: pv(r['Leads']),
+    thruPlays: pv(r['ThruPlays']),
+    engagements: pv(r['Post engagements']),
+    reactions: pv(r['Post reactions']),
+    comments: pv(r['Post comments']),
+    shares: pv(r['Post shares']),
+    videoPlays3s: pv(r['3-second video plays']),
+    checkouts: pv(r['Checkouts initiated']),
+    contentViews: pv(r['Content views']),
+    registrations: pv(r['Registrations completed']),
+    // Tags (enriched later)
+    color: '',
+    theme: '',
+    type: '',
+    landingPage: '',
+    campaignTag: ''
+  };
+}
+
+function buildTagLookup(adPerfRows) {
+  const lookup = {};
+  adPerfRows.forEach(function(r) {
+    const name = String(r['Ad Name'] || '').trim();
+    if (!name) return;
+    lookup[name] = {
+      color: String(r['Color'] || '').trim(),
+      theme: String(r['Theme'] || '').trim(),
+      type: String(r['Ad Type'] || '').trim(),
+      landingPage: String(r['Landing Page'] || '').trim(),
+      campaignTag: String(r['Campaign Tag'] || '').trim()
+    };
+  });
+  return lookup;
+}
+
+function enrichData(rows, lookup) {
+  return rows.map(function(r) {
+    const tags = lookup[r.adName] || {};
+    r.color = tags.color || '';
+    r.theme = tags.theme || '';
+    r.type = tags.type || '';
+    r.landingPage = tags.landingPage || '';
+    r.campaignTag = tags.campaignTag || '';
+    return r;
+  });
+}
+
+function normalizeSLRow(r) {
+  return {
+    date: normalizeDateStr(r['Date']),
+    fbSpend: pv(r['FB Spend']),
+    fbImpressions: pv(r['FB Impressions']),
+    fbClicks: pv(r['FB Clicks']),
+    fbPurchases: pv(r['FB Purchases']),
+    fbRevenue: pv(r['FB Revenue']),
+    fbRoas: pv(r['FB ROAS']),
+    slNewSubs: pv(r['SL New Subscribers']),
+    slConfirmed: pv(r['SL Confirmed Referrals']),
+    slPending: pv(r['SL Pending Referrals']),
+    slEarnings: pv(r['SL Earnings']),
+    combinedRevenue: pv(r['Combined Revenue']),
+    combinedRoas: pv(r['Combined ROAS'])
+  };
+}
+
+// ========================================================================
+// AGGREGATION
+// ========================================================================
+function aggregateRows(rows) {
+  const t = {
+    spend: 0, impressions: 0, reach: 0, clicks: 0,
+    atc: 0, atcValue: 0, purchases: 0, revenue: 0,
+    lpv: 0, linkClicks: 0, leads: 0, thruPlays: 0,
+    engagements: 0, reactions: 0, comments: 0, shares: 0,
+    videoPlays3s: 0, checkouts: 0, contentViews: 0, registrations: 0,
+    count: rows.length
+  };
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    t.spend += r.spend;
+    t.impressions += r.impressions;
+    t.reach += r.reach;
+    t.clicks += r.clicks;
+    t.atc += r.atc;
+    t.atcValue += r.atcValue;
+    t.purchases += r.purchases;
+    t.revenue += r.revenue;
+    t.lpv += r.lpv;
+    t.linkClicks += r.linkClicks;
+    t.leads += r.leads;
+    t.thruPlays += r.thruPlays;
+    t.engagements += r.engagements;
+    t.reactions += r.reactions;
+    t.comments += r.comments;
+    t.shares += r.shares;
+    t.videoPlays3s += r.videoPlays3s;
+    t.checkouts += r.checkouts;
+    t.contentViews += r.contentViews;
+    t.registrations += r.registrations;
+  }
+  // Derived metrics
+  t.ctr = t.impressions > 0 ? t.clicks / t.impressions : 0;
+  t.cpc = t.clicks > 0 ? t.spend / t.clicks : 0;
+  t.cpm = t.impressions > 0 ? (t.spend / t.impressions) * 1000 : 0;
+  t.roas = t.spend > 0 ? t.revenue / t.spend : 0;
+  t.costPerPurchase = t.purchases > 0 ? t.spend / t.purchases : 0;
+  t.costPerLead = t.leads > 0 ? t.spend / t.leads : 0;
+  t.hookRate = t.impressions > 0 ? t.thruPlays / t.impressions : 0;
+  t.engRate = t.impressions > 0 ? t.engagements / t.impressions : 0;
+  t.frequency = t.reach > 0 ? t.impressions / t.reach : 0;
+  return t;
+}
+
+function groupBy(rows, keyFn) {
+  const groups = {};
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    const k = keyFn(r) || '(none)';
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(r);
+  }
+  const result = [];
+  const keys = Object.keys(groups);
+  for (let i = 0; i < keys.length; i++) {
+    const k = keys[i];
+    const agg = aggregateRows(groups[k]);
+    agg.key = k;
+    result.push(agg);
+  }
+  return result;
+}
+
+// ========================================================================
+// FILTERING
+// ========================================================================
+function getFilterState() {
+  return {
+    from: document.getElementById('filterFrom').value,
+    to: document.getElementById('filterTo').value,
+    color: document.getElementById('filterColor').value,
+    theme: document.getElementById('filterTheme').value,
+    type: document.getElementById('filterType').value,
+    lp: document.getElementById('filterLP').value,
+    tag: document.getElementById('filterTag').value,
+    campaign: document.getElementById('filterCampaign').value,
+    platform: document.getElementById('filterPlatform').value
+  };
+}
+
+function applyFilters(data, f) {
+  return data.filter(function(r) {
+    if (f.from && r.date < f.from) return false;
+    if (f.to && r.date > f.to) return false;
+    if (f.color && r.color !== f.color) return false;
+    if (f.theme && r.theme !== f.theme) return false;
+    if (f.type && r.type !== f.type) return false;
+    if (f.lp && r.landingPage !== f.lp) return false;
+    if (f.tag && r.campaignTag !== f.tag) return false;
+    if (f.campaign && r.campaign !== f.campaign) return false;
+    if (f.platform && r.platform !== f.platform) return false;
+    return true;
+  });
+}
+
+function getFilteredData() {
+  return applyFilters(enrichedData, getFilterState());
+}
+
+function getPreviousPeriodData() {
+  const f = getFilterState();
+  if (!f.from || !f.to) return [];
+  const fromD = parseDate(f.from);
+  const toD = parseDate(f.to);
+  if (!fromD || !toD) return [];
+  const days = Math.round((toD - fromD) / 86400000) + 1;
+  const prevTo = new Date(fromD);
+  prevTo.setDate(prevTo.getDate() - 1);
+  const prevFrom = new Date(prevTo);
+  prevFrom.setDate(prevFrom.getDate() - days + 1);
+  const pf = Object.assign({}, f, {
+    from: formatDateStr(prevFrom),
+    to: formatDateStr(prevTo)
+  });
+  return applyFilters(enrichedData, pf);
+}
+
+function getFilteredSLData() {
+  const from = document.getElementById('filterFrom').value;
+  const to = document.getElementById('filterTo').value;
+  return sparkLoopData.filter(function(r) {
+    if (from && r.date < from) return false;
+    if (to && r.date > to) return false;
+    return true;
+  });
+}
+
+// ========================================================================
+// CHART HELPERS
+// ========================================================================
+function destroyChart(id) {
+  if (chartInstances[id]) {
+    chartInstances[id].destroy();
+    delete chartInstances[id];
+  }
+}
+
+function createChart(canvasId, config) {
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return null;
+  chartInstances[canvasId] = new Chart(ctx, config);
+  return chartInstances[canvasId];
+}
+
+// ========================================================================
+// POPULATE FILTER DROPDOWNS
+// ========================================================================
+function populateFilterDropdowns() {
+  const fields = [
+    { id: 'filterColor',    key: 'color',       label: 'All Colors' },
+    { id: 'filterTheme',    key: 'theme',       label: 'All Themes' },
+    { id: 'filterType',     key: 'type',        label: 'All Types' },
+    { id: 'filterLP',       key: 'landingPage', label: 'All Landing Pages' },
+    { id: 'filterTag',      key: 'campaignTag', label: 'All Campaign Tags' },
+    { id: 'filterCampaign', key: 'campaign',    label: 'All Campaigns' },
+    { id: 'filterPlatform', key: 'platform',    label: 'All Platforms' }
+  ];
+  fields.forEach(function(f) {
+    const vals = [];
+    const seen = {};
+    enrichedData.forEach(function(r) {
+      const v = r[f.key];
+      if (v && v !== '(none)' && !seen[v]) {
+        seen[v] = true;
+        vals.push(v);
+      }
+    });
+    vals.sort();
+    const sel = document.getElementById(f.id);
+    sel.innerHTML = '<option value="">' + f.label + '</option>';
+    vals.forEach(function(v) {
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    });
+  });
+
+  // Set date range from data
+  const dates = enrichedData.map(function(r) { return r.date; }).filter(function(d) { return d; }).sort();
+  if (dates.length > 0) {
+    document.getElementById('filterFrom').value = dates[0];
+    document.getElementById('filterTo').value = dates[dates.length - 1];
+  }
+}
+
+// ========================================================================
+// KPI CARD BUILDER
+// ========================================================================
+function buildKpiCard(label, value, delta) {
+  const card = document.createElement('div');
+  card.className = 'kpi-card';
+  let deltaHtml = '';
+  if (delta && delta.text !== '\u2014') {
+    deltaHtml = '<div class="kpi-delta ' + delta.cls + '">' + delta.text + '</div>';
+  }
+  card.innerHTML =
+    '<div class="kpi-label">' + label + '</div>' +
+    '<div class="kpi-value">' + value + '</div>' +
+    deltaHtml;
+  return card;
+}
+
+// ========================================================================
+// TAB: OVERVIEW
+// ========================================================================
+function renderOverview() {
+  const filtered = getFilteredData();
+  const agg = aggregateRows(filtered);
+  const compare = document.getElementById('compareToggle').checked;
+  let prev = null;
+  if (compare) {
+    const prevRows = getPreviousPeriodData();
+    if (prevRows.length > 0) prev = aggregateRows(prevRows);
+  }
+
+  function delta(curVal, prevVal, invert) {
+    if (!prev || prevVal === undefined) return null;
+    return formatDelta(curVal, prevVal, invert);
+  }
+
+  // --- Spend & Delivery ---
+  const spendEl = document.getElementById('kpiSpend');
+  spendEl.innerHTML = '';
+  spendEl.appendChild(buildKpiCard('Total Spend', formatCurrency(agg.spend), delta(agg.spend, prev && prev.spend, false)));
+  spendEl.appendChild(buildKpiCard('Impressions', formatNumber(agg.impressions), delta(agg.impressions, prev && prev.impressions, false)));
+  spendEl.appendChild(buildKpiCard('Reach', formatNumber(agg.reach), delta(agg.reach, prev && prev.reach, false)));
+  spendEl.appendChild(buildKpiCard('Frequency', agg.frequency.toFixed(2), delta(agg.frequency, prev && prev.frequency, false)));
+  spendEl.appendChild(buildKpiCard('Clicks', formatNumber(agg.clicks), delta(agg.clicks, prev && prev.clicks, false)));
+  spendEl.appendChild(buildKpiCard('Link Clicks', formatNumber(agg.linkClicks), delta(agg.linkClicks, prev && prev.linkClicks, false)));
+
+  // --- Efficiency ---
+  const effEl = document.getElementById('kpiEfficiency');
+  effEl.innerHTML = '';
+  effEl.appendChild(buildKpiCard('CTR', formatPct(agg.ctr), delta(agg.ctr, prev && prev.ctr, false)));
+  effEl.appendChild(buildKpiCard('CPC', formatCurrency(agg.cpc), delta(agg.cpc, prev && prev.cpc, true)));
+  effEl.appendChild(buildKpiCard('CPM', formatCurrency(agg.cpm), delta(agg.cpm, prev && prev.cpm, true)));
+  effEl.appendChild(buildKpiCard('ROAS', formatROAS(agg.roas), delta(agg.roas, prev && prev.roas, false)));
+  effEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(agg.costPerPurchase), delta(agg.costPerPurchase, prev && prev.costPerPurchase, true)));
+  effEl.appendChild(buildKpiCard('Cost / Lead', formatCurrency(agg.costPerLead), delta(agg.costPerLead, prev && prev.costPerLead, true)));
+
+  // --- Conversions ---
+  const convEl = document.getElementById('kpiConversions');
+  convEl.innerHTML = '';
+  convEl.appendChild(buildKpiCard('Purchases', formatNumber(agg.purchases), delta(agg.purchases, prev && prev.purchases, false)));
+  convEl.appendChild(buildKpiCard('Revenue', formatCurrency(agg.revenue), delta(agg.revenue, prev && prev.revenue, false)));
+  convEl.appendChild(buildKpiCard('Leads', formatNumber(agg.leads), delta(agg.leads, prev && prev.leads, false)));
+  convEl.appendChild(buildKpiCard('Add to Cart', formatNumber(agg.atc), delta(agg.atc, prev && prev.atc, false)));
+  convEl.appendChild(buildKpiCard('ATC Value', formatCurrency(agg.atcValue), delta(agg.atcValue, prev && prev.atcValue, false)));
+  convEl.appendChild(buildKpiCard('Checkouts', formatNumber(agg.checkouts), delta(agg.checkouts, prev && prev.checkouts, false)));
+  convEl.appendChild(buildKpiCard('Landing Page Views', formatNumber(agg.lpv), delta(agg.lpv, prev && prev.lpv, false)));
+  convEl.appendChild(buildKpiCard('Registrations', formatNumber(agg.registrations), delta(agg.registrations, prev && prev.registrations, false)));
+  convEl.appendChild(buildKpiCard('Content Views', formatNumber(agg.contentViews), delta(agg.contentViews, prev && prev.contentViews, false)));
+
+  // --- Engagement ---
+  const engEl = document.getElementById('kpiEngagement');
+  engEl.innerHTML = '';
+  engEl.appendChild(buildKpiCard('Engagements', formatNumber(agg.engagements), delta(agg.engagements, prev && prev.engagements, false)));
+  engEl.appendChild(buildKpiCard('Engagement Rate', formatPct(agg.engRate), delta(agg.engRate, prev && prev.engRate, false)));
+  engEl.appendChild(buildKpiCard('Hook Rate', formatPct(agg.hookRate), delta(agg.hookRate, prev && prev.hookRate, false)));
+  engEl.appendChild(buildKpiCard('ThruPlays', formatNumber(agg.thruPlays), delta(agg.thruPlays, prev && prev.thruPlays, false)));
+  engEl.appendChild(buildKpiCard('3s Video Plays', formatNumber(agg.videoPlays3s), delta(agg.videoPlays3s, prev && prev.videoPlays3s, false)));
+  engEl.appendChild(buildKpiCard('Reactions', formatNumber(agg.reactions), delta(agg.reactions, prev && prev.reactions, false)));
+  engEl.appendChild(buildKpiCard('Comments', formatNumber(agg.comments), delta(agg.comments, prev && prev.comments, false)));
+  engEl.appendChild(buildKpiCard('Shares', formatNumber(agg.shares), delta(agg.shares, prev && prev.shares, false)));
+}
+
+// ========================================================================
+// TAB: TRENDS
+// ========================================================================
+function renderTrends() {
+  const filtered = getFilteredData();
+
+  // Determine granularity
+  let gran = 'daily';
+  document.querySelectorAll('#trendsToggle .toggle-btn').forEach(function(b) {
+    if (b.classList.contains('active')) gran = b.dataset.gran;
+  });
+
+  let keyFn;
+  if (gran === 'weekly') {
+    keyFn = function(r) { return getWeekKey(r.date); };
+  } else if (gran === 'monthly') {
+    keyFn = function(r) { return getMonthKey(r.date); };
+  } else {
+    keyFn = function(r) { return r.date; };
+  }
+
+  const grouped = groupBy(filtered, keyFn).sort(function(a, b) {
+    return a.key.localeCompare(b.key);
+  });
+  const labels = grouped.map(function(g) { return g.key; });
+  const maxTicks = labels.length > 90 ? 20 : labels.length > 60 ? 25 : 35;
+  const pointRadius = labels.length > 60 ? 0 : 3;
+
+  // --- Spend Over Time (bar) ---
+  createChart('chartSpend', {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Spend',
+        data: grouped.map(function(g) { return g.spend; }),
+        backgroundColor: '#209D50',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
+        },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+
+  // --- ROAS Over Time (line) ---
+  createChart('chartROAS', {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'ROAS',
+        data: grouped.map(function(g) { return g.roas; }),
+        borderColor: '#4A90D9',
+        backgroundColor: 'rgba(74,144,217,0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: pointRadius
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: function(v) { return v.toFixed(1) + 'x'; } }
+        },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+
+  // --- CPC & CPM (dual axis line) ---
+  createChart('chartCpcCpm', {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'CPC',
+          data: grouped.map(function(g) { return g.cpc; }),
+          borderColor: '#FF6B6B',
+          backgroundColor: 'transparent',
+          yAxisID: 'y',
+          tension: 0.3,
+          pointRadius: pointRadius
+        },
+        {
+          label: 'CPM',
+          data: grouped.map(function(g) { return g.cpm; }),
+          borderColor: '#FFA500',
+          backgroundColor: 'transparent',
+          yAxisID: 'y1',
+          tension: 0.3,
+          pointRadius: pointRadius
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: {
+          type: 'linear', position: 'left', beginAtZero: true,
+          title: { display: true, text: 'CPC ($)' },
+          ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
+        },
+        y1: {
+          type: 'linear', position: 'right', beginAtZero: true,
+          title: { display: true, text: 'CPM ($)' },
+          grid: { drawOnChartArea: false },
+          ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
+        },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+
+  // --- Purchases & Revenue (bar + line combo) ---
+  createChart('chartPurchRev', {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Purchases',
+          data: grouped.map(function(g) { return g.purchases; }),
+          backgroundColor: '#9D50D9',
+          borderRadius: 4,
+          yAxisID: 'y'
+        },
+        {
+          label: 'Revenue',
+          data: grouped.map(function(g) { return g.revenue; }),
+          type: 'line',
+          borderColor: '#209D50',
+          backgroundColor: 'transparent',
+          yAxisID: 'y1',
+          tension: 0.3,
+          pointRadius: pointRadius
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: {
+          type: 'linear', position: 'left', beginAtZero: true,
+          title: { display: true, text: 'Purchases' }
+        },
+        y1: {
+          type: 'linear', position: 'right', beginAtZero: true,
+          title: { display: true, text: 'Revenue ($)' },
+          grid: { drawOnChartArea: false },
+          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
+        },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+}
+
+// ========================================================================
+// TAB: LEADERBOARD
+// ========================================================================
+function metricLabel(m) {
+  var map = {
+    roas: 'ROAS',
+    costPerPurchase: 'Cost/Purchase',
+    costPerLead: 'Cost/Lead',
+    cpc: 'CPC',
+    cpm: 'CPM',
+    hookRate: 'Hook Rate'
+  };
+  return map[m] || m;
+}
+
+function metricDisplay(m, v) {
+  if (m === 'roas') return formatROAS(v);
+  if (m === 'hookRate') return formatPct(v);
+  return formatCurrency(v);
+}
+
+function renderLeaderboard() {
+  const filtered = getFilteredData();
+  const metric = document.getElementById('leaderMetric').value;
+  const minSpend = parseFloat(document.getElementById('leaderMinSpend').value) || 0;
+
+  // Group by ad name
+  const byAd = groupBy(filtered, function(r) { return r.adName; }).filter(function(a) {
+    return a.spend >= minSpend && a.key && a.key !== '(none)';
+  });
+
+  // For cost metrics, lower is better
+  const costMetrics = ['costPerPurchase', 'costPerLead', 'cpc', 'cpm'];
+  const isCost = costMetrics.indexOf(metric) !== -1;
+
+  // Filter out zero/infinity for the metric
+  const validAds = byAd.filter(function(a) {
+    var v = a[metric];
+    return v !== undefined && v !== null && isFinite(v) && v > 0;
+  });
+
+  // Sort: best first
+  var sorted = validAds.slice().sort(function(a, b) {
+    return isCost ? a[metric] - b[metric] : b[metric] - a[metric];
+  });
+
+  var top5 = sorted.slice(0, 5);
+  var bottom5 = sorted.length > 5 ? sorted.slice(-5).reverse() : [];
+
+  var container = document.getElementById('leaderCards');
+  container.innerHTML = '';
+
+  function buildCol(title, items, cls) {
+    var col = document.createElement('div');
+    col.innerHTML = '<div class="leader-col-title ' + cls + '">' + title + '</div>';
+    items.forEach(function(a, i) {
+      var card = document.createElement('div');
+      card.className = 'leader-card ' + cls;
+      card.innerHTML =
+        '<div class="leader-card-rank">#' + (i + 1) + '</div>' +
+        '<div class="leader-card-name">' + escHtml(a.key) + '</div>' +
+        '<div class="leader-card-stats">' +
+          '<div class="leader-card-stat">' + metricLabel(metric) + ': <span>' + metricDisplay(metric, a[metric]) + '</span></div>' +
+          '<div class="leader-card-stat">Spend: <span>' + formatCurrency(a.spend) + '</span></div>' +
+          '<div class="leader-card-stat">Imp: <span>' + formatNumber(a.impressions) + '</span></div>' +
+          '<div class="leader-card-stat">ROAS: <span>' + formatROAS(a.roas) + '</span></div>' +
+          '<div class="leader-card-stat">Purch: <span>' + formatNumber(a.purchases) + '</span></div>' +
+        '</div>';
+      col.appendChild(card);
+    });
+    return col;
+  }
+
+  container.appendChild(buildCol('Top 5', top5, 'top'));
+  container.appendChild(buildCol('Bottom 5', bottom5, 'bottom'));
+
+  // --- Scatter (bubble) plot ---
+  var scatterData = validAds.map(function(a) {
+    return {
+      x: a.spend,
+      y: a[metric],
+      r: Math.max(3, Math.min(20, Math.sqrt(a.impressions) / 50)),
+      label: a.key
+    };
+  });
+
+  createChart('chartScatter', {
+    type: 'bubble',
+    data: {
+      datasets: [{
+        label: metricLabel(metric) + ' vs Spend',
+        data: scatterData,
+        backgroundColor: 'rgba(32,157,80,0.35)',
+        borderColor: '#209D50',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var p = ctx.raw;
+              return p.label + ' | Spend: ' + formatCurrency(p.x) + ' | ' + metricLabel(metric) + ': ' + metricDisplay(metric, p.y);
             }
+          }
         }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Spend ($)' },
+          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
+        },
+        y: {
+          title: { display: true, text: metricLabel(metric) },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
 
-        // Load All Data
-        async function loadData() {
-            const refreshBtn = document.getElementById('refreshButton');
-            refreshBtn.disabled = true;
-            refreshBtn.innerHTML = '<span class="loading"></span> Loading...';
+// ========================================================================
+// TAB: AD EXPLORER
+// ========================================================================
+function renderExplorer() {
+  const filtered = getFilteredData();
+  const search = document.getElementById('explorerSearch').value.toLowerCase().trim();
 
-            const sheets = [
-                'Ad Performance',
-                'Daily Summary',
-                'AA - By Color',
-                'AA - By Theme',
-                'AA - By Ad Type',
-                'AA - By Landing Page',
-                'AA - By Campaign Tag',
-                'AA - By Placement',
-                'AA - Funnel Events',
-                'AA - Creative by Type',
-                'AA - Creative by Theme',
-                'AA - FB + SparkLoop'
-            ];
+  var byAd = groupBy(filtered, function(r) { return r.adName; }).filter(function(a) {
+    return a.key && a.key !== '(none)';
+  });
 
-            // Fetch all sheets in parallel for speed
-            const results = await Promise.all(sheets.map(sheet => fetchSheetData(sheet)));
-            sheets.forEach((sheet, i) => { allData[sheet] = results[i]; });
+  if (search) {
+    byAd = byAd.filter(function(a) {
+      return a.key.toLowerCase().indexOf(search) !== -1;
+    });
+  }
 
-            // Save original unfiltered data
-            originalData = {};
-            Object.keys(allData).forEach(k => { originalData[k] = [...allData[k]]; });
-            populateFilters();
+  // Sort
+  byAd.sort(function(a, b) {
+    var va, vb;
+    if (explorerSort.col === 'adName') {
+      va = a.key; vb = b.key;
+      return explorerSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    va = a[explorerSort.col]; vb = b[explorerSort.col];
+    return explorerSort.asc ? va - vb : vb - va;
+  });
 
-            // Check if any data loaded
-            const totalRows = Object.values(allData).reduce((sum, arr) => sum + arr.length, 0);
-            if (totalRows === 0) {
-                refreshBtn.disabled = false;
-                refreshBtn.innerHTML = 'Refresh Data';
-                refreshBtn.style.background = '#dc3545';
-                setTimeout(() => { refreshBtn.style.background = ''; }, 3000);
-                alert('No data loaded. Please ensure the Google Sheet is shared as "Anyone with the link can view" (not just Published to web). Go to the sheet → Share → General access → Anyone with the link → Viewer.');
-                return;
+  var tbody = document.getElementById('explorerBody');
+  tbody.innerHTML = '';
+
+  byAd.forEach(function(a) {
+    var tr = document.createElement('tr');
+    tr.className = 'clickable';
+    var displayName = a.key.length > 65 ? a.key.substring(0, 62) + '...' : a.key;
+    tr.innerHTML =
+      '<td title="' + escHtml(a.key) + '">' + escHtml(displayName) + '</td>' +
+      '<td>' + formatCurrency(a.spend) + '</td>' +
+      '<td>' + formatNumber(a.impressions) + '</td>' +
+      '<td>' + formatNumber(a.clicks) + '</td>' +
+      '<td>' + formatPct(a.ctr) + '</td>' +
+      '<td>' + formatCurrency(a.cpc) + '</td>' +
+      '<td>' + formatCurrency(a.cpm) + '</td>' +
+      '<td>' + formatNumber(a.purchases) + '</td>' +
+      '<td>' + formatCurrency(a.revenue) + '</td>' +
+      '<td>' + formatROAS(a.roas) + '</td>' +
+      '<td>' + formatNumber(a.leads) + '</td>' +
+      '<td>' + formatCurrency(a.costPerLead) + '</td>' +
+      '<td>' + formatPct(a.hookRate) + '</td>' +
+      '<td>' + formatPct(a.engRate) + '</td>';
+    (function(adName) {
+      tr.addEventListener('click', function() { openAdModal(adName); });
+    })(a.key);
+    tbody.appendChild(tr);
+  });
+
+  // Sort arrows
+  document.querySelectorAll('#explorerTable th').forEach(function(th) {
+    var col = th.dataset.col;
+    var existing = th.querySelector('.sort-arrow');
+    if (existing) existing.remove();
+    if (col === explorerSort.col) {
+      var span = document.createElement('span');
+      span.className = 'sort-arrow';
+      span.textContent = explorerSort.asc ? '\u25B2' : '\u25BC';
+      th.appendChild(span);
+    }
+  });
+}
+
+// ========================================================================
+// AD DETAIL MODAL
+// ========================================================================
+function openAdModal(adName) {
+  var filtered = getFilteredData().filter(function(r) { return r.adName === adName; });
+  if (filtered.length === 0) return;
+
+  var agg = aggregateRows(filtered);
+  var sample = filtered[0];
+  var tags = tagLookup[adName] || {};
+
+  document.getElementById('modalTitle').textContent = adName;
+  document.getElementById('modalSubtitle').textContent =
+    'Campaign: ' + (sample.campaign || 'N/A') + '  |  Ad Set: ' + (sample.adSet || 'N/A');
+
+  // Badges
+  var badgesEl = document.getElementById('modalBadges');
+  badgesEl.innerHTML = '';
+  if (tags.color) badgesEl.innerHTML += '<span class="badge badge-color">' + escHtml(tags.color) + '</span>';
+  if (tags.theme) badgesEl.innerHTML += '<span class="badge badge-theme">' + escHtml(tags.theme) + '</span>';
+  if (tags.type) badgesEl.innerHTML += '<span class="badge badge-type">' + escHtml(tags.type) + '</span>';
+  if (tags.landingPage) badgesEl.innerHTML += '<span class="badge badge-lp">' + escHtml(tags.landingPage) + '</span>';
+  if (tags.campaignTag) badgesEl.innerHTML += '<span class="badge badge-tag">' + escHtml(tags.campaignTag) + '</span>';
+
+  // KPIs
+  var kpisEl = document.getElementById('modalKpis');
+  kpisEl.innerHTML = '';
+  var kpiData = [
+    ['Spend', formatCurrency(agg.spend)],
+    ['Impressions', formatNumber(agg.impressions)],
+    ['Clicks', formatNumber(agg.clicks)],
+    ['CTR', formatPct(agg.ctr)],
+    ['CPC', formatCurrency(agg.cpc)],
+    ['CPM', formatCurrency(agg.cpm)],
+    ['ROAS', formatROAS(agg.roas)],
+    ['Purchases', formatNumber(agg.purchases)],
+    ['Revenue', formatCurrency(agg.revenue)],
+    ['Leads', formatNumber(agg.leads)],
+    ['Hook Rate', formatPct(agg.hookRate)],
+    ['Eng Rate', formatPct(agg.engRate)]
+  ];
+  kpiData.forEach(function(item) {
+    var div = document.createElement('div');
+    div.className = 'modal-kpi';
+    div.innerHTML = '<div class="modal-kpi-label">' + item[0] + '</div><div class="modal-kpi-value">' + item[1] + '</div>';
+    kpisEl.appendChild(div);
+  });
+
+  // Daily data for chart + table
+  var daily = groupBy(filtered, function(r) { return r.date; }).sort(function(a, b) {
+    return a.key.localeCompare(b.key);
+  });
+  var labels = daily.map(function(d) { return d.key; });
+  var pr = daily.length > 30 ? 0 : 3;
+
+  createChart('chartModal', {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Spend',
+          data: daily.map(function(d) { return d.spend; }),
+          backgroundColor: '#209D50',
+          borderRadius: 4,
+          yAxisID: 'y'
+        },
+        {
+          label: 'ROAS',
+          data: daily.map(function(d) { return d.roas; }),
+          type: 'line',
+          borderColor: '#4A90D9',
+          backgroundColor: 'transparent',
+          yAxisID: 'y1',
+          tension: 0.3,
+          pointRadius: pr
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: {
+          type: 'linear', position: 'left', beginAtZero: true,
+          title: { display: true, text: 'Spend ($)' },
+          ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
+        },
+        y1: {
+          type: 'linear', position: 'right', beginAtZero: true,
+          title: { display: true, text: 'ROAS' },
+          grid: { drawOnChartArea: false },
+          ticks: { callback: function(v) { return v.toFixed(1) + 'x'; } }
+        },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 25 } }
+      }
+    }
+  });
+
+  // Daily table
+  var tbody = document.getElementById('modalBody');
+  tbody.innerHTML = '';
+  daily.forEach(function(d) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + d.key + '</td>' +
+      '<td>' + formatCurrency(d.spend) + '</td>' +
+      '<td>' + formatNumber(d.impressions) + '</td>' +
+      '<td>' + formatNumber(d.clicks) + '</td>' +
+      '<td>' + formatPct(d.ctr) + '</td>' +
+      '<td>' + formatCurrency(d.cpc) + '</td>' +
+      '<td>' + formatNumber(d.purchases) + '</td>' +
+      '<td>' + formatCurrency(d.revenue) + '</td>' +
+      '<td>' + formatROAS(d.roas) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  document.getElementById('adModal').classList.add('open');
+}
+
+function closeAdModal() {
+  document.getElementById('adModal').classList.remove('open');
+  destroyChart('chartModal');
+}
+
+// ========================================================================
+// TAB: BREAKDOWNS
+// ========================================================================
+function renderBreakdowns() {
+  var filtered = getFilteredData();
+  var dim = document.getElementById('breakdownDim').value;
+
+  var dimKeyFns = {
+    color:       function(r) { return r.color || '(none)'; },
+    theme:       function(r) { return r.theme || '(none)'; },
+    type:        function(r) { return r.type || '(none)'; },
+    landingPage: function(r) { return r.landingPage || '(none)'; },
+    campaignTag: function(r) { return r.campaignTag || '(none)'; },
+    platform:    function(r) { return r.platform || '(none)'; },
+    placement:   function(r) { return r.placement || '(none)'; },
+    campaign:    function(r) { return r.campaign || '(none)'; },
+    adSet:       function(r) { return r.adSet || '(none)'; }
+  };
+
+  var grouped = groupBy(filtered, dimKeyFns[dim] || dimKeyFns.color);
+
+  // Sort for charts by spend desc, limit to top 15
+  var chartSorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; }).slice(0, 15);
+
+  var chartLabels = chartSorted.map(function(g) {
+    return g.key.length > 35 ? g.key.substring(0, 32) + '...' : g.key;
+  });
+  var chartColors = [];
+  for (var ci = 0; ci < chartSorted.length; ci++) {
+    chartColors.push(COLORS[ci % COLORS.length]);
+  }
+
+  // Spend horizontal bar
+  createChart('chartBreakSpend', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: 'Spend',
+        data: chartSorted.map(function(g) { return g.spend; }),
+        backgroundColor: chartColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
+        }
+      }
+    }
+  });
+
+  // ROAS horizontal bar
+  createChart('chartBreakROAS', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: 'ROAS',
+        data: chartSorted.map(function(g) { return g.roas; }),
+        backgroundColor: chartColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { callback: function(v) { return v.toFixed(1) + 'x'; } }
+        }
+      }
+    }
+  });
+
+  // Dimension label
+  var dimLabels = {
+    color: 'Color', theme: 'Theme', type: 'Ad Type', landingPage: 'Landing Page',
+    campaignTag: 'Campaign Tag', platform: 'Platform', placement: 'Placement',
+    campaign: 'Campaign', adSet: 'Ad Set'
+  };
+  var dimLabel = dimLabels[dim] || dim;
+
+  // Table header
+  var thead = document.getElementById('breakdownHead');
+  thead.innerHTML =
+    '<th data-col="key">' + dimLabel + '</th>' +
+    '<th data-col="spend">Spend</th>' +
+    '<th data-col="impressions">Imp</th>' +
+    '<th data-col="clicks">Clicks</th>' +
+    '<th data-col="ctr">CTR</th>' +
+    '<th data-col="cpc">CPC</th>' +
+    '<th data-col="cpm">CPM</th>' +
+    '<th data-col="purchases">Purch</th>' +
+    '<th data-col="revenue">Revenue</th>' +
+    '<th data-col="roas">ROAS</th>' +
+    '<th data-col="leads">Leads</th>' +
+    '<th data-col="costPerLead">CPL</th>' +
+    '<th data-col="hookRate">Hook%</th>' +
+    '<th data-col="engRate">Eng%</th>';
+
+  // Sort table data
+  var tableSorted = grouped.slice().sort(function(a, b) {
+    var va, vb;
+    if (breakdownSort.col === 'key') {
+      va = a.key; vb = b.key;
+      return breakdownSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    va = a[breakdownSort.col]; vb = b[breakdownSort.col];
+    return breakdownSort.asc ? va - vb : vb - va;
+  });
+
+  var tbody = document.getElementById('breakdownBody');
+  tbody.innerHTML = '';
+  tableSorted.forEach(function(g) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td title="' + escHtml(g.key) + '">' + escHtml(g.key.length > 50 ? g.key.substring(0, 47) + '...' : g.key) + '</td>' +
+      '<td>' + formatCurrency(g.spend) + '</td>' +
+      '<td>' + formatNumber(g.impressions) + '</td>' +
+      '<td>' + formatNumber(g.clicks) + '</td>' +
+      '<td>' + formatPct(g.ctr) + '</td>' +
+      '<td>' + formatCurrency(g.cpc) + '</td>' +
+      '<td>' + formatCurrency(g.cpm) + '</td>' +
+      '<td>' + formatNumber(g.purchases) + '</td>' +
+      '<td>' + formatCurrency(g.revenue) + '</td>' +
+      '<td>' + formatROAS(g.roas) + '</td>' +
+      '<td>' + formatNumber(g.leads) + '</td>' +
+      '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+      '<td>' + formatPct(g.hookRate) + '</td>' +
+      '<td>' + formatPct(g.engRate) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  // Sort arrows
+  document.querySelectorAll('#breakdownHead th').forEach(function(th) {
+    var col = th.dataset.col;
+    var existing = th.querySelector('.sort-arrow');
+    if (existing) existing.remove();
+    if (col === breakdownSort.col) {
+      var span = document.createElement('span');
+      span.className = 'sort-arrow';
+      span.textContent = breakdownSort.asc ? '\u25B2' : '\u25BC';
+      th.appendChild(span);
+    }
+  });
+}
+
+// ========================================================================
+// TAB: FUNNEL
+// ========================================================================
+function renderFunnel() {
+  var filtered = getFilteredData();
+  var agg = aggregateRows(filtered);
+
+  var stages = [
+    { label: 'Impressions',      value: agg.impressions, costPer: agg.impressions > 0 ? agg.spend / agg.impressions : 0 },
+    { label: 'Clicks',           value: agg.clicks,      costPer: agg.clicks > 0 ? agg.spend / agg.clicks : 0 },
+    { label: 'Landing Page Views', value: agg.lpv,       costPer: agg.lpv > 0 ? agg.spend / agg.lpv : 0 },
+    { label: 'Add to Cart',     value: agg.atc,          costPer: agg.atc > 0 ? agg.spend / agg.atc : 0 },
+    { label: 'Checkouts',       value: agg.checkouts,    costPer: agg.checkouts > 0 ? agg.spend / agg.checkouts : 0 },
+    { label: 'Purchases',       value: agg.purchases,    costPer: agg.purchases > 0 ? agg.spend / agg.purchases : 0 }
+  ];
+
+  var wrap = document.getElementById('funnelWrap');
+  wrap.innerHTML = '';
+
+  var imp = stages[0].value || 1;
+
+  stages.forEach(function(s, i) {
+    // Arrow between stages
+    if (i > 0) {
+      var arrow = document.createElement('div');
+      arrow.className = 'funnel-arrow';
+      arrow.textContent = '\u25BC';
+      wrap.appendChild(arrow);
+    }
+
+    var pctOfImp = s.value / imp;
+    var widthPct = Math.max(25, pctOfImp * 100);
+    var dropPct = (i > 0 && stages[i - 1].value > 0) ? (1 - s.value / stages[i - 1].value) : 0;
+
+    var div = document.createElement('div');
+    div.className = 'funnel-stage';
+    div.style.width = widthPct + '%';
+    div.style.minWidth = '220px';
+    div.style.maxWidth = '800px';
+
+    var dropHtml = '';
+    if (i > 0) {
+      dropHtml = '<div class="funnel-stage-drop">' + formatPct(dropPct) + ' drop-off from previous</div>';
+    }
+
+    div.innerHTML =
+      '<div class="funnel-stage-label">' + s.label + '</div>' +
+      '<div class="funnel-stage-count">' + formatNumber(s.value) + '</div>' +
+      '<div class="funnel-stage-pct">' + formatPct(pctOfImp) + ' of impressions</div>' +
+      dropHtml +
+      '<div class="funnel-stage-cost">Cost per: ' + formatCurrency(s.costPer) + '</div>';
+    wrap.appendChild(div);
+  });
+
+  // Funnel bar chart (horizontal)
+  var funnelColors = ['#209D50', '#4A90D9', '#FF6B6B', '#FFA500', '#9D50D9', '#50C8D9'];
+  createChart('chartFunnel', {
+    type: 'bar',
+    data: {
+      labels: stages.map(function(s) { return s.label; }),
+      datasets: [{
+        label: 'Count',
+        data: stages.map(function(s) { return s.value; }),
+        backgroundColor: funnelColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var s = stages[ctx.dataIndex];
+              return s.label + ': ' + formatNumber(s.value) + ' | Cost: ' + formatCurrency(s.costPer);
             }
-
-            updateDashboardTab();
-            updateTrendsTab();
-            updateAdTab();
-            updateComponentTab();
-            updatePlacementTab();
-            updateFunnelTab();
-            updateCreativeTab();
-            updateFBSparkLoopTab();
-
-            refreshBtn.disabled = false;
-            refreshBtn.innerHTML = 'Refresh Data';
-            document.getElementById('lastRefreshed').textContent = `Last refreshed: ${new Date().toLocaleString()}`;
+          }
         }
-
-        // Original unfiltered data backup
-        let originalData = {};
-
-        // Populate filter dropdowns from Ad Performance data
-        function populateFilters() {
-            const data = originalData['Ad Performance'] || [];
-            const daily = originalData['Daily Summary'] || [];
-
-            // Date range from Daily Summary
-            const dates = daily.map(r => r['Date']).filter(Boolean).sort();
-            if (dates.length > 0) {
-                document.getElementById('filterDateFrom').value = dates[0];
-                document.getElementById('filterDateTo').value = dates[dates.length - 1];
-            }
-
-            // Dropdown filters
-            const filters = [
-                { id: 'filterColor', field: 'Color' },
-                { id: 'filterTheme', field: 'Theme' },
-                { id: 'filterType', field: 'Ad Type' },
-                { id: 'filterLandingPage', field: 'Landing Page' },
-                { id: 'filterCampaignTag', field: 'Campaign Tag' }
-            ];
-
-            filters.forEach(f => {
-                const sel = document.getElementById(f.id);
-                const vals = [...new Set(data.map(r => (r[f.field] || '').trim()).filter(Boolean))].sort();
-                sel.innerHTML = '<option value="">All</option>';
-                vals.forEach(v => {
-                    const opt = document.createElement('option');
-                    opt.value = v;
-                    opt.textContent = v;
-                    sel.appendChild(opt);
-                });
-            });
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { callback: function(v) { return v.toLocaleString(); } }
         }
+      }
+    }
+  });
+}
 
-        // Apply filters to data and re-render
-        function applyFilters() {
-            const dateFrom = document.getElementById('filterDateFrom').value;
-            const dateTo = document.getElementById('filterDateTo').value;
-            const color = document.getElementById('filterColor').value;
-            const theme = document.getElementById('filterTheme').value;
-            const type = document.getElementById('filterType').value;
-            const lp = document.getElementById('filterLandingPage').value;
-            const tag = document.getElementById('filterCampaignTag').value;
+// ========================================================================
+// TAB: FB + SPARKLOOP
+// ========================================================================
+function renderSparkLoop() {
+  var filtered = getFilteredSLData();
+  var sorted = filtered.slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
 
-            // Filter Ad Performance
-            let adData = originalData['Ad Performance'] || [];
-            if (color) adData = adData.filter(r => (r['Color'] || '').trim() === color);
-            if (theme) adData = adData.filter(r => (r['Theme'] || '').trim() === theme);
-            if (type) adData = adData.filter(r => (r['Ad Type'] || '').trim() === type);
-            if (lp) adData = adData.filter(r => (r['Landing Page'] || '').trim() === lp);
-            if (tag) adData = adData.filter(r => (r['Campaign Tag'] || '').trim() === tag);
-            allData['Ad Performance'] = adData;
+  // Compute totals
+  var totals = {
+    fbSpend: 0, fbImpressions: 0, fbClicks: 0, fbPurchases: 0, fbRevenue: 0,
+    slNewSubs: 0, slConfirmed: 0, slPending: 0, slEarnings: 0, combinedRevenue: 0
+  };
+  sorted.forEach(function(r) {
+    totals.fbSpend += r.fbSpend;
+    totals.fbImpressions += r.fbImpressions;
+    totals.fbClicks += r.fbClicks;
+    totals.fbPurchases += r.fbPurchases;
+    totals.fbRevenue += r.fbRevenue;
+    totals.slNewSubs += r.slNewSubs;
+    totals.slConfirmed += r.slConfirmed;
+    totals.slPending += r.slPending;
+    totals.slEarnings += r.slEarnings;
+    totals.combinedRevenue += r.combinedRevenue;
+  });
+  var fbRoas = totals.fbSpend > 0 ? totals.fbRevenue / totals.fbSpend : 0;
+  var combinedRoas = totals.fbSpend > 0 ? totals.combinedRevenue / totals.fbSpend : 0;
 
-            // Filter Daily Summary by date
-            let dailyData = originalData['Daily Summary'] || [];
-            if (dateFrom) dailyData = dailyData.filter(r => r['Date'] >= dateFrom);
-            if (dateTo) dailyData = dailyData.filter(r => r['Date'] <= dateTo);
-            allData['Daily Summary'] = dailyData;
+  // KPI cards
+  var kpisEl = document.getElementById('slKpis');
+  kpisEl.innerHTML = '';
+  var slKpiData = [
+    ['FB Spend', formatCurrency(totals.fbSpend)],
+    ['FB Impressions', formatNumber(totals.fbImpressions)],
+    ['FB Clicks', formatNumber(totals.fbClicks)],
+    ['FB Purchases', formatNumber(totals.fbPurchases)],
+    ['FB Revenue', formatCurrency(totals.fbRevenue)],
+    ['FB ROAS', formatROAS(fbRoas)],
+    ['SL New Subscribers', formatNumber(totals.slNewSubs)],
+    ['SL Confirmed Referrals', formatNumber(totals.slConfirmed)],
+    ['SL Pending Referrals', formatNumber(totals.slPending)],
+    ['SL Earnings', formatCurrency(totals.slEarnings)],
+    ['Combined Revenue', formatCurrency(totals.combinedRevenue)],
+    ['Combined ROAS', formatROAS(combinedRoas)]
+  ];
+  slKpiData.forEach(function(item) {
+    kpisEl.appendChild(buildKpiCard(item[0], item[1], null));
+  });
 
-            // Copy other sheets from original (breakouts aren't filtered by ad-level filters)
-            const otherSheets = Object.keys(originalData).filter(k => k !== 'Ad Performance' && k !== 'Daily Summary');
-            otherSheets.forEach(k => { allData[k] = originalData[k]; });
-
-            // Re-render all tabs
-            updateDashboardTab();
-            updateTrendsTab();
-            updateAdTab();
-            updateComponentTab();
-            updatePlacementTab();
-            updateFunnelTab();
-            updateCreativeTab();
-            updateFBSparkLoopTab();
+  // Stacked bar chart
+  var chartLabels = sorted.map(function(r) { return r.date; });
+  createChart('chartSL', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: 'FB Revenue',
+          data: sorted.map(function(r) { return r.fbRevenue; }),
+          backgroundColor: '#209D50',
+          borderRadius: 2
+        },
+        {
+          label: 'SL Earnings',
+          data: sorted.map(function(r) { return r.slEarnings; }),
+          backgroundColor: '#4A90D9',
+          borderRadius: 2
         }
-
-        // Reset all filters
-        function resetFilters() {
-            const daily = originalData['Daily Summary'] || [];
-            const dates = daily.map(r => r['Date']).filter(Boolean).sort();
-            if (dates.length > 0) {
-                document.getElementById('filterDateFrom').value = dates[0];
-                document.getElementById('filterDateTo').value = dates[dates.length - 1];
-            }
-            document.getElementById('filterColor').value = '';
-            document.getElementById('filterTheme').value = '';
-            document.getElementById('filterType').value = '';
-            document.getElementById('filterLandingPage').value = '';
-            document.getElementById('filterCampaignTag').value = '';
-            applyFilters();
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: {
+          stacked: true,
+          ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 30 }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
         }
-
-        // Refresh Data
-        function refreshData() {
-            loadData();
-        }
-
-        // Switch Tab
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
-
-            // Resize charts when tab becomes active
-            setTimeout(() => {
-                Object.values(charts).forEach(chart => {
-                    if (chart && chart.resize) chart.resize();
-                });
-            }, 100);
-        }
-
-        // Format Functions
-        function formatCurrency(value) {
-            const num = parseFloat(value) || 0;
-            return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        function formatNumber(value) {
-            const num = parseInt(value) || 0;
-            return num.toLocaleString();
-        }
-
-        function formatPercentage(value) {
-            const num = parseFloat(value) || 0;
-            return (num * 100).toFixed(2) + '%';
-        }
-
-        function formatROAS(value) {
-            const num = parseFloat(value) || 0;
-            return num.toFixed(2) + 'x';
-        }
-
-        function formatFrequency(value) {
-            const num = parseFloat(value) || 0;
-            return num.toFixed(2);
-        }
-
-        // Calculate KPI
-        function calculateKPI(data, field) {
-            if (!data || data.length === 0) return 0;
-            return data.reduce((sum, row) => sum + (parseFloat(row[field]) || 0), 0);
-        }
-
-        // Dashboard Tab
-        function updateDashboardTab() {
-            const data = allData['Ad Performance'] || [];
-
-            const spend = calculateKPI(data, 'Amount Spent');
-            const impressions = calculateKPI(data, 'Impressions');
-            const reach = calculateKPI(data, 'Reach');
-            const clicks = calculateKPI(data, 'Clicks');
-            const conversions = calculateKPI(data, 'Purchases');
-            const revenue = calculateKPI(data, 'Revenue');
-            const leads = calculateKPI(data, 'Leads');
-            const thruPlays = calculateKPI(data, 'ThruPlays');
-            const engagements = calculateKPI(data, 'Post Engagements');
-            const lpv = calculateKPI(data, 'Landing Page Views');
-            const linkClicks = calculateKPI(data, 'Link Clicks');
-            const atc = calculateKPI(data, 'Adds to Cart');
-
-            const cpm = impressions > 0 ? (spend * 1000) / impressions : 0;
-            const frequency = reach > 0 ? impressions / reach : 0;
-            const ctr = impressions > 0 ? clicks / impressions : 0;
-            const cpc = clicks > 0 ? spend / clicks : 0;
-            const roas = spend > 0 ? revenue / spend : 0;
-            const costPerPurchase = conversions > 0 ? spend / conversions : 0;
-            const costPerLead = leads > 0 ? spend / leads : 0;
-            const hookRate = impressions > 0 ? thruPlays / impressions : 0;
-            const engagementRate = impressions > 0 ? engagements / impressions : 0;
-            const costPerLPV = lpv > 0 ? spend / lpv : 0;
-
-            // Spend & Delivery
-            document.getElementById('spendGrid').innerHTML = `
-                <div class="kpi-card">
-                    <div class="kpi-label">Total Spend</div>
-                    <div class="kpi-value">${formatCurrency(spend)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Impressions</div>
-                    <div class="kpi-value">${formatNumber(impressions)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Reach</div>
-                    <div class="kpi-value">${formatNumber(reach)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">CPM</div>
-                    <div class="kpi-value">${formatCurrency(cpm)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Frequency</div>
-                    <div class="kpi-value">${formatFrequency(frequency)}</div>
-                </div>
-            `;
-
-            // Efficiency
-            document.getElementById('efficiencyGrid').innerHTML = `
-                <div class="kpi-card">
-                    <div class="kpi-label">CTR</div>
-                    <div class="kpi-value">${formatPercentage(ctr)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">CPC</div>
-                    <div class="kpi-value">${formatCurrency(cpc)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Link Clicks</div>
-                    <div class="kpi-value">${formatNumber(linkClicks)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Landing Page Views</div>
-                    <div class="kpi-value">${formatNumber(lpv)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Cost/LPV</div>
-                    <div class="kpi-value">${formatCurrency(costPerLPV)}</div>
-                </div>
-            `;
-
-            // Conversions
-            document.getElementById('conversionGrid').innerHTML = `
-                <div class="kpi-card">
-                    <div class="kpi-label">Purchases</div>
-                    <div class="kpi-value">${formatNumber(conversions)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Revenue</div>
-                    <div class="kpi-value">${formatCurrency(revenue)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">ROAS</div>
-                    <div class="kpi-value ${roas >= 1 ? 'positive' : 'negative'}">${formatROAS(roas)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Adds to Cart</div>
-                    <div class="kpi-value">${formatNumber(atc)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Cost/Purchase</div>
-                    <div class="kpi-value">${formatCurrency(costPerPurchase)}</div>
-                </div>
-            `;
-
-            // Engagement
-            document.getElementById('engagementGrid').innerHTML = `
-                <div class="kpi-card">
-                    <div class="kpi-label">Leads</div>
-                    <div class="kpi-value">${formatNumber(leads)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Cost/Lead</div>
-                    <div class="kpi-value">${formatCurrency(costPerLead)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">ThruPlays</div>
-                    <div class="kpi-value">${formatNumber(thruPlays)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Hook Rate</div>
-                    <div class="kpi-value">${formatPercentage(hookRate)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Engagement Rate</div>
-                    <div class="kpi-value">${formatPercentage(engagementRate)}</div>
-                </div>
-            `;
-        }
-
-        // Trends Tab
-        function updateTrendsTab() {
-            const data = allData['Daily Summary'] || [];
-            if (data.length === 0) return;
-
-            const dates = data.map(d => d.Date || '');
-            const spends = data.map(d => parseFloat(d.Spend) || 0);
-            const cpms = data.map(d => parseFloat(d.CPM) || 0);
-            const cpcs = data.map(d => parseFloat(d.CPC) || 0);
-            const ctrs = data.map(d => (parseFloat(d.CTR) || 0) * 100);
-            const hookRates = data.map(d => (parseFloat(d['3s Video Plays']) || 0) / (parseFloat(d.Impressions) || 1) * 100);
-            const purchases = data.map(d => parseFloat(d.Purchases) || 0);
-
-            // Daily Spend
-            createChart('dailySpendChart', {
-                type: 'bar',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Spend',
-                        data: spends,
-                        backgroundColor: '#209D50',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        x: {
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        }
-                    }
-                }
-            });
-
-            // CPM & CPC
-            createChart('cpmCpcChart', {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [
-                        {
-                            label: 'CPM',
-                            data: cpms,
-                            borderColor: '#209D50',
-                            backgroundColor: 'rgba(74, 144, 217, 0.1)',
-                            yAxisID: 'y',
-                            tension: 0.3
-                        },
-                        {
-                            label: 'CPC',
-                            data: cpcs,
-                            borderColor: '#209d50',
-                            backgroundColor: 'rgba(32, 157, 80, 0.1)',
-                            yAxisID: 'y1',
-                            tension: 0.3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { labels: { color: '#000000' } }
-                    },
-                    scales: {
-                        y: {
-                            title: { display: true, text: 'CPM', color: '#000000' },
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        y1: {
-                            position: 'right',
-                            title: { display: true, text: 'CPC', color: '#000000' },
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        x: {
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        }
-                    }
-                }
-            });
-
-            // CTR & Hook Rate
-            createChart('ctrHookChart', {
-                type: 'line',
-                data: {
-                    labels: dates,
-                    datasets: [
-                        {
-                            label: 'CTR (%)',
-                            data: ctrs,
-                            borderColor: '#209D50',
-                            backgroundColor: 'rgba(74, 144, 217, 0.1)',
-                            tension: 0.3
-                        },
-                        {
-                            label: 'Hook Rate (%)',
-                            data: hookRates,
-                            borderColor: '#209d50',
-                            backgroundColor: 'rgba(32, 157, 80, 0.1)',
-                            tension: 0.3
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { labels: { color: '#000000' } }
-                    },
-                    scales: {
-                        y: {
-                            title: { display: true, text: 'Percentage (%)', color: '#000000' },
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        x: {
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        }
-                    }
-                }
-            });
-
-            // Daily Conversions
-            createChart('dailyConversionsChart', {
-                type: 'bar',
-                data: {
-                    labels: dates,
-                    datasets: [{
-                        label: 'Purchases',
-                        data: purchases,
-                        backgroundColor: '#209d50',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        x: {
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        }
-                    }
-                }
-            });
-        }
-
-        // Create Chart Helper
-        function createChart(canvasId, config) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-
-            if (charts[canvasId]) {
-                charts[canvasId].destroy();
-            }
-
-            const bgColor = '#F5F4F1';
-            canvas.style.backgroundColor = bgColor;
-
-            config.options = config.options || {};
-            config.options.plugins = config.options.plugins || {};
-            config.options.plugins.filler = { propagate: true };
-
-            charts[canvasId] = new Chart(canvas, config);
-        }
-
-        // By Ad Tab
-        function updateAdTab() {
-            const data = allData['Ad Performance'] || [];
-            const tbody = document.getElementById('adTableBody');
-            tbody.innerHTML = '';
-
-            data.forEach(row => {
-                const spend = parseFloat(row['Amount Spent']) || 0;
-                const impressions = parseFloat(row['Impressions']) || 0;
-                const clicks = parseFloat(row['Clicks']) || 0;
-                const ctr = impressions > 0 ? clicks / impressions : 0;
-                const cpc = clicks > 0 ? spend / clicks : 0;
-                const cpm = impressions > 0 ? (spend * 1000) / impressions : 0;
-                const purchases = parseFloat(row['Purchases']) || 0;
-                const revenue = parseFloat(row['Revenue']) || 0;
-                const roas = spend > 0 ? revenue / spend : 0;
-                const leads = parseFloat(row['Leads']) || 0;
-                const costPerLead = leads > 0 ? spend / leads : 0;
-                const thruPlays = parseFloat(row['ThruPlays']) || 0;
-                const hookRate = impressions > 0 ? thruPlays / impressions : 0;
-                const engagements = parseFloat(row['Post Engagements']) || 0;
-                const engRate = impressions > 0 ? engagements / impressions : 0;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row['Ad Name'] || ''}</td>
-                    <td class="text-right">${formatCurrency(spend)}</td>
-                    <td class="text-right">${formatNumber(impressions)}</td>
-                    <td class="text-right">${formatNumber(clicks)}</td>
-                    <td class="text-right">${formatPercentage(ctr)}</td>
-                    <td class="text-right">${formatCurrency(cpc)}</td>
-                    <td class="text-right">${formatCurrency(cpm)}</td>
-                    <td class="text-right">${formatNumber(purchases)}</td>
-                    <td class="text-right">${formatCurrency(revenue)}</td>
-                    <td class="text-right ${roas >= 1 ? 'positive' : 'negative'}">${formatROAS(roas)}</td>
-                    <td class="text-right">${formatNumber(leads)}</td>
-                    <td class="text-right">${formatCurrency(costPerLead)}</td>
-                    <td class="text-right">${formatPercentage(hookRate)}</td>
-                    <td class="text-right">${formatPercentage(engRate)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // By Component Tab
-        function updateComponentTab() {
-            const components = [
-                { name: 'Color', sheet: 'AA - By Color' },
-                { name: 'Theme', sheet: 'AA - By Theme' },
-                { name: 'Ad Type', sheet: 'AA - By Ad Type' },
-                { name: 'Landing Page', sheet: 'AA - By Landing Page' },
-                { name: 'Campaign Tag', sheet: 'AA - By Campaign Tag' }
-            ];
-
-            let html = '';
-            components.forEach(comp => {
-                const data = allData[comp.sheet] || [];
-                if (data.length === 0) return;
-
-                const groupCol = comp.name === 'Color' ? 'Color' :
-                                 comp.name === 'Theme' ? 'Theme' :
-                                 comp.name === 'Ad Type' ? 'Ad Type' :
-                                 comp.name === 'Landing Page' ? 'Landing Page' : 'Campaign Tag';
-
-                const names = data.map(d => d[groupCol] || '');
-                const spends = data.map(d => parseFloat(d.Spend) || 0);
-                const roases = data.map(d => parseFloat(d.ROAS) || 0);
-
-                html += `
-                    <div class="component-section">
-                        <div class="component-title">By ${comp.name}</div>
-                        <div class="charts-row">
-                            <div class="chart-container">
-                                <div class="chart-title">Spend by ${comp.name}</div>
-                                <canvas id="spend${comp.name.replace(/\s/g, '')}Chart"></canvas>
-                            </div>
-                            <div class="chart-container">
-                                <div class="chart-title">ROAS by ${comp.name}</div>
-                                <canvas id="roas${comp.name.replace(/\s/g, '')}Chart"></canvas>
-                            </div>
-                        </div>
-                        <div class="table-container">
-                            <table class="componentTable" data-component="${comp.name}">
-                                <thead>
-                                    <tr>
-                                        <th class="sortable" onclick="sortComponentTable(this)">${comp.name}</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Spend</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Imp</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Clicks</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">CTR</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">CPC</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">CPM</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Purchases</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Revenue</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">ROAS</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Leads</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Cost/Lead</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Hook Rate</th>
-                                        <th class="sortable text-right" onclick="sortComponentTable(this)">Eng Rate</th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            });
-
-            document.getElementById('componentContent').innerHTML = html;
-
-            // Populate data and create charts
-            components.forEach(comp => {
-                const data = allData[comp.sheet] || [];
-                if (data.length === 0) return;
-
-                const groupCol = comp.name === 'Color' ? 'Color' :
-                                 comp.name === 'Theme' ? 'Theme' :
-                                 comp.name === 'Ad Type' ? 'Ad Type' :
-                                 comp.name === 'Landing Page' ? 'Landing Page' : 'Campaign Tag';
-
-                const names = data.map(d => d[groupCol] || '');
-                const spends = data.map(d => parseFloat(d.Spend) || 0);
-                const roases = data.map(d => parseFloat(d.ROAS) || 0);
-
-                // Spend Chart
-                createChart(`spend${comp.name.replace(/\s/g, '')}Chart`, {
-                    type: 'bar',
-                    data: {
-                        labels: names,
-                        datasets: [{
-                            label: 'Spend',
-                            data: spends,
-                            backgroundColor: '#209D50',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            },
-                            x: {
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            }
-                        }
-                    }
-                });
-
-                // ROAS Chart
-                createChart(`roas${comp.name.replace(/\s/g, '')}Chart`, {
-                    type: 'bar',
-                    data: {
-                        labels: names,
-                        datasets: [{
-                            label: 'ROAS',
-                            data: roases,
-                            backgroundColor: roases.map(r => r >= 1 ? '#209d50' : '#ff6b6b'),
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            },
-                            x: {
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            }
-                        }
-                    }
-                });
-
-                // Populate table
-                const table = document.querySelector(`[data-component="${comp.name}"] tbody`);
-                data.forEach(row => {
-                    const spend = parseFloat(row.Spend) || 0;
-                    const impressions = parseFloat(row.Impressions) || 0;
-                    const clicks = parseFloat(row.Clicks) || 0;
-                    const ctr = impressions > 0 ? clicks / impressions : 0;
-                    const cpc = clicks > 0 ? spend / clicks : 0;
-                    const cpm = impressions > 0 ? (spend * 1000) / impressions : 0;
-                    const purchases = parseFloat(row.Purchases) || 0;
-                    const revenue = parseFloat(row.Revenue) || 0;
-                    const roas = spend > 0 ? revenue / spend : 0;
-                    const leads = parseFloat(row.Leads) || 0;
-                    const costPerLead = leads > 0 ? spend / leads : 0;
-                    const thruPlays = parseFloat(row.ThruPlays) || 0;
-                    const hookRate = impressions > 0 ? thruPlays / impressions : 0;
-                    const engagements = parseFloat(row['Engagement Rate']) || 0;
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${row[groupCol] || ''}</td>
-                        <td class="text-right">${formatCurrency(spend)}</td>
-                        <td class="text-right">${formatNumber(impressions)}</td>
-                        <td class="text-right">${formatNumber(clicks)}</td>
-                        <td class="text-right">${formatPercentage(ctr)}</td>
-                        <td class="text-right">${formatCurrency(cpc)}</td>
-                        <td class="text-right">${formatCurrency(cpm)}</td>
-                        <td class="text-right">${formatNumber(purchases)}</td>
-                        <td class="text-right">${formatCurrency(revenue)}</td>
-                        <td class="text-right ${roas >= 1 ? 'positive' : 'negative'}">${formatROAS(roas)}</td>
-                        <td class="text-right">${formatNumber(leads)}</td>
-                        <td class="text-right">${formatCurrency(costPerLead)}</td>
-                        <td class="text-right">${formatPercentage(hookRate)}</td>
-                        <td class="text-right">${formatPercentage(engagements / 100)}</td>
-                    `;
-                    table.appendChild(tr);
-                });
-            });
-        }
-
-        // By Placement Tab
-        function updatePlacementTab() {
-            const data = allData['AA - By Placement'] || [];
-            if (data.length === 0) return;
-
-            const names = data.map(d => d.Placement || '');
-            const spends = data.map(d => parseFloat(d.Spend) || 0);
-            const ctrs = data.map(d => (parseFloat(d.CTR) || 0) * 100);
-
-            let html = `
-                <div class="component-section">
-                    <div class="charts-row">
-                        <div class="chart-container">
-                            <div class="chart-title">Spend by Placement</div>
-                            <canvas id="spendPlacementChart"></canvas>
-                        </div>
-                        <div class="chart-container">
-                            <div class="chart-title">CTR by Placement</div>
-                            <canvas id="ctrPlacementChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="table-container">
-                        <table id="placementTable">
-                            <thead>
-                                <tr>
-                                    <th class="sortable" onclick="sortTable('placementTable', 0)">Placement</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 1)">Spend</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 2)">Imp</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 3)">Clicks</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 4)">CTR</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 5)">CPC</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 6)">CPM</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 7)">Purchases</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 8)">Revenue</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 9)">ROAS</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 10)">Leads</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 11)">Cost/Lead</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 12)">Hook Rate</th>
-                                    <th class="sortable text-right" onclick="sortTable('placementTable', 13)">Eng Rate</th>
-                                </tr>
-                            </thead>
-                            <tbody id="placementTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('placementContent').innerHTML = html;
-
-            // Spend Chart
-            createChart('spendPlacementChart', {
-                type: 'doughnut',
-                data: {
-                    labels: names,
-                    datasets: [{
-                        data: spends,
-                        backgroundColor: ['#209D50', '#209d50', '#ff6b6b', '#ffa500', '#9d50d9'],
-                        borderColor: '#C8C5BE'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#000000' } } }
-                }
-            });
-
-            // CTR Chart
-            createChart('ctrPlacementChart', {
-                type: 'bar',
-                data: {
-                    labels: names,
-                    datasets: [{
-                        label: 'CTR (%)',
-                        data: ctrs,
-                        backgroundColor: '#209D50',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        x: {
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        }
-                    }
-                }
-            });
-
-            // Populate table
-            const tbody = document.getElementById('placementTableBody');
-            data.forEach(row => {
-                const spend = parseFloat(row.Spend) || 0;
-                const impressions = parseFloat(row.Impressions) || 0;
-                const clicks = parseFloat(row.Clicks) || 0;
-                const ctr = impressions > 0 ? clicks / impressions : 0;
-                const cpc = clicks > 0 ? spend / clicks : 0;
-                const cpm = impressions > 0 ? (spend * 1000) / impressions : 0;
-                const purchases = parseFloat(row.Purchases) || 0;
-                const revenue = parseFloat(row.Revenue) || 0;
-                const roas = spend > 0 ? revenue / spend : 0;
-                const leads = parseFloat(row.Leads) || 0;
-                const costPerLead = leads > 0 ? spend / leads : 0;
-                const thruPlays = parseFloat(row.ThruPlays) || 0;
-                const hookRate = impressions > 0 ? thruPlays / impressions : 0;
-                const engagementRate = parseFloat(row['Engagement Rate']) || 0;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.Placement || ''}</td>
-                    <td class="text-right">${formatCurrency(spend)}</td>
-                    <td class="text-right">${formatNumber(impressions)}</td>
-                    <td class="text-right">${formatNumber(clicks)}</td>
-                    <td class="text-right">${formatPercentage(ctr)}</td>
-                    <td class="text-right">${formatCurrency(cpc)}</td>
-                    <td class="text-right">${formatCurrency(cpm)}</td>
-                    <td class="text-right">${formatNumber(purchases)}</td>
-                    <td class="text-right">${formatCurrency(revenue)}</td>
-                    <td class="text-right ${roas >= 1 ? 'positive' : 'negative'}">${formatROAS(roas)}</td>
-                    <td class="text-right">${formatNumber(leads)}</td>
-                    <td class="text-right">${formatCurrency(costPerLead)}</td>
-                    <td class="text-right">${formatPercentage(hookRate)}</td>
-                    <td class="text-right">${formatPercentage(engagementRate / 100)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Funnel Tab
-        function updateFunnelTab() {
-            const data = allData['AA - Funnel Events'] || [];
-            const tbody = document.getElementById('funnelTableBody');
-            tbody.innerHTML = '';
-
-            data.forEach(row => {
-                const count = parseInt(row.Count) || 0;
-                const rateFromImp = parseFloat(row['Rate from Impressions']) || 0;
-                const costPer = parseFloat(row['Cost Per']) || 0;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.Stage || ''}</td>
-                    <td class="text-right">${formatNumber(count)}</td>
-                    <td class="text-right">${formatPercentage(rateFromImp)}</td>
-                    <td class="text-right">${formatCurrency(costPer)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Creative Perf Tab
-        function updateCreativeTab() {
-            const typeData = allData['AA - Creative by Type'] || [];
-            const themeData = allData['AA - Creative by Theme'] || [];
-
-            let html = '';
-
-            // By Type
-            if (typeData.length > 0) {
-                const names = typeData.map(d => d['Ad Type'] || d['Type'] || '');
-                const hookRates = typeData.map(d => (parseFloat(d['Hook Rate']) || 0));
-                const engagementRates = typeData.map(d => (parseFloat(d['Engagement Rate']) || 0));
-
-                html += `
-                    <div class="component-section">
-                        <div class="component-title">By Creative Type</div>
-                        <div class="charts-row">
-                            <div class="chart-container">
-                                <div class="chart-title">Hook Rate by Type</div>
-                                <canvas id="hookTypeChart"></canvas>
-                            </div>
-                            <div class="chart-container">
-                                <div class="chart-title">Engagement Rate by Type</div>
-                                <canvas id="engTypeChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="table-container">
-                            <table id="creativeTypeTable">
-                                <thead>
-                                    <tr>
-                                        <th class="sortable" onclick="sortTable('creativeTypeTable', 0)">Type</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 1)">Imp</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 2)">3s Plays</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 3)">ThruPlays</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 4)">Hook Rate</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 5)">Hold Rate</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 6)">Engagement</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 7)">Eng Rate</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeTypeTable', 8)">Freq</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="creativeTypeTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // By Theme
-            if (themeData.length > 0) {
-                const names = themeData.map(d => d.Theme || '');
-                const hookRates = themeData.map(d => (parseFloat(d['Hook Rate']) || 0));
-                const engagementRates = themeData.map(d => (parseFloat(d['Engagement Rate']) || 0));
-
-                html += `
-                    <div class="component-section">
-                        <div class="component-title">By Theme</div>
-                        <div class="charts-row">
-                            <div class="chart-container">
-                                <div class="chart-title">Hook Rate by Theme</div>
-                                <canvas id="hookThemeChart"></canvas>
-                            </div>
-                            <div class="chart-container">
-                                <div class="chart-title">Engagement Rate by Theme</div>
-                                <canvas id="engThemeChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="table-container">
-                            <table id="creativeThemeTable">
-                                <thead>
-                                    <tr>
-                                        <th class="sortable" onclick="sortTable('creativeThemeTable', 0)">Theme</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 1)">Imp</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 2)">3s Plays</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 3)">ThruPlays</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 4)">Hook Rate</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 5)">Hold Rate</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 6)">Engagement</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 7)">Eng Rate</th>
-                                        <th class="sortable text-right" onclick="sortTable('creativeThemeTable', 8)">Freq</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="creativeThemeTableBody"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-            }
-
-            document.getElementById('creativeContent').innerHTML = html;
-
-            // Populate Type Data
-            if (typeData.length > 0) {
-                const names = typeData.map(d => d['Ad Type'] || d['Type'] || '');
-                const hookRates = typeData.map(d => (parseFloat(d['Hook Rate']) || 0) * 100);
-                const engagementRates = typeData.map(d => (parseFloat(d['Engagement Rate']) || 0) * 100);
-
-                createChart('hookTypeChart', {
-                    type: 'bar',
-                    data: {
-                        labels: names,
-                        datasets: [{
-                            label: 'Hook Rate (%)',
-                            data: hookRates,
-                            backgroundColor: '#209D50',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            },
-                            x: {
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            }
-                        }
-                    }
-                });
-
-                createChart('engTypeChart', {
-                    type: 'bar',
-                    data: {
-                        labels: names,
-                        datasets: [{
-                            label: 'Engagement Rate (%)',
-                            data: engagementRates,
-                            backgroundColor: '#209d50',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            },
-                            x: {
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            }
-                        }
-                    }
-                });
-
-                // Populate table
-                const tbody = document.getElementById('creativeTypeTableBody');
-                typeData.forEach(row => {
-                    const impressions = parseFloat(row.Impressions) || 0;
-                    const videoPlays = parseFloat(row['3s Video Plays']) || 0;
-                    const thruPlays = parseFloat(row.ThruPlays) || 0;
-                    const hookRate = parseFloat(row['Hook Rate']) || 0;
-                    const holdRate = videoPlays > 0 ? thruPlays / videoPlays : 0;
-                    const engagements = parseFloat(row.Engagements) || 0;
-                    const engRate = parseFloat(row['Engagement Rate']) || 0;
-                    const frequency = parseFloat(row.Frequency) || 0;
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${row['Ad Type'] || row['Type'] || ''}</td>
-                        <td class="text-right">${formatNumber(impressions)}</td>
-                        <td class="text-right">${formatNumber(videoPlays)}</td>
-                        <td class="text-right">${formatNumber(thruPlays)}</td>
-                        <td class="text-right">${formatPercentage(hookRate / 100)}</td>
-                        <td class="text-right">${formatPercentage(holdRate)}</td>
-                        <td class="text-right">${formatNumber(engagements)}</td>
-                        <td class="text-right">${formatPercentage(engRate / 100)}</td>
-                        <td class="text-right">${formatFrequency(frequency)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-
-            // Populate Theme Data
-            if (themeData.length > 0) {
-                const names = themeData.map(d => d.Theme || '');
-                const hookRates = themeData.map(d => (parseFloat(d['Hook Rate']) || 0) * 100);
-                const engagementRates = themeData.map(d => (parseFloat(d['Engagement Rate']) || 0) * 100);
-
-                createChart('hookThemeChart', {
-                    type: 'bar',
-                    data: {
-                        labels: names,
-                        datasets: [{
-                            label: 'Hook Rate (%)',
-                            data: hookRates,
-                            backgroundColor: '#209D50',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            },
-                            x: {
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            }
-                        }
-                    }
-                });
-
-                createChart('engThemeChart', {
-                    type: 'bar',
-                    data: {
-                        labels: names,
-                        datasets: [{
-                            label: 'Engagement Rate (%)',
-                            data: engagementRates,
-                            backgroundColor: '#209d50',
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            },
-                            x: {
-                                ticks: { color: '#000000' },
-                                grid: { color: '#C8C5BE' }
-                            }
-                        }
-                    }
-                });
-
-                // Populate table
-                const tbody = document.getElementById('creativeThemeTableBody');
-                themeData.forEach(row => {
-                    const impressions = parseFloat(row.Impressions) || 0;
-                    const videoPlays = parseFloat(row['3s Video Plays']) || 0;
-                    const thruPlays = parseFloat(row.ThruPlays) || 0;
-                    const hookRate = parseFloat(row['Hook Rate']) || 0;
-                    const holdRate = videoPlays > 0 ? thruPlays / videoPlays : 0;
-                    const engagements = parseFloat(row.Engagements) || 0;
-                    const engRate = parseFloat(row['Engagement Rate']) || 0;
-                    const frequency = parseFloat(row.Frequency) || 0;
-
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${row.Theme || ''}</td>
-                        <td class="text-right">${formatNumber(impressions)}</td>
-                        <td class="text-right">${formatNumber(videoPlays)}</td>
-                        <td class="text-right">${formatNumber(thruPlays)}</td>
-                        <td class="text-right">${formatPercentage(hookRate / 100)}</td>
-                        <td class="text-right">${formatPercentage(holdRate)}</td>
-                        <td class="text-right">${formatNumber(engagements)}</td>
-                        <td class="text-right">${formatPercentage(engRate / 100)}</td>
-                        <td class="text-right">${formatFrequency(frequency)}</td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-        }
-
-        // FB + SparkLoop Tab
-        function updateFBSparkLoopTab() {
-            const data = allData['AA - FB + SparkLoop'] || [];
-            if (data.length === 0) return;
-
-            const fbSpend = calculateKPI(data, 'FB Spend');
-            const fbRevenue = calculateKPI(data, 'FB Revenue');
-            const fbRoas = fbSpend > 0 ? fbRevenue / fbSpend : 0;
-            const slEarnings = calculateKPI(data, 'SL Earnings');
-            const combinedRevenue = calculateKPI(data, 'Combined Revenue');
-            const combinedRoas = fbSpend > 0 ? combinedRevenue / fbSpend : 0;
-
-            // KPI Cards
-            document.getElementById('fbSparkLoopKPIs').innerHTML = `
-                <div class="kpi-card">
-                    <div class="kpi-label">Total FB Spend</div>
-                    <div class="kpi-value">${formatCurrency(fbSpend)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Total FB Revenue</div>
-                    <div class="kpi-value">${formatCurrency(fbRevenue)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">FB ROAS</div>
-                    <div class="kpi-value ${fbRoas >= 1 ? 'positive' : 'negative'}">${formatROAS(fbRoas)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Total SL Earnings</div>
-                    <div class="kpi-value">${formatCurrency(slEarnings)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Combined Revenue</div>
-                    <div class="kpi-value">${formatCurrency(combinedRevenue)}</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-label">Combined ROAS</div>
-                    <div class="kpi-value ${combinedRoas >= 1 ? 'positive' : 'negative'}">${formatROAS(combinedRoas)}</div>
-                </div>
-            `;
-
-            // Chart
-            const dates = data.map(d => d.Date || '');
-            const fbRevenues = data.map(d => parseFloat(d['FB Revenue']) || 0);
-            const slEarningsList = data.map(d => parseFloat(d['SL Earnings']) || 0);
-
-            createChart('fbSparkLoopChart', {
-                type: 'bar',
-                data: {
-                    labels: dates,
-                    datasets: [
-                        {
-                            label: 'FB Revenue',
-                            data: fbRevenues,
-                            backgroundColor: '#209D50',
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'SL Earnings',
-                            data: slEarningsList,
-                            backgroundColor: '#209d50',
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#000000' } } },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            stacked: true,
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' }
-                        },
-                        x: {
-                            ticks: { color: '#000000' },
-                            grid: { color: '#C8C5BE' },
-                            stacked: true
-                        }
-                    }
-                }
-            });
-
-            // Table
-            const tbody = document.getElementById('fbSparkLoopTableBody');
-            tbody.innerHTML = '';
-            data.forEach(row => {
-                const fbSpend = parseFloat(row['FB Spend']) || 0;
-                const fbImpressions = parseInt(row['FB Impressions']) || 0;
-                const fbClicks = parseInt(row['FB Clicks']) || 0;
-                const fbPurchases = parseInt(row['FB Purchases']) || 0;
-                const fbRev = parseFloat(row['FB Revenue']) || 0;
-                const fbRoasVal = fbSpend > 0 ? fbRev / fbSpend : 0;
-                const slNewSubs = parseInt(row['SL New Subscribers']) || 0;
-                const slConfirmed = parseInt(row['SL Confirmed Referrals']) || 0;
-                const slPending = parseInt(row['SL Pending Referrals']) || 0;
-                const slEarn = parseFloat(row['SL Earnings']) || 0;
-                const combRev = parseFloat(row['Combined Revenue']) || 0;
-                const combRoas = fbSpend > 0 ? combRev / fbSpend : 0;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${row.Date || ''}</td>
-                    <td class="text-right">${formatCurrency(fbSpend)}</td>
-                    <td class="text-right">${formatNumber(fbImpressions)}</td>
-                    <td class="text-right">${formatNumber(fbClicks)}</td>
-                    <td class="text-right">${formatNumber(fbPurchases)}</td>
-                    <td class="text-right">${formatCurrency(fbRev)}</td>
-                    <td class="text-right ${fbRoasVal >= 1 ? 'positive' : 'negative'}">${formatROAS(fbRoasVal)}</td>
-                    <td class="text-right">${formatNumber(slNewSubs)}</td>
-                    <td class="text-right">${formatNumber(slConfirmed)}</td>
-                    <td class="text-right">${formatNumber(slPending)}</td>
-                    <td class="text-right">${formatCurrency(slEarn)}</td>
-                    <td class="text-right">${formatCurrency(combRev)}</td>
-                    <td class="text-right ${combRoas >= 1 ? 'positive' : 'negative'}">${formatROAS(combRoas)}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // Sort Table
-        function sortTable(tableId, columnIndex) {
-            const table = document.getElementById(tableId);
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            const th = table.querySelectorAll('th')[columnIndex];
-
-            let isAsc = !th.classList.contains('sorted-asc');
-
-            table.querySelectorAll('th').forEach(h => {
-                h.classList.remove('sorted-asc', 'sorted-desc');
-            });
-
-            rows.sort((a, b) => {
-                let aVal = a.querySelectorAll('td')[columnIndex].textContent.trim();
-                let bVal = b.querySelectorAll('td')[columnIndex].textContent.trim();
-
-                // Try to parse as number
-                const aNum = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
-                const bNum = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
-
-                if (!isNaN(aNum) && !isNaN(bNum)) {
-                    return isAsc ? aNum - bNum : bNum - aNum;
-                }
-
-                return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-            });
-
-            rows.forEach(row => tbody.appendChild(row));
-            th.classList.add(isAsc ? 'sorted-asc' : 'sorted-desc');
-        }
-
-        // Sort Component Table
-        function sortComponentTable(th) {
-            const table = th.closest('table');
-            const tbody = table.querySelector('tbody');
-            const columnIndex = Array.from(th.parentNode.children).indexOf(th);
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-
-            let isAsc = !th.classList.contains('sorted-asc');
-
-            table.querySelectorAll('th').forEach(h => {
-                h.classList.remove('sorted-asc', 'sorted-desc');
-            });
-
-            rows.sort((a, b) => {
-                let aVal = a.querySelectorAll('td')[columnIndex].textContent.trim();
-                let bVal = b.querySelectorAll('td')[columnIndex].textContent.trim();
-
-                const aNum = parseFloat(aVal.replace(/[^0-9.-]/g, ''));
-                const bNum = parseFloat(bVal.replace(/[^0-9.-]/g, ''));
-
-                if (!isNaN(aNum) && !isNaN(bNum)) {
-                    return isAsc ? aNum - bNum : bNum - aNum;
-                }
-
-                return isAsc ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-            });
-
-            rows.forEach(row => tbody.appendChild(row));
-            th.classList.add(isAsc ? 'sorted-asc' : 'sorted-desc');
-        }
-    </script>
+      }
+    }
+  });
+
+  // Table (sortable)
+  var slTableData = sorted.slice().sort(function(a, b) {
+    var va, vb;
+    if (slSort.col === 'date') {
+      va = a.date; vb = b.date;
+      return slSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    va = a[slSort.col] || 0;
+    vb = b[slSort.col] || 0;
+    return slSort.asc ? va - vb : vb - va;
+  });
+
+  var tbody = document.getElementById('slBody');
+  tbody.innerHTML = '';
+  slTableData.forEach(function(r) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + r.date + '</td>' +
+      '<td>' + formatCurrency(r.fbSpend) + '</td>' +
+      '<td>' + formatNumber(r.fbImpressions) + '</td>' +
+      '<td>' + formatNumber(r.fbClicks) + '</td>' +
+      '<td>' + formatNumber(r.fbPurchases) + '</td>' +
+      '<td>' + formatCurrency(r.fbRevenue) + '</td>' +
+      '<td>' + formatROAS(r.fbRoas) + '</td>' +
+      '<td>' + formatNumber(r.slNewSubs) + '</td>' +
+      '<td>' + formatNumber(r.slConfirmed) + '</td>' +
+      '<td>' + formatNumber(r.slPending) + '</td>' +
+      '<td>' + formatCurrency(r.slEarnings) + '</td>' +
+      '<td>' + formatCurrency(r.combinedRevenue) + '</td>' +
+      '<td>' + formatROAS(r.combinedRoas) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  // Sort arrows
+  document.querySelectorAll('#slTable th').forEach(function(th) {
+    var col = th.dataset.col;
+    var existing = th.querySelector('.sort-arrow');
+    if (existing) existing.remove();
+    if (col === slSort.col) {
+      var span = document.createElement('span');
+      span.className = 'sort-arrow';
+      span.textContent = slSort.asc ? '\u25B2' : '\u25BC';
+      th.appendChild(span);
+    }
+  });
+}
+
+// ========================================================================
+// RENDER CURRENT TAB
+// ========================================================================
+function renderCurrentTab() {
+  switch (currentTab) {
+    case 'overview':    renderOverview(); break;
+    case 'trends':      renderTrends(); break;
+    case 'leaderboard': renderLeaderboard(); break;
+    case 'explorer':    renderExplorer(); break;
+    case 'breakdowns':  renderBreakdowns(); break;
+    case 'funnel':      renderFunnel(); break;
+    case 'sparkloop':   renderSparkLoop(); break;
+  }
+  updateHeaderDateRange();
+}
+
+function updateHeaderDateRange() {
+  var from = document.getElementById('filterFrom').value;
+  var to = document.getElementById('filterTo').value;
+  document.getElementById('headerDateRange').textContent =
+    (from || '...') + '  to  ' + (to || '...');
+}
+
+// ========================================================================
+// DATE PRESETS
+// ========================================================================
+function applyPreset(preset) {
+  var dates = enrichedData.map(function(r) { return r.date; }).filter(function(d) { return d; }).sort();
+  if (dates.length === 0) return;
+
+  var minDate = dates[0];
+  var maxDate = dates[dates.length - 1];
+  var today = todayStr();
+  var effectiveMax = maxDate < today ? maxDate : today;
+
+  var from, to;
+  switch (preset) {
+    case '7d':
+      to = effectiveMax;
+      from = daysAgo(6);
+      break;
+    case '14d':
+      to = effectiveMax;
+      from = daysAgo(13);
+      break;
+    case '30d':
+      to = effectiveMax;
+      from = daysAgo(29);
+      break;
+    case 'thisMonth': {
+      var now = new Date();
+      from = formatDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+      to = effectiveMax;
+      break;
+    }
+    case 'lastMonth': {
+      var now2 = new Date();
+      from = formatDateStr(new Date(now2.getFullYear(), now2.getMonth() - 1, 1));
+      to = formatDateStr(new Date(now2.getFullYear(), now2.getMonth(), 0));
+      break;
+    }
+    case 'all':
+    default:
+      from = minDate;
+      to = maxDate;
+      break;
+  }
+
+  // Clamp to data range
+  if (from < minDate) from = minDate;
+  if (to > maxDate) to = maxDate;
+
+  document.getElementById('filterFrom').value = from;
+  document.getElementById('filterTo').value = to;
+  renderCurrentTab();
+}
+
+// ========================================================================
+// LOGIN HANDLER
+// ========================================================================
+function doLogin() {
+  var pw = document.getElementById('loginPw').value;
+  if (pw === PASSWORD) {
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    loadData();
+  } else {
+    document.getElementById('loginErr').textContent = 'Incorrect password. Please try again.';
+    document.getElementById('loginPw').value = '';
+    document.getElementById('loginPw').focus();
+  }
+}
+
+// ========================================================================
+// DATA LOADING
+// ========================================================================
+async function loadData() {
+  try {
+    var results = await Promise.all([
+      fetchSheetData('Raw Data'),
+      fetchSheetData('Ad Performance'),
+      fetchSheetData('AA - FB + SparkLoop')
+    ]);
+
+    var rawRows = results[0];
+    var adPerfRows = results[1];
+    var slRows = results[2];
+
+    // Normalize raw data
+    rawData = [];
+    for (var i = 0; i < rawRows.length; i++) {
+      var nr = normalizeRow(rawRows[i]);
+      if (nr.date) rawData.push(nr);
+    }
+
+    // Build tag lookup from Ad Performance
+    adPerfData = adPerfRows;
+    tagLookup = buildTagLookup(adPerfRows);
+
+    // Enrich raw data with tags
+    enrichedData = enrichData(rawData, tagLookup);
+
+    // Normalize SparkLoop data
+    sparkLoopData = [];
+    for (var j = 0; j < slRows.length; j++) {
+      var sr = normalizeSLRow(slRows[j]);
+      if (sr.date) sparkLoopData.push(sr);
+    }
+
+    // Sort by date
+    enrichedData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+    sparkLoopData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+    // Populate filter dropdowns
+    populateFilterDropdowns();
+
+    // Show dashboard UI
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('headerBar').style.display = 'block';
+    document.getElementById('tabsBar').style.display = 'block';
+    document.getElementById('filterBar').style.display = 'block';
+    document.getElementById('mainContent').style.display = 'block';
+
+    // Initial render with All preset
+    applyPreset('all');
+
+  } catch (err) {
+    console.error('Data load error:', err);
+    document.getElementById('loadingOverlay').innerHTML =
+      '<div class="error-card">' +
+      '<h3>Error Loading Data</h3>' +
+      '<p>' + escHtml(err.message || 'Unknown error') + '</p>' +
+      '<p style="font-size:12px;color:#999;">Make sure the Google Sheet is shared as "Anyone with the link can view".</p>' +
+      '<button onclick="location.reload()">Retry</button>' +
+      '</div>';
+  }
+}
+
+// ========================================================================
+// EVENT BINDINGS
+// ========================================================================
+function bindEvents() {
+  // --- Login ---
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginPw').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // --- Tab switching ---
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentTab = btn.dataset.tab;
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      var tabEl = document.getElementById('tab-' + currentTab);
+      if (tabEl) tabEl.classList.add('active');
+      renderCurrentTab();
+    });
+  });
+
+  // --- Date presets ---
+  document.querySelectorAll('.preset-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      applyPreset(btn.dataset.preset);
+    });
+  });
+
+  // --- Filter changes ---
+  var filterIds = [
+    'filterFrom', 'filterTo', 'filterColor', 'filterTheme',
+    'filterType', 'filterLP', 'filterTag', 'filterCampaign', 'filterPlatform'
+  ];
+  filterIds.forEach(function(id) {
+    document.getElementById(id).addEventListener('change', function() {
+      // Clear preset highlight when manually changing dates/filters
+      document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+      renderCurrentTab();
+    });
+  });
+
+  // --- Compare toggle ---
+  document.getElementById('compareToggle').addEventListener('change', function() {
+    renderCurrentTab();
+  });
+
+  // --- Reset filters ---
+  document.getElementById('resetFilters').addEventListener('click', function() {
+    document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelector('.preset-btn[data-preset="all"]').classList.add('active');
+    document.getElementById('filterColor').value = '';
+    document.getElementById('filterTheme').value = '';
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterLP').value = '';
+    document.getElementById('filterTag').value = '';
+    document.getElementById('filterCampaign').value = '';
+    document.getElementById('filterPlatform').value = '';
+    document.getElementById('compareToggle').checked = false;
+    applyPreset('all');
+  });
+
+  // --- Trends granularity toggle ---
+  document.querySelectorAll('#trendsToggle .toggle-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('#trendsToggle .toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      if (currentTab === 'trends') renderTrends();
+    });
+  });
+
+  // --- Leaderboard controls ---
+  document.getElementById('leaderMetric').addEventListener('change', function() {
+    if (currentTab === 'leaderboard') renderLeaderboard();
+  });
+  document.getElementById('leaderMinSpend').addEventListener('change', function() {
+    if (currentTab === 'leaderboard') renderLeaderboard();
+  });
+  document.getElementById('leaderMinSpend').addEventListener('input', function() {
+    if (currentTab === 'leaderboard') renderLeaderboard();
+  });
+
+  // --- Explorer search ---
+  document.getElementById('explorerSearch').addEventListener('input', function() {
+    if (currentTab === 'explorer') renderExplorer();
+  });
+
+  // --- Explorer table sort ---
+  document.querySelectorAll('#explorerTable th').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = th.dataset.col;
+      if (!col) return;
+      if (explorerSort.col === col) {
+        explorerSort.asc = !explorerSort.asc;
+      } else {
+        explorerSort.col = col;
+        explorerSort.asc = (col === 'adName'); // alpha asc by default, numbers desc
+      }
+      if (currentTab === 'explorer') renderExplorer();
+    });
+  });
+
+  // --- Breakdown dimension change ---
+  document.getElementById('breakdownDim').addEventListener('change', function() {
+    breakdownSort = { col: 'spend', asc: false };
+    if (currentTab === 'breakdowns') renderBreakdowns();
+  });
+
+  // --- Breakdown table sort (delegated since header is rebuilt) ---
+  document.getElementById('breakdownHead').addEventListener('click', function(e) {
+    var th = e.target.closest('th');
+    if (!th || !th.dataset.col) return;
+    var col = th.dataset.col;
+    if (breakdownSort.col === col) {
+      breakdownSort.asc = !breakdownSort.asc;
+    } else {
+      breakdownSort.col = col;
+      breakdownSort.asc = (col === 'key');
+    }
+    if (currentTab === 'breakdowns') renderBreakdowns();
+  });
+
+  // --- SparkLoop table sort ---
+  document.querySelectorAll('#slTable th').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = th.dataset.col;
+      if (!col) return;
+      if (slSort.col === col) {
+        slSort.asc = !slSort.asc;
+      } else {
+        slSort.col = col;
+        slSort.asc = (col === 'date');
+      }
+      if (currentTab === 'sparkloop') renderSparkLoop();
+    });
+  });
+
+  // --- Modal close ---
+  document.getElementById('modalClose').addEventListener('click', closeAdModal);
+  document.getElementById('adModal').addEventListener('click', function(e) {
+    if (e.target === document.getElementById('adModal')) closeAdModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeAdModal();
+  });
+}
+
+// ========================================================================
+// INIT
+// ========================================================================
+document.addEventListener('DOMContentLoaded', function() {
+  bindEvents();
+});
+</script>
 </body>
 </html>
