@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Unsealed — Meta Ads Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 /* ===== RESET & BASE ===== */
@@ -442,6 +441,7 @@ tr.clickable:hover td{background:#f0f9f3;}
       <select id="filterLP" class="filter-select"><option value="">All Landing Pages</option></select>
       <select id="filterTag" class="filter-select"><option value="">All Campaign Tags</option></select>
       <select id="filterCampaign" class="filter-select"><option value="">All Campaigns</option></select>
+      <select id="filterAdSet" class="filter-select"><option value="">All Ad Sets</option></select>
       <select id="filterPlatform" class="filter-select"><option value="">All Platforms</option></select>
     </div>
     <button class="reset-btn" id="resetFilters">Reset All</button>
@@ -808,7 +808,7 @@ function todayStr() {
 // ========================================================================
 function sheetUrl(sheetName) {
   return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-         '/gviz/tq?tqx=out:csv&sheet=' + encodeURIComponent(sheetName);
+         '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName);
 }
 
 async function fetchSheetData(sheetName) {
@@ -819,15 +819,42 @@ async function fetchSheetData(sheetName) {
     clearTimeout(timeout);
     if (!resp.ok) throw new Error('Failed to fetch "' + sheetName + '": HTTP ' + resp.status);
     const text = await resp.text();
-    return new Promise((resolve, reject) => {
-      Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: false,
-        complete: function(results) { resolve(results.data); },
-        error: function(err) { reject(err); }
-      });
-    });
+    // Strip JSONP wrapper: find first '{' and last '}'
+    const startIdx = text.indexOf('{');
+    const endIdx = text.lastIndexOf('}');
+    if (startIdx === -1 || endIdx === -1) throw new Error('Invalid gviz response for "' + sheetName + '"');
+    const jsonStr = text.substring(startIdx, endIdx + 1);
+    const parsed = JSON.parse(jsonStr);
+    const table = parsed.table;
+    if (!table || !table.cols || !table.rows) throw new Error('No table data in gviz response for "' + sheetName + '"');
+    // Convert gviz table format to array of objects
+    var headers = table.cols.map(function(col) { return col.label || ''; });
+    var data = [];
+    for (var i = 0; i < table.rows.length; i++) {
+      var row = table.rows[i];
+      if (!row.c) continue;
+      var obj = {};
+      var hasValue = false;
+      for (var j = 0; j < headers.length; j++) {
+        var cell = row.c[j];
+        var val = '';
+        if (cell && cell.v !== null && cell.v !== undefined) {
+          val = cell.v;
+          // gviz returns Date objects as "Date(y,m,d)" strings — convert to date string
+          if (typeof val === 'string' && val.indexOf('Date(') === 0) {
+            var parts = val.replace('Date(', '').replace(')', '').split(',');
+            var y = parseInt(parts[0]);
+            var m = parseInt(parts[1]) + 1; // gviz months are 0-indexed
+            var d = parseInt(parts[2]);
+            val = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+          }
+          hasValue = true;
+        }
+        obj[headers[j]] = String(val);
+      }
+      if (hasValue) data.push(obj);
+    }
+    return data;
   } catch (e) {
     clearTimeout(timeout);
     throw e;
@@ -1002,6 +1029,7 @@ function getFilterState() {
     lp: document.getElementById('filterLP').value,
     tag: document.getElementById('filterTag').value,
     campaign: document.getElementById('filterCampaign').value,
+    adSet: document.getElementById('filterAdSet').value,
     platform: document.getElementById('filterPlatform').value
   };
 }
@@ -1016,6 +1044,7 @@ function applyFilters(data, f) {
     if (f.lp && r.landingPage !== f.lp) return false;
     if (f.tag && r.campaignTag !== f.tag) return false;
     if (f.campaign && r.campaign !== f.campaign) return false;
+    if (f.adSet && r.adSet !== f.adSet) return false;
     if (f.platform && r.platform !== f.platform) return false;
     return true;
   });
@@ -1082,6 +1111,7 @@ function populateFilterDropdowns() {
     { id: 'filterLP',       key: 'landingPage', label: 'All Landing Pages' },
     { id: 'filterTag',      key: 'campaignTag', label: 'All Campaign Tags' },
     { id: 'filterCampaign', key: 'campaign',    label: 'All Campaigns' },
+    { id: 'filterAdSet',   key: 'adSet',       label: 'All Ad Sets' },
     { id: 'filterPlatform', key: 'platform',    label: 'All Platforms' }
   ];
   fields.forEach(function(f) {
@@ -1286,7 +1316,7 @@ function renderTrends() {
         {
           label: 'CPC',
           data: grouped.map(function(g) { return g.cpc; }),
-          borderColor: '#FF6B6B',
+          borderColor: '#E53935',
           backgroundColor: 'transparent',
           yAxisID: 'y',
           tension: 0.3,
@@ -1341,7 +1371,7 @@ function renderTrends() {
           label: 'Revenue',
           data: grouped.map(function(g) { return g.revenue; }),
           type: 'line',
-          borderColor: '#209D50',
+          borderColor: '#E53935',
           backgroundColor: 'transparent',
           yAxisID: 'y1',
           tension: 0.3,
@@ -1636,7 +1666,7 @@ function openAdModal(adName) {
           label: 'ROAS',
           data: daily.map(function(d) { return d.roas; }),
           type: 'line',
-          borderColor: '#4A90D9',
+          borderColor: '#E53935',
           backgroundColor: 'transparent',
           yAxisID: 'y1',
           tension: 0.3,
@@ -2004,7 +2034,7 @@ function renderSparkLoop() {
         {
           label: 'SL Earnings',
           data: sorted.map(function(r) { return r.slEarnings; }),
-          backgroundColor: '#4A90D9',
+          backgroundColor: '#FFA500',
           borderRadius: 2
         }
       ]
@@ -2093,8 +2123,9 @@ function renderCurrentTab() {
 function updateHeaderDateRange() {
   var from = document.getElementById('filterFrom').value;
   var to = document.getElementById('filterTo').value;
+  var filtered = getFilteredData();
   document.getElementById('headerDateRange').textContent =
-    (from || '...') + '  to  ' + (to || '...');
+    (from || '...') + '  to  ' + (to || '...') + '  |  ' + filtered.length + ' rows';
 }
 
 // ========================================================================
@@ -2207,6 +2238,15 @@ async function loadData() {
     enrichedData.sort(function(a, b) { return a.date.localeCompare(b.date); });
     sparkLoopData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
+    // Data diagnostics
+    console.log('[Dashboard] Raw rows loaded:', rawData.length);
+    console.log('[Dashboard] Enriched rows:', enrichedData.length);
+    console.log('[Dashboard] SparkLoop rows:', sparkLoopData.length);
+    console.log('[Dashboard] Date range:', enrichedData.length > 0 ? enrichedData[0].date + ' to ' + enrichedData[enrichedData.length-1].date : 'no data');
+    console.log('[Dashboard] Sample enriched row:', enrichedData[0]);
+    console.log('[Dashboard] Sample SL row:', sparkLoopData[0]);
+    console.log('[Dashboard] Tag lookup entries:', Object.keys(tagLookup).length);
+
     // Populate filter dropdowns
     populateFilterDropdowns();
 
@@ -2267,7 +2307,7 @@ function bindEvents() {
   // --- Filter changes ---
   var filterIds = [
     'filterFrom', 'filterTo', 'filterColor', 'filterTheme',
-    'filterType', 'filterLP', 'filterTag', 'filterCampaign', 'filterPlatform'
+    'filterType', 'filterLP', 'filterTag', 'filterCampaign', 'filterAdSet', 'filterPlatform'
   ];
   filterIds.forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
@@ -2292,6 +2332,7 @@ function bindEvents() {
     document.getElementById('filterLP').value = '';
     document.getElementById('filterTag').value = '';
     document.getElementById('filterCampaign').value = '';
+    document.getElementById('filterAdSet').value = '';
     document.getElementById('filterPlatform').value = '';
     document.getElementById('compareToggle').checked = false;
     applyPreset('all');
