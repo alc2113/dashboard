@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swick Wines — DTC Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+/* ===== RESET & BASE ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:#E1DFD9;
+  color:#1a1a1a;
+  min-height:100vh;
+  line-height:1.5;
+}
+:root{
+  --primary:#209D50;
+  --primary-dark:#1a8a44;
+  --bg:#E1DFD9;
+  --card:#ffffff;
+  --border:#C8C5BE;
+  --header-bg:#F5F4F1;
+  --text:#1a1a1a;
+  --text-muted:#666;
+  --green:#209D50;
+  --red:#E53935;
+  --blue:#4A90D9;
+  --orange:#FFA500;
+  --purple:#9D50D9;
+  --wine-red:#8B2252;
+  --wine-white:#D4A843;
+  --wine-rose:#E8527A;
+  --wine-sparkling:#50C8D9;
+  --wine-skin:#B8860B;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:#aaa;}
+
+/* ===== LOGIN PAGE ===== */
+.login-wrap{
+  display:flex;align-items:center;justify-content:center;
+  min-height:100vh;background:#E1DFD9;
+}
+.login-card{
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:48px 40px;width:400px;max-width:90vw;text-align:center;
+  box-shadow:0 4px 24px rgba(0,0,0,0.08);
+}
+.login-logo{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;}
+.login-logo svg{width:36px;height:36px;}
+.login-brand{font-size:20px;font-weight:700;letter-spacing:2.5px;color:var(--primary);}
+.login-sub{font-size:13px;color:var(--text-muted);margin-bottom:32px;}
+.login-client{font-size:17px;font-weight:600;margin-bottom:28px;color:var(--text);}
+.login-input{
+  width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:8px;
+  font-size:15px;outline:none;transition:border 0.2s;
+}
+.login-input:focus{border-color:var(--primary);}
+.login-btn{
+  width:100%;padding:12px;background:var(--primary);color:#fff;border:none;
+  border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;
+  transition:background 0.2s;
+}
+.login-btn:hover{background:var(--primary-dark);}
+.login-err{color:var(--red);font-size:13px;margin-top:12px;min-height:20px;}
+
+/* ===== HEADER ===== */
+.header{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 24px;position:sticky;top:0;z-index:100;display:none;
+}
+.header-inner{
+  max-width:1440px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;height:56px;
+}
+.header-left{display:flex;align-items:center;gap:10px;}
+.header-left svg{width:28px;height:28px;}
+.header-brand{font-size:14px;font-weight:700;letter-spacing:1.5px;color:var(--primary);}
+.header-client{
+  font-size:18px;font-weight:700;margin-left:16px;padding-left:16px;
+  border-left:1px solid var(--border);
+}
+.header-right{font-size:13px;color:var(--text-muted);}
+
+/* ===== TABS ===== */
+.tabs-bar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:0 24px;display:none;
+}
+.tabs-inner{
+  max-width:1440px;margin:0 auto;display:flex;gap:0;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.tab-btn{
+  padding:12px 20px;font-size:14px;font-weight:500;border:none;background:none;
+  cursor:pointer;border-bottom:2px solid transparent;color:var(--text-muted);
+  white-space:nowrap;transition:color 0.2s,border-color 0.2s;
+}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:600;}
+
+/* ===== FILTER BAR ===== */
+.filter-bar{
+  background:#fff;border-bottom:1px solid var(--border);
+  padding:12px 24px;display:none;
+}
+.filter-inner{
+  max-width:1440px;margin:0 auto;display:flex;flex-wrap:wrap;
+  align-items:center;gap:10px;
+}
+.filter-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.filter-label{
+  font-size:11px;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.5px;
+}
+.filter-input{
+  padding:6px 10px;border:1px solid var(--border);border-radius:6px;
+  font-size:13px;background:#fff;outline:none;
+}
+.filter-input:focus{border-color:var(--primary);}
+.preset-btn{
+  padding:4px 12px;border:1px solid var(--border);border-radius:12px;
+  font-size:12px;background:#fff;cursor:pointer;transition:all 0.2s;white-space:nowrap;
+}
+.preset-btn:hover,.preset-btn.active{
+  background:var(--primary);color:#fff;border-color:var(--primary);
+}
+.reset-btn{
+  padding:4px 14px;border:1px solid var(--red);border-radius:6px;
+  font-size:12px;color:var(--red);background:#fff;cursor:pointer;transition:all 0.2s;
+}
+.reset-btn:hover{background:var(--red);color:#fff;}
+
+/* ===== MAIN CONTENT ===== */
+.main{max-width:1440px;margin:0 auto;padding:24px;display:none;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* ===== LOADING ===== */
+.loading-overlay{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:rgba(225,223,217,0.92);display:flex;align-items:center;
+  justify-content:center;z-index:200;
+}
+.loading-spinner{text-align:center;}
+.loading-spinner .spin{
+  width:48px;height:48px;border:4px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin 0.8s linear infinite;margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:14px;color:var(--text-muted);}
+
+/* ===== KPI CARDS ===== */
+.kpi-section{margin-bottom:24px;}
+.kpi-section-title{
+  font-size:13px;font-weight:700;text-transform:uppercase;
+  letter-spacing:1px;color:var(--text-muted);margin-bottom:10px;
+}
+.kpi-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;
+}
+.kpi-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:16px;
+}
+.kpi-card.highlight{border-color:var(--primary);border-width:2px;}
+.kpi-label{font-size:12px;color:var(--text-muted);font-weight:500;margin-bottom:4px;}
+.kpi-value{font-size:22px;font-weight:700;line-height:1.2;}
+.kpi-sub{font-size:12px;color:var(--text-muted);margin-top:4px;}
+.kpi-delta{font-size:12px;margin-top:4px;font-weight:600;}
+.kpi-delta.good{color:var(--green);}
+.kpi-delta.bad{color:var(--red);}
+.kpi-delta.neutral{color:var(--text-muted);}
+
+/* ===== CHARTS ===== */
+.chart-container{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:20px;margin-bottom:16px;
+}
+.chart-title{font-size:14px;font-weight:600;margin-bottom:12px;}
+.chart-wrap{position:relative;height:320px;}
+.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+
+/* ===== TABLES ===== */
+.table-wrap{
+  overflow-x:auto;background:var(--card);
+  border:1px solid var(--border);border-radius:8px;
+}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{
+  background:var(--header-bg);padding:10px 12px;text-align:left;
+  font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;
+  border-bottom:1px solid var(--border);position:relative;
+}
+th:hover{background:#eae8e3;}
+th .sort-arrow{font-size:10px;margin-left:4px;color:var(--text-muted);}
+td{padding:8px 12px;border-bottom:1px solid #f0efec;white-space:nowrap;}
+tr:hover td{background:#fafaf8;}
+
+/* ===== CHANNEL CARDS ===== */
+.channel-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.channel-card{
+  background:var(--card);border:2px solid var(--border);
+  border-radius:10px;padding:20px;text-align:center;
+}
+.channel-card.club-release{border-color:var(--wine-red);}
+.channel-card.club-member{border-color:var(--orange);}
+.channel-card.dtc{border-color:var(--primary);}
+.channel-card-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;color:var(--text-muted);}
+.channel-card-value{font-size:28px;font-weight:700;margin-bottom:4px;}
+.channel-card-sub{font-size:12px;color:var(--text-muted);}
+
+/* ===== ERROR STATE ===== */
+.error-card{
+  background:#fff;border:1px solid var(--red);border-radius:12px;
+  padding:32px;text-align:center;max-width:480px;
+}
+.error-card h3{color:var(--red);margin-bottom:8px;}
+.error-card p{color:var(--text-muted);font-size:14px;margin-bottom:16px;}
+.error-card button{
+  padding:8px 24px;border:1px solid var(--border);border-radius:6px;
+  background:#fff;cursor:pointer;font-size:14px;
+}
+.error-card button:hover{background:var(--header-bg);}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:900px){
+  .chart-row{grid-template-columns:1fr;}
+  .channel-cards{grid-template-columns:1fr;}
+  .kpi-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));}
+}
+@media(max-width:600px){
+  .header-inner{flex-direction:column;height:auto;padding:10px 0;gap:4px;}
+  .header-client{margin-left:0;padding-left:0;border-left:none;}
+  .filter-inner{flex-direction:column;align-items:flex-start;}
+  .kpi-grid{grid-template-columns:1fr 1fr;}
+  .login-card{padding:32px 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginWrap" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 36 36" fill="none">
+        <rect x="2" y="24" width="6" height="10" rx="1" fill="#209D50"/>
+        <rect x="11" y="18" width="6" height="16" rx="1" fill="#209D50" opacity="0.8"/>
+        <rect x="20" y="12" width="6" height="22" rx="1" fill="#209D50" opacity="0.6"/>
+        <rect x="29" y="4" width="6" height="30" rx="1" fill="#209D50" opacity="0.4"/>
+        <line x1="1" y1="35" x2="36" y2="35" stroke="#209D50" stroke-width="1.5"/>
+      </svg>
+      <span class="login-brand">CASSA STRATEGY</span>
+    </div>
+    <div class="login-sub">DTC Dashboard</div>
+    <div class="login-client">Swick Wines</div>
+    <input type="password" id="loginPw" class="login-input" placeholder="Enter password" autofocus>
+    <button id="loginBtn" class="login-btn">Sign In</button>
+    <div id="loginErr" class="login-err"></div>
+  </div>
+</div>
+
+<!-- ===== LOADING OVERLAY ===== -->
+<div id="loadingOverlay" class="loading-overlay" style="display:none;">
+  <div class="loading-spinner">
+    <div class="spin"></div>
+    <div class="loading-text">Loading dashboard data...</div>
+  </div>
+</div>
+
+<!-- ===== HEADER ===== -->
+<div id="headerBar" class="header">
+  <div class="header-inner">
+    <div class="header-left">
+      <svg viewBox="0 0 36 36" fill="none">
+        <rect x="2" y="24" width="6" height="10" rx="1" fill="#209D50"/>
+        <rect x="11" y="18" width="6" height="16" rx="1" fill="#209D50" opacity="0.8"/>
+        <rect x="20" y="12" width="6" height="22" rx="1" fill="#209D50" opacity="0.6"/>
+        <rect x="29" y="4" width="6" height="30" rx="1" fill="#209D50" opacity="0.4"/>
+        <line x1="1" y1="35" x2="36" y2="35" stroke="#209D50" stroke-width="1.5"/>
+      </svg>
+      <span class="header-brand">CASSA STRATEGY</span>
+      <span class="header-client">Swick Wines</span>
+    </div>
+    <div class="header-right" id="headerDateRange"></div>
+  </div>
+</div>
+
+<!-- ===== TABS BAR ===== -->
+<div id="tabsBar" class="tabs-bar">
+  <div class="tabs-inner">
+    <button class="tab-btn active" data-tab="overview">Overview</button>
+    <button class="tab-btn" data-tab="wines">Wine Sales</button>
+    <button class="tab-btn" data-tab="club">Club vs DTC</button>
+    <button class="tab-btn" data-tab="trends">Trends</button>
+  </div>
+</div>
+
+<!-- ===== FILTER BAR ===== -->
+<div id="filterBar" class="filter-bar">
+  <div class="filter-inner">
+    <div class="filter-group">
+      <span class="filter-label">From</span>
+      <input type="date" id="filterFrom" class="filter-input">
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">To</span>
+      <input type="date" id="filterTo" class="filter-input">
+    </div>
+    <div class="filter-group">
+      <button class="preset-btn" data-preset="7d">7d</button>
+      <button class="preset-btn" data-preset="14d">14d</button>
+      <button class="preset-btn" data-preset="30d">30d</button>
+      <button class="preset-btn" data-preset="thisMonth">This Mo</button>
+      <button class="preset-btn" data-preset="lastMonth">Last Mo</button>
+      <button class="preset-btn active" data-preset="all">All</button>
+    </div>
+    <button class="reset-btn" id="resetFilters">Reset All</button>
+  </div>
+</div>
+
+<!-- ===== MAIN CONTENT ===== -->
+<div id="mainContent" class="main">
+
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview" class="tab-content active">
+    <div class="kpi-section">
+      <div class="kpi-section-title">Performance Summary</div>
+      <div class="kpi-grid" id="kpiOverview"></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Revenue Trend</div>
+      <div class="chart-wrap"><canvas id="chartRevenue"></canvas></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Orders per Day</div>
+        <div class="chart-wrap"><canvas id="chartOrders"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Average Order Value</div>
+        <div class="chart-wrap"><canvas id="chartAOV"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WINE SALES TAB -->
+  <div id="tab-wines" class="tab-content">
+    <div class="kpi-section">
+      <div class="kpi-section-title">Revenue by Wine Style</div>
+      <div class="kpi-grid" id="kpiWineStyles"></div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Revenue by Wine Style</div>
+        <div class="chart-wrap"><canvas id="chartWineStyleRev"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Units Sold by Wine Style</div>
+        <div class="chart-wrap"><canvas id="chartWineStyleUnits"></canvas></div>
+      </div>
+    </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Top Selling Wines</div>
+    </div>
+    <div class="table-wrap">
+      <table id="topWinesTable">
+        <thead><tr>
+          <th data-col="product">Wine</th>
+          <th data-col="wineStyle">Style</th>
+          <th data-col="revenue">Revenue</th>
+          <th data-col="units">Units</th>
+          <th data-col="orders">Orders</th>
+          <th data-col="avgPrice">Avg Price</th>
+        </tr></thead>
+        <tbody id="topWinesBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- CLUB vs DTC TAB -->
+  <div id="tab-club" class="tab-content">
+    <div class="channel-cards" id="channelCards"></div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Revenue Split</div>
+        <div class="chart-wrap"><canvas id="chartChannelPie"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Orders by Channel</div>
+        <div class="chart-wrap"><canvas id="chartChannelOrders"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRENDS TAB -->
+  <div id="tab-trends" class="tab-content">
+    <div class="chart-container">
+      <div class="chart-title">Daily Revenue &amp; Orders</div>
+      <div class="chart-wrap"><canvas id="chartDualTrend"></canvas></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">AOV Trend</div>
+      <div class="chart-wrap"><canvas id="chartAOVTrend"></canvas></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Units Sold per Day</div>
+      <div class="chart-wrap"><canvas id="chartUnitsTrend"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ================================================================
+   SWICK WINES — DTC DASHBOARD
+   Self-contained single-file dashboard
+   ================================================================ */
+
+// ========================================================================
+// CONSTANTS
+// ========================================================================
+const SHEET_ID = '1SCd-a71MLMfzA5PfK-nuINfDOsOJ_EfH4y-un-3PVhk';
+const WINE_COLORS = {
+  'Red': '#8B2252',
+  'White': '#D4A843',
+  'Rose': '#E8527A',
+  'Sparkling': '#50C8D9',
+  'Skin Contact': '#B8860B',
+  'Other': '#999999'
+};
+const CHANNEL_COLORS = {
+  'Club Release': '#8B2252',
+  'Club Member': '#FFA500',
+  'DTC': '#209D50'
+};
+const COLORS = [
+  '#8B2252','#D4A843','#E8527A','#50C8D9','#B8860B',
+  '#209D50','#4A90D9','#FF6B6B','#FFA500','#9D50D9'
+];
+const PASSWORD = 'swick2026';
+
+// ========================================================================
+// GLOBAL STATE
+// ========================================================================
+let dailyData = [];
+let wineStyleData = [];
+let clubDtcData = [];
+let topProductsData = [];
+let chartInstances = {};
+let currentTab = 'overview';
+let wineSort = { col: 'revenue', asc: false };
+
+// ========================================================================
+// PARSING HELPER
+// ========================================================================
+function pv(val) {
+  if (val === null || val === undefined || val === '' || val === '-') return 0;
+  if (typeof val === 'number') return val;
+  return parseFloat(String(val).replace(/[$,%]/g, '').replace(/,/g, '')) || 0;
+}
+
+// ========================================================================
+// FORMATTERS
+// ========================================================================
+function formatCurrency(v) {
+  if (v === null || v === undefined || isNaN(v)) return '$0.00';
+  return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatNumber(v) {
+  if (v === null || v === undefined || isNaN(v)) return '0';
+  return Math.round(v).toLocaleString('en-US');
+}
+
+function escHtml(s) {
+  var d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ========================================================================
+// DATE HELPERS
+// ========================================================================
+function parseDate(str) {
+  if (!str) return null;
+  var s = String(str).trim();
+  if (!s) return null;
+  var isoMatch = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) return new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+  var usMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+  if (usMatch) {
+    var y = parseInt(usMatch[3]);
+    if (y < 100) y += 2000;
+    return new Date(y, parseInt(usMatch[1]) - 1, parseInt(usMatch[2]));
+  }
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDateStr(d) {
+  if (!d || isNaN(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function normalizeDateStr(raw) {
+  var d = parseDate(raw);
+  return d ? formatDateStr(d) : String(raw || '').trim();
+}
+
+function daysAgo(n) {
+  var d = new Date(); d.setDate(d.getDate() - n);
+  return formatDateStr(d);
+}
+
+function todayStr() { return formatDateStr(new Date()); }
+
+// ========================================================================
+// SHEET DATA FETCHING (gviz)
+// ========================================================================
+function sheetUrl(sheetName) {
+  return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+         '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName);
+}
+
+async function fetchSheetData(sheetName) {
+  var controller = new AbortController();
+  var timeout = setTimeout(function() { controller.abort(); }, 15000);
+  try {
+    var resp = await fetch(sheetUrl(sheetName), { signal: controller.signal });
+    clearTimeout(timeout);
+    if (!resp.ok) throw new Error('Failed to fetch "' + sheetName + '": HTTP ' + resp.status);
+    var text = await resp.text();
+    var startIdx = text.indexOf('{');
+    var endIdx = text.lastIndexOf('}');
+    if (startIdx === -1 || endIdx === -1) throw new Error('Invalid gviz response for "' + sheetName + '"');
+    var jsonStr = text.substring(startIdx, endIdx + 1);
+    var parsed = JSON.parse(jsonStr);
+    var table = parsed.table;
+    if (!table || !table.cols || !table.rows) throw new Error('No table data for "' + sheetName + '"');
+    var headers = table.cols.map(function(col) { return col.label || ''; });
+    var data = [];
+    for (var i = 0; i < table.rows.length; i++) {
+      var row = table.rows[i];
+      if (!row.c) continue;
+      var obj = {};
+      var hasValue = false;
+      for (var j = 0; j < headers.length; j++) {
+        var cell = row.c[j];
+        var val = '';
+        if (cell && cell.v !== null && cell.v !== undefined) {
+          val = cell.v;
+          if (typeof val === 'string' && val.indexOf('Date(') === 0) {
+            var parts = val.replace('Date(', '').replace(')', '').split(',');
+            var yr = parseInt(parts[0]);
+            var mo = parseInt(parts[1]) + 1;
+            var dy = parseInt(parts[2]);
+            val = yr + '-' + String(mo).padStart(2, '0') + '-' + String(dy).padStart(2, '0');
+          }
+          hasValue = true;
+        }
+        obj[headers[j]] = String(val);
+      }
+      if (hasValue) data.push(obj);
+    }
+    return data;
+  } catch (e) {
+    clearTimeout(timeout);
+    throw e;
+  }
+}
+
+async function fetchSheetDataSafe(sheetName) {
+  try { return await fetchSheetData(sheetName); }
+  catch (e) { console.warn('[Swick] Could not load "' + sheetName + '":', e.message); return []; }
+}
+
+// ========================================================================
+// DATA NORMALIZATION
+// ========================================================================
+function normalizeDailyRow(r) {
+  return {
+    date: normalizeDateStr(r['Date']),
+    revenue: pv(r['Revenue']),
+    orders: pv(r['Orders']),
+    aov: pv(r['AOV']),
+    units: pv(r['Units Sold'])
+  };
+}
+
+function normalizeWineStyleRow(r) {
+  return {
+    wineStyle: String(r['Wine Style'] || '').trim(),
+    revenue: pv(r['Revenue']),
+    units: pv(r['Units Sold']),
+    avgPrice: pv(r['Avg Price'])
+  };
+}
+
+function normalizeClubDtcRow(r) {
+  return {
+    channel: String(r['Channel'] || '').trim(),
+    revenue: pv(r['Revenue']),
+    orders: pv(r['Orders']),
+    units: pv(r['Units Sold']),
+    aov: pv(r['AOV']),
+    revenuePct: pv(r['Revenue %'])
+  };
+}
+
+function normalizeTopProductRow(r) {
+  return {
+    product: String(r['Product'] || '').trim(),
+    wineStyle: String(r['Wine Style'] || '').trim(),
+    revenue: pv(r['Revenue']),
+    units: pv(r['Units Sold']),
+    orders: pv(r['Orders']),
+    avgPrice: pv(r['Avg Price'])
+  };
+}
+
+// ========================================================================
+// FILTERING
+// ========================================================================
+function getFilterState() {
+  return {
+    from: document.getElementById('filterFrom').value,
+    to: document.getElementById('filterTo').value
+  };
+}
+
+function applyFilters(data) {
+  var f = getFilterState();
+  return data.filter(function(r) {
+    if (f.from && r.date < f.from) return false;
+    if (f.to && r.date > f.to) return false;
+    return true;
+  });
+}
+
+function getFilteredDaily() { return applyFilters(dailyData); }
+
+// ========================================================================
+// CHART HELPERS
+// ========================================================================
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function createChart(canvasId, config) {
+  destroyChart(canvasId);
+  var ctx = document.getElementById(canvasId);
+  if (!ctx) return null;
+  chartInstances[canvasId] = new Chart(ctx, config);
+  return chartInstances[canvasId];
+}
+
+// ========================================================================
+// KPI CARD BUILDER
+// ========================================================================
+function buildKpiCard(label, value, sub, highlight) {
+  var card = document.createElement('div');
+  card.className = 'kpi-card' + (highlight ? ' highlight' : '');
+  var subHtml = sub ? '<div class="kpi-sub">' + sub + '</div>' : '';
+  card.innerHTML =
+    '<div class="kpi-label">' + label + '</div>' +
+    '<div class="kpi-value">' + value + '</div>' +
+    subHtml;
+  return card;
+}
+
+// ========================================================================
+// TAB: OVERVIEW
+// ========================================================================
+function renderOverview() {
+  var filtered = getFilteredDaily();
+
+  var totalRev = 0, totalOrders = 0, totalUnits = 0;
+  for (var i = 0; i < filtered.length; i++) {
+    totalRev += filtered[i].revenue;
+    totalOrders += filtered[i].orders;
+    totalUnits += filtered[i].units;
+  }
+  var aov = totalOrders > 0 ? totalRev / totalOrders : 0;
+
+  var el = document.getElementById('kpiOverview');
+  el.innerHTML = '';
+  el.appendChild(buildKpiCard('Revenue', formatCurrency(totalRev), null, true));
+  el.appendChild(buildKpiCard('Orders', formatNumber(totalOrders), null, true));
+  el.appendChild(buildKpiCard('AOV', formatCurrency(aov), null, true));
+  el.appendChild(buildKpiCard('Bottles Sold', formatNumber(totalUnits), null, true));
+  el.appendChild(buildKpiCard('Avg Daily Revenue', formatCurrency(filtered.length > 0 ? totalRev / filtered.length : 0), null, false));
+  el.appendChild(buildKpiCard('Avg Daily Orders', (filtered.length > 0 ? (totalOrders / filtered.length).toFixed(1) : '0'), null, false));
+
+  // Charts
+  var labels = filtered.map(function(r) { return r.date; });
+  var maxTicks = labels.length > 90 ? 20 : labels.length > 60 ? 25 : 35;
+  var pointRadius = labels.length > 60 ? 0 : 3;
+
+  createChart('chartRevenue', {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Revenue',
+        data: filtered.map(function(r) { return r.revenue; }),
+        backgroundColor: '#209D50',
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } },
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } }
+      }
+    }
+  });
+
+  createChart('chartOrders', {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Orders',
+        data: filtered.map(function(r) { return r.orders; }),
+        backgroundColor: '#8B2252',
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } },
+        y: { beginAtZero: true }
+      }
+    }
+  });
+
+  createChart('chartAOV', {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'AOV',
+        data: filtered.map(function(r) { return r.aov; }),
+        borderColor: '#D4A843',
+        backgroundColor: 'rgba(212,168,67,0.08)',
+        fill: true, tension: 0.3, pointRadius: pointRadius
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } },
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(0); } } }
+      }
+    }
+  });
+
+  if (filtered.length > 0) {
+    document.getElementById('headerDateRange').textContent =
+      filtered[0].date + ' to ' + filtered[filtered.length - 1].date;
+  }
+}
+
+// ========================================================================
+// TAB: WINE SALES
+// ========================================================================
+function renderWines() {
+  var wsData = wineStyleData.filter(function(r) { return r.wineStyle && r.revenue > 0; });
+  wsData.sort(function(a, b) { return b.revenue - a.revenue; });
+
+  // KPI cards for each wine style
+  var kpiEl = document.getElementById('kpiWineStyles');
+  kpiEl.innerHTML = '';
+  wsData.forEach(function(ws) {
+    kpiEl.appendChild(buildKpiCard(
+      ws.wineStyle,
+      formatCurrency(ws.revenue),
+      ws.units + ' bottles | Avg ' + formatCurrency(ws.avgPrice),
+      false
+    ));
+  });
+
+  var wsLabels = wsData.map(function(r) { return r.wineStyle; });
+  var wsRevenue = wsData.map(function(r) { return r.revenue; });
+  var wsUnits = wsData.map(function(r) { return r.units; });
+  var wsColors = wsLabels.map(function(s) { return WINE_COLORS[s] || '#999999'; });
+
+  createChart('chartWineStyleRev', {
+    type: 'doughnut',
+    data: {
+      labels: wsLabels,
+      datasets: [{ data: wsRevenue, backgroundColor: wsColors, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+              var pct = total > 0 ? (ctx.raw / total * 100).toFixed(1) : 0;
+              return ctx.label + ': ' + formatCurrency(ctx.raw) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  createChart('chartWineStyleUnits', {
+    type: 'bar',
+    data: {
+      labels: wsLabels,
+      datasets: [{
+        label: 'Bottles Sold',
+        data: wsUnits,
+        backgroundColor: wsColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  // Top wines table
+  var sortedWines = topProductsData.slice();
+  sortedWines.sort(function(a, b) {
+    var va = a[wineSort.col], vb = b[wineSort.col];
+    if (typeof va === 'string') return wineSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return wineSort.asc ? va - vb : vb - va;
+  });
+
+  var tbody = document.getElementById('topWinesBody');
+  tbody.innerHTML = '';
+  var limit = Math.min(sortedWines.length, 50);
+  for (var i = 0; i < limit; i++) {
+    var p = sortedWines[i];
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + escHtml(p.product) + '</td>' +
+      '<td>' + escHtml(p.wineStyle) + '</td>' +
+      '<td>' + formatCurrency(p.revenue) + '</td>' +
+      '<td>' + formatNumber(p.units) + '</td>' +
+      '<td>' + formatNumber(p.orders) + '</td>' +
+      '<td>' + formatCurrency(p.avgPrice) + '</td>';
+    tbody.appendChild(tr);
+  }
+}
+
+// ========================================================================
+// TAB: CLUB VS DTC
+// ========================================================================
+function renderClub() {
+  // Only use summary rows (not daily breakdown)
+  var summaryRows = clubDtcData.filter(function(r) {
+    return r.channel && r.channel.indexOf('---') === -1 && r.channel.indexOf('|') === -1 && r.revenue > 0;
+  });
+
+  // Channel cards
+  var cardsEl = document.getElementById('channelCards');
+  cardsEl.innerHTML = '';
+
+  var channelOrder = ['Club Release', 'Club Member', 'DTC'];
+  var channelClasses = { 'Club Release': 'club-release', 'Club Member': 'club-member', 'DTC': 'dtc' };
+
+  channelOrder.forEach(function(ch) {
+    var row = summaryRows.find(function(r) { return r.channel === ch; });
+    if (!row) row = { channel: ch, revenue: 0, orders: 0, units: 0, aov: 0, revenuePct: 0 };
+
+    var card = document.createElement('div');
+    card.className = 'channel-card ' + (channelClasses[ch] || '');
+    card.innerHTML =
+      '<div class="channel-card-title">' + escHtml(ch) + '</div>' +
+      '<div class="channel-card-value">' + formatCurrency(row.revenue) + '</div>' +
+      '<div class="channel-card-sub">' + formatNumber(row.orders) + ' orders | ' +
+        formatNumber(row.units) + ' bottles | ' + row.revenuePct + '% of total</div>';
+    cardsEl.appendChild(card);
+  });
+
+  // Pie chart
+  var chLabels = summaryRows.map(function(r) { return r.channel; });
+  var chRevenue = summaryRows.map(function(r) { return r.revenue; });
+  var chColors = chLabels.map(function(ch) { return CHANNEL_COLORS[ch] || '#999'; });
+
+  createChart('chartChannelPie', {
+    type: 'doughnut',
+    data: {
+      labels: chLabels,
+      datasets: [{ data: chRevenue, backgroundColor: chColors, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var total = ctx.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+              var pct = total > 0 ? (ctx.raw / total * 100).toFixed(1) : 0;
+              return ctx.label + ': ' + formatCurrency(ctx.raw) + ' (' + pct + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Orders bar chart
+  var chOrders = summaryRows.map(function(r) { return r.orders; });
+  createChart('chartChannelOrders', {
+    type: 'bar',
+    data: {
+      labels: chLabels,
+      datasets: [{
+        label: 'Orders',
+        data: chOrders,
+        backgroundColor: chColors,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+}
+
+// ========================================================================
+// TAB: TRENDS
+// ========================================================================
+function renderTrends() {
+  var filtered = getFilteredDaily();
+  var labels = filtered.map(function(r) { return r.date; });
+  var maxTicks = labels.length > 90 ? 20 : labels.length > 60 ? 25 : 35;
+  var pointRadius = labels.length > 60 ? 0 : 3;
+
+  createChart('chartDualTrend', {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Revenue',
+          data: filtered.map(function(r) { return r.revenue; }),
+          backgroundColor: '#209D50',
+          borderRadius: 2,
+          yAxisID: 'y',
+          order: 2
+        },
+        {
+          type: 'line',
+          label: 'Orders',
+          data: filtered.map(function(r) { return r.orders; }),
+          borderColor: '#8B2252',
+          backgroundColor: 'transparent',
+          yAxisID: 'y1',
+          tension: 0.3,
+          pointRadius: pointRadius,
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: {
+          type: 'linear', position: 'left', beginAtZero: true,
+          title: { display: true, text: 'Revenue ($)' },
+          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
+        },
+        y1: {
+          type: 'linear', position: 'right', beginAtZero: true,
+          title: { display: true, text: 'Orders' },
+          grid: { drawOnChartArea: false }
+        },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+
+  createChart('chartAOVTrend', {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'AOV',
+        data: filtered.map(function(r) { return r.aov; }),
+        borderColor: '#D4A843',
+        backgroundColor: 'rgba(212,168,67,0.08)',
+        fill: true, tension: 0.3, pointRadius: pointRadius
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } },
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(0); } } }
+      }
+    }
+  });
+
+  createChart('chartUnitsTrend', {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Bottles Sold',
+        data: filtered.map(function(r) { return r.units; }),
+        backgroundColor: '#8B2252',
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } },
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+// ========================================================================
+// RENDER CURRENT TAB
+// ========================================================================
+function renderCurrentTab() {
+  if (currentTab === 'overview') renderOverview();
+  else if (currentTab === 'wines') renderWines();
+  else if (currentTab === 'club') renderClub();
+  else if (currentTab === 'trends') renderTrends();
+}
+
+// ========================================================================
+// DATE PRESETS
+// ========================================================================
+var minDate = '', maxDate = '';
+
+function applyPreset(preset) {
+  var from, to;
+  switch (preset) {
+    case '7d': from = daysAgo(7); to = todayStr(); break;
+    case '14d': from = daysAgo(14); to = todayStr(); break;
+    case '30d': from = daysAgo(30); to = todayStr(); break;
+    case 'thisMonth': {
+      var now1 = new Date();
+      from = formatDateStr(new Date(now1.getFullYear(), now1.getMonth(), 1));
+      to = todayStr();
+      break;
+    }
+    case 'lastMonth': {
+      var now2 = new Date();
+      from = formatDateStr(new Date(now2.getFullYear(), now2.getMonth() - 1, 1));
+      to = formatDateStr(new Date(now2.getFullYear(), now2.getMonth(), 0));
+      break;
+    }
+    case 'all':
+    default:
+      from = minDate; to = maxDate; break;
+  }
+  if (from < minDate) from = minDate;
+  if (to > maxDate) to = maxDate;
+  document.getElementById('filterFrom').value = from;
+  document.getElementById('filterTo').value = to;
+  renderCurrentTab();
+}
+
+// ========================================================================
+// LOGIN HANDLER
+// ========================================================================
+function doLogin() {
+  var pw = document.getElementById('loginPw').value;
+  if (pw === PASSWORD) {
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    loadData();
+  } else {
+    document.getElementById('loginErr').textContent = 'Incorrect password. Please try again.';
+    document.getElementById('loginPw').value = '';
+    document.getElementById('loginPw').focus();
+  }
+}
+
+// ========================================================================
+// DATA LOADING
+// ========================================================================
+async function loadData() {
+  try {
+    var results = await Promise.all([
+      fetchSheetData('Daily Performance'),
+      fetchSheetDataSafe('Wine Sales'),
+      fetchSheetDataSafe('Club vs DTC'),
+      fetchSheetDataSafe('Top Products')
+    ]);
+
+    var dailyRows = results[0];
+    var wineRows = results[1];
+    var clubRows = results[2];
+    var topRows = results[3];
+
+    // Normalize daily
+    dailyData = [];
+    for (var i = 0; i < dailyRows.length; i++) {
+      var nr = normalizeDailyRow(dailyRows[i]);
+      if (nr.date) dailyData.push(nr);
+    }
+    dailyData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+    // Normalize wine styles
+    wineStyleData = [];
+    for (var j = 0; j < wineRows.length; j++) {
+      var ws = normalizeWineStyleRow(wineRows[j]);
+      if (ws.wineStyle) wineStyleData.push(ws);
+    }
+
+    // Normalize club vs DTC
+    clubDtcData = [];
+    for (var k = 0; k < clubRows.length; k++) {
+      var cd = normalizeClubDtcRow(clubRows[k]);
+      if (cd.channel) clubDtcData.push(cd);
+    }
+
+    // Normalize top products
+    topProductsData = [];
+    for (var l = 0; l < topRows.length; l++) {
+      var tp = normalizeTopProductRow(topRows[l]);
+      if (tp.product) topProductsData.push(tp);
+    }
+
+    // Set date range
+    var dates = dailyData.map(function(r) { return r.date; }).filter(function(d) { return d; });
+    if (dates.length > 0) {
+      minDate = dates[0];
+      maxDate = dates[dates.length - 1];
+      document.getElementById('filterFrom').value = minDate;
+      document.getElementById('filterTo').value = maxDate;
+    }
+
+    // Console diagnostics
+    console.log('[Swick Dashboard] Daily rows:', dailyData.length);
+    console.log('[Swick Dashboard] Wine style rows:', wineStyleData.length);
+    console.log('[Swick Dashboard] Club vs DTC rows:', clubDtcData.length);
+    console.log('[Swick Dashboard] Top products rows:', topProductsData.length);
+    console.log('[Swick Dashboard] Date range:', minDate, 'to', maxDate);
+
+    // Show dashboard UI
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('headerBar').style.display = 'block';
+    document.getElementById('tabsBar').style.display = 'block';
+    document.getElementById('filterBar').style.display = 'block';
+    document.getElementById('mainContent').style.display = 'block';
+
+    // Initial render
+    applyPreset('all');
+
+  } catch (err) {
+    console.error('Data load error:', err);
+    document.getElementById('loadingOverlay').innerHTML =
+      '<div class="error-card">' +
+      '<h3>Error Loading Data</h3>' +
+      '<p>' + escHtml(err.message || 'Unknown error') + '</p>' +
+      '<p style="font-size:12px;color:#999;">Make sure the Google Sheet is shared as "Anyone with the link can view".</p>' +
+      '<button onclick="location.reload()">Retry</button>' +
+      '</div>';
+  }
+}
+
+// ========================================================================
+// EVENT BINDINGS
+// ========================================================================
+function bindEvents() {
+  // Login
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginPw').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      currentTab = btn.dataset.tab;
+      document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+      var tabEl = document.getElementById('tab-' + currentTab);
+      if (tabEl) tabEl.classList.add('active');
+      renderCurrentTab();
+    });
+  });
+
+  // Date presets
+  document.querySelectorAll('.preset-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      applyPreset(btn.dataset.preset);
+    });
+  });
+
+  // Filter changes
+  ['filterFrom', 'filterTo'].forEach(function(id) {
+    document.getElementById(id).addEventListener('change', function() {
+      document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+      renderCurrentTab();
+    });
+  });
+
+  // Reset
+  document.getElementById('resetFilters').addEventListener('click', function() {
+    document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelector('.preset-btn[data-preset="all"]').classList.add('active');
+    applyPreset('all');
+  });
+
+  // Top wines table sort
+  document.querySelectorAll('#topWinesTable th').forEach(function(th) {
+    th.addEventListener('click', function() {
+      var col = th.dataset.col;
+      if (!col) return;
+      if (wineSort.col === col) {
+        wineSort.asc = !wineSort.asc;
+      } else {
+        wineSort.col = col;
+        wineSort.asc = (col === 'product' || col === 'wineStyle');
+      }
+      if (currentTab === 'wines') renderWines();
+    });
+  });
+}
+
+// ========================================================================
+// INIT
+// ========================================================================
+document.addEventListener('DOMContentLoaded', function() {
+  bindEvents();
+  if (new URLSearchParams(window.location.search).get('embed') === '1') {
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    loadData();
+  }
+});
+</script>
+</body>
+</html>
