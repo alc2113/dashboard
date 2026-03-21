@@ -913,7 +913,7 @@ function normalizeRow(r) {
     comments: pv(r['Post comments']),
     shares: pv(r['Post shares']),
     videoPlays3s: pv(r['3-second video plays']),
-    checkouts: pv(r['Checkouts initiated']),
+    cpp: 0,
     contentViews: pv(r['Content views']),
     registrations: pv(r['Registrations completed']),
     // Tags (enriched later)
@@ -980,7 +980,7 @@ function aggregateRows(rows) {
     atc: 0, atcValue: 0, purchases: 0, revenue: 0,
     lpv: 0, linkClicks: 0, leads: 0, thruPlays: 0,
     engagements: 0, reactions: 0, comments: 0, shares: 0,
-    videoPlays3s: 0, checkouts: 0, contentViews: 0, registrations: 0,
+    videoPlays3s: 0, contentViews: 0, registrations: 0,
     count: rows.length
   };
   for (let i = 0; i < rows.length; i++) {
@@ -1002,7 +1002,6 @@ function aggregateRows(rows) {
     t.comments += r.comments;
     t.shares += r.shares;
     t.videoPlays3s += r.videoPlays3s;
-    t.checkouts += r.checkouts;
     t.contentViews += r.contentViews;
     t.registrations += r.registrations;
   }
@@ -1012,6 +1011,7 @@ function aggregateRows(rows) {
   t.cpm = t.impressions > 0 ? (t.spend / t.impressions) * 1000 : 0;
   t.roas = t.spend > 0 ? t.revenue / t.spend : 0;
   t.costPerPurchase = t.purchases > 0 ? t.spend / t.purchases : 0;
+  t.cpp = t.costPerPurchase;
   t.costPerLead = t.leads > 0 ? t.spend / t.leads : 0;
   t.hookRate = t.impressions > 0 ? t.thruPlays / t.impressions : 0;
   t.engRate = t.impressions > 0 ? t.engagements / t.impressions : 0;
@@ -1224,11 +1224,11 @@ function renderOverview() {
   const convEl = document.getElementById('kpiConversions');
   convEl.innerHTML = '';
   convEl.appendChild(buildKpiCard('Purchases', formatNumber(agg.purchases), delta(agg.purchases, prev && prev.purchases, false)));
+  convEl.appendChild(buildKpiCard('Cost per Purchase', formatCurrency(agg.cpp), delta(agg.cpp, prev && prev.cpp, true)));
   convEl.appendChild(buildKpiCard('Revenue', formatCurrency(agg.revenue), delta(agg.revenue, prev && prev.revenue, false)));
   convEl.appendChild(buildKpiCard('Leads', formatNumber(agg.leads), delta(agg.leads, prev && prev.leads, false)));
   convEl.appendChild(buildKpiCard('Add to Cart', formatNumber(agg.atc), delta(agg.atc, prev && prev.atc, false)));
   convEl.appendChild(buildKpiCard('ATC Value', formatCurrency(agg.atcValue), delta(agg.atcValue, prev && prev.atcValue, false)));
-  convEl.appendChild(buildKpiCard('Checkouts', formatNumber(agg.checkouts), delta(agg.checkouts, prev && prev.checkouts, false)));
   convEl.appendChild(buildKpiCard('Landing Page Views', formatNumber(agg.lpv), delta(agg.lpv, prev && prev.lpv, false)));
   convEl.appendChild(buildKpiCard('Registrations', formatNumber(agg.registrations), delta(agg.registrations, prev && prev.registrations, false)));
   convEl.appendChild(buildKpiCard('Content Views', formatNumber(agg.contentViews), delta(agg.contentViews, prev && prev.contentViews, false)));
@@ -1930,7 +1930,6 @@ function renderFunnel() {
     { label: 'Clicks',           value: agg.clicks,      costPer: agg.clicks > 0 ? agg.spend / agg.clicks : 0 },
     { label: 'Landing Page Views', value: agg.lpv,       costPer: agg.lpv > 0 ? agg.spend / agg.lpv : 0 },
     { label: 'Add to Cart',     value: agg.atc,          costPer: agg.atc > 0 ? agg.spend / agg.atc : 0 },
-    { label: 'Checkouts',       value: agg.checkouts,    costPer: agg.checkouts > 0 ? agg.spend / agg.checkouts : 0 },
     { label: 'Purchases',       value: agg.purchases,    costPer: agg.purchases > 0 ? agg.spend / agg.purchases : 0 }
   ];
 
@@ -1974,7 +1973,7 @@ function renderFunnel() {
   });
 
   // Funnel bar chart (horizontal)
-  var funnelColors = ['#209D50', '#4A90D9', '#FF6B6B', '#FFA500', '#9D50D9', '#50C8D9'];
+  var funnelColors = ['#209D50', '#4A90D9', '#FF6B6B', '#FFA500', '#9D50D9'];
   createChart('chartFunnel', {
     type: 'bar',
     data: {
