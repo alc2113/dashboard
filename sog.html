@@ -437,8 +437,8 @@ tr:hover td{background:#fafaf8;}
       <div class="chart-wrap"><canvas id="chartSpend"></canvas></div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">Cost per Lead Over Time</div>
-      <div class="chart-wrap"><canvas id="chartCPL"></canvas></div>
+      <div class="chart-title">Cost per Call Over Time</div>
+      <div class="chart-wrap"><canvas id="chartCost/Call"></canvas></div>
     </div>
     <div class="chart-row">
       <div class="chart-container">
@@ -446,8 +446,8 @@ tr:hover td{background:#fafaf8;}
         <div class="chart-wrap"><canvas id="chartCpcCpm"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Leads Over Time</div>
-        <div class="chart-wrap"><canvas id="chartLeads"></canvas></div>
+        <div class="chart-title">Calls Booked Over Time</div>
+        <div class="chart-wrap"><canvas id="chartCalls Booked"></canvas></div>
       </div>
     </div>
   </div>
@@ -465,8 +465,8 @@ tr:hover td{background:#fafaf8;}
           <th data-col="clicks">Clicks</th>
           <th data-col="ctr">CTR</th>
           <th data-col="cpc">CPC</th>
-          <th data-col="leads">Leads</th>
-          <th data-col="costPerLead">CPL</th>
+          <th data-col="callsBooked">Calls Booked</th>
+          <th data-col="costPerLead">Cost/Call</th>
           <th data-col="frequency">Freq</th>
         </tr></thead>
         <tbody id="campaignBody"></tbody>
@@ -490,8 +490,8 @@ tr:hover td{background:#fafaf8;}
         <div class="chart-wrap"><canvas id="chartBreakSpend"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Lead by Dimension</div>
-        <div class="chart-wrap"><canvas id="chartBreakCPL"></canvas></div>
+        <div class="chart-title">Cost per Call by Dimension</div>
+        <div class="chart-wrap"><canvas id="chartBreakCost/Call"></canvas></div>
       </div>
     </div>
     <div class="table-wrap">
@@ -734,7 +734,7 @@ async function fetchSheetDataSafe(sheetName) {
 // ========================================================================
 // DATA NORMALIZATION
 // ========================================================================
-// Daily Performance columns: Date, Spend, Impressions, Reach, Clicks, CTR %, CPC, CPM, Leads, Cost/Lead, Lead Goal, Goal %, Frequency
+// Daily Performance columns: Date, Spend, Impressions, Reach, Clicks, CTR %, CPC, CPM, Calls Booked, Cost/Lead, Lead Goal, Goal %, Frequency
 function normalizeDailyRow(r) {
   return {
     date: normalizeDateStr(r['Date']),
@@ -746,7 +746,7 @@ function normalizeDailyRow(r) {
     ctrRaw: pv(r['CTR %']),
     cpcRaw: pv(r['CPC']),
     cpmRaw: pv(r['CPM']),
-    leads: pv(r['Leads']),
+    callsBooked: pv(r['Leads']),
     costPerLeadRaw: pv(r['Cost/Lead']),
     leadGoal: pv(r['Lead Goal']),
     goalPct: pv(r['Goal %']),
@@ -754,7 +754,7 @@ function normalizeDailyRow(r) {
   };
 }
 
-// Campaign Breakdown columns: Campaign, Campaign ID, Spend, Impressions, Reach, Clicks, CTR %, CPC, Leads, Cost/Lead, Frequency
+// Campaign Breakdown columns: Campaign, Campaign ID, Spend, Impressions, Reach, Clicks, CTR %, CPC, Calls Booked, Cost/Lead, Frequency
 function normalizeCampaignRow(r) {
   return {
     campaign: String(r['Campaign'] || '').trim(),
@@ -766,13 +766,13 @@ function normalizeCampaignRow(r) {
     clicks: pv(r['Clicks']),
     ctrRaw: pv(r['CTR %']),
     cpcRaw: pv(r['CPC']),
-    leads: pv(r['Leads']),
+    callsBooked: pv(r['Leads']),
     costPerLeadRaw: pv(r['Cost/Lead']),
     frequency: pv(r['Frequency'])
   };
 }
 
-// Google Ads Daily columns (expected): Date, Spend, Impressions, Clicks, CTR %, CPC, Leads, Cost/Lead
+// Google Ads Daily columns (expected): Date, Spend, Impressions, Clicks, CTR %, CPC, Calls Booked, Cost/Lead
 function normalizeGoogleDailyRow(r) {
   return {
     date: normalizeDateStr(r['Date']),
@@ -784,7 +784,7 @@ function normalizeGoogleDailyRow(r) {
     ctrRaw: pv(r['CTR %']),
     cpcRaw: pv(r['CPC']),
     cpmRaw: 0,
-    leads: pv(r['Leads']),
+    callsBooked: pv(r['Leads']),
     costPerLeadRaw: pv(r['Cost/Lead']),
     leadGoal: 0,
     goalPct: 0,
@@ -798,7 +798,7 @@ function normalizeGoogleDailyRow(r) {
 function aggregateRows(rows) {
   const t = {
     spend: 0, impressions: 0, reach: 0, clicks: 0,
-    leads: 0, count: rows.length
+    callsBooked: 0, count: rows.length
   };
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
@@ -806,13 +806,13 @@ function aggregateRows(rows) {
     t.impressions += r.impressions;
     t.reach += r.reach;
     t.clicks += r.clicks;
-    t.leads += r.leads;
+    t.callsBooked += r.callsBooked;
   }
   // Derived metrics
   t.ctr = t.impressions > 0 ? t.clicks / t.impressions : 0;
   t.cpc = t.clicks > 0 ? t.spend / t.clicks : 0;
   t.cpm = t.impressions > 0 ? (t.spend / t.impressions) * 1000 : 0;
-  t.costPerLead = t.leads > 0 ? t.spend / t.leads : 0;
+  t.costPerLead = t.callsBooked > 0 ? t.spend / t.callsBooked : 0;
   t.frequency = t.reach > 0 ? t.impressions / t.reach : 0;
   return t;
 }
@@ -985,8 +985,8 @@ function renderOverview() {
   const combEl = document.getElementById('kpiCombined');
   combEl.innerHTML = '';
   combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false), true));
-  combEl.appendChild(buildKpiCard('Total Leads', formatNumber(allAgg.leads), delta(allAgg.leads, prev && prev.leads, false), true));
-  combEl.appendChild(buildKpiCard('Combined CPL', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
+  combEl.appendChild(buildKpiCard('Calls Booked', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
+  combEl.appendChild(buildKpiCard('Combined Cost/Call', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
   combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false)));
   combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false)));
 
@@ -994,8 +994,8 @@ function renderOverview() {
   const metaEl = document.getElementById('kpiMeta');
   metaEl.innerHTML = '';
   metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), null));
-  metaEl.appendChild(buildKpiCard('Meta Leads', formatNumber(metaAgg.leads), null));
-  metaEl.appendChild(buildKpiCard('Meta CPL', formatCurrency(metaAgg.costPerLead), null));
+  metaEl.appendChild(buildKpiCard('Meta Calls Booked', formatNumber(metaAgg.callsBooked), null));
+  metaEl.appendChild(buildKpiCard('Meta CPC (Call)', formatCurrency(metaAgg.costPerLead), null));
   metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), null));
   metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), null));
   metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), null));
@@ -1006,8 +1006,8 @@ function renderOverview() {
   const googleEl = document.getElementById('kpiGoogle');
   googleEl.innerHTML = '';
   googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), null));
-  googleEl.appendChild(buildKpiCard('Google Leads', formatNumber(googleAgg.leads), null));
-  googleEl.appendChild(buildKpiCard('Google CPL', formatCurrency(googleAgg.costPerLead), null));
+  googleEl.appendChild(buildKpiCard('Google Calls Booked', formatNumber(googleAgg.callsBooked), null));
+  googleEl.appendChild(buildKpiCard('Google CPC (Call)', formatCurrency(googleAgg.costPerLead), null));
   googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), null));
   googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), null));
   googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), null));
@@ -1095,14 +1095,14 @@ function renderTrends() {
     }
   });
 
-  // --- Cost per Lead Over Time (line) ---
-  createChart('chartCPL', {
+  // --- Cost per Call Over Time (line) ---
+  createChart('chartCost/Call', {
     type: 'line',
     data: {
       labels: labels,
       datasets: [
         {
-          label: 'Combined CPL',
+          label: 'Combined Cost/Call',
           data: labels.map(function(k) { return allMap[k] ? allMap[k].costPerLead : 0; }),
           borderColor: '#209D50',
           backgroundColor: 'rgba(32,157,80,0.08)',
@@ -1111,7 +1111,7 @@ function renderTrends() {
           pointRadius: pointRadius
         },
         {
-          label: 'Meta CPL',
+          label: 'Meta CPC (Call)',
           data: labels.map(function(k) { return metaMap[k] ? metaMap[k].costPerLead : 0; }),
           borderColor: '#4A90D9',
           backgroundColor: 'transparent',
@@ -1119,7 +1119,7 @@ function renderTrends() {
           pointRadius: pointRadius
         },
         {
-          label: 'Google CPL',
+          label: 'Google CPC (Call)',
           data: labels.map(function(k) { return googleMap[k] ? googleMap[k].costPerLead : 0; }),
           borderColor: '#FFA500',
           backgroundColor: 'transparent',
@@ -1186,21 +1186,21 @@ function renderTrends() {
     }
   });
 
-  // --- Leads Over Time (stacked bar) ---
-  createChart('chartLeads', {
+  // --- Calls Booked Over Time (stacked bar) ---
+  createChart('chartCalls Booked', {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [
         {
-          label: 'Meta Leads',
-          data: labels.map(function(k) { return metaMap[k] ? metaMap[k].leads : 0; }),
+          label: 'Meta Calls Booked',
+          data: labels.map(function(k) { return metaMap[k] ? metaMap[k].callsBooked : 0; }),
           backgroundColor: '#209D50',
           borderRadius: 2
         },
         {
-          label: 'Google Leads',
-          data: labels.map(function(k) { return googleMap[k] ? googleMap[k].leads : 0; }),
+          label: 'Google Calls Booked',
+          data: labels.map(function(k) { return googleMap[k] ? googleMap[k].callsBooked : 0; }),
           backgroundColor: '#4A90D9',
           borderRadius: 2
         }
@@ -1236,19 +1236,19 @@ function renderCampaigns() {
   data.forEach(function(r) {
     const key = r.campaign + '|' + r.platform;
     if (!byName[key]) {
-      byName[key] = { campaign: r.campaign, platform: r.platform, spend: 0, impressions: 0, reach: 0, clicks: 0, leads: 0 };
+      byName[key] = { campaign: r.campaign, platform: r.platform, spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0 };
     }
     byName[key].spend += r.spend;
     byName[key].impressions += r.impressions;
     byName[key].reach += r.reach;
     byName[key].clicks += r.clicks;
-    byName[key].leads += r.leads;
+    byName[key].callsBooked += r.callsBooked;
   });
 
   var rows = Object.values(byName).map(function(r) {
     r.ctr = r.impressions > 0 ? r.clicks / r.impressions : 0;
     r.cpc = r.clicks > 0 ? r.spend / r.clicks : 0;
-    r.costPerLead = r.leads > 0 ? r.spend / r.leads : 0;
+    r.costPerLead = r.callsBooked > 0 ? r.spend / r.callsBooked : 0;
     r.frequency = r.reach > 0 ? r.impressions / r.reach : 0;
     return r;
   });
@@ -1280,7 +1280,7 @@ function renderCampaigns() {
       '<td>' + formatNumber(r.clicks) + '</td>' +
       '<td>' + formatPct(r.ctr) + '</td>' +
       '<td>' + formatCurrency(r.cpc) + '</td>' +
-      '<td>' + formatNumber(r.leads) + '</td>' +
+      '<td>' + formatNumber(r.callsBooked) + '</td>' +
       '<td>' + formatCurrency(r.costPerLead) + '</td>' +
       '<td>' + r.frequency.toFixed(2) + '</td>';
     tbody.appendChild(tr);
@@ -1324,18 +1324,18 @@ function renderBreakdowns() {
     var byKey = {};
     campData.forEach(function(r) {
       var k = r.campaign || '(none)';
-      if (!byKey[k]) byKey[k] = { spend: 0, impressions: 0, reach: 0, clicks: 0, leads: 0, key: k };
+      if (!byKey[k]) byKey[k] = { spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0, key: k };
       byKey[k].spend += r.spend;
       byKey[k].impressions += r.impressions;
       byKey[k].reach += r.reach;
       byKey[k].clicks += r.clicks;
-      byKey[k].leads += r.leads;
+      byKey[k].callsBooked += r.callsBooked;
     });
     var grouped = Object.values(byKey).map(function(g) {
       g.ctr = g.impressions > 0 ? g.clicks / g.impressions : 0;
       g.cpc = g.clicks > 0 ? g.spend / g.clicks : 0;
       g.cpm = g.impressions > 0 ? (g.spend / g.impressions) * 1000 : 0;
-      g.costPerLead = g.leads > 0 ? g.spend / g.leads : 0;
+      g.costPerLead = g.callsBooked > 0 ? g.spend / g.callsBooked : 0;
       g.frequency = g.reach > 0 ? g.impressions / g.reach : 0;
       return g;
     });
@@ -1368,11 +1368,11 @@ function renderBreakdownCharts(grouped, dim) {
     }
   });
 
-  createChart('chartBreakCPL', {
+  createChart('chartBreakCost/Call', {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Cost per Lead', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Cost per Call', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -1393,8 +1393,8 @@ function renderBreakdownCharts(grouped, dim) {
     '<th data-col="ctr">CTR</th>' +
     '<th data-col="cpc">CPC</th>' +
     '<th data-col="cpm">CPM</th>' +
-    '<th data-col="leads">Leads</th>' +
-    '<th data-col="costPerLead">CPL</th>';
+    '<th data-col="callsBooked">Calls Booked</th>' +
+    '<th data-col="costPerLead">Cost/Call</th>';
 
   var tableSorted = grouped.slice().sort(function(a, b) {
     var va, vb;
@@ -1418,7 +1418,7 @@ function renderBreakdownCharts(grouped, dim) {
       '<td>' + formatPct(g.ctr) + '</td>' +
       '<td>' + formatCurrency(g.cpc) + '</td>' +
       '<td>' + formatCurrency(g.cpm) + '</td>' +
-      '<td>' + formatNumber(g.leads) + '</td>' +
+      '<td>' + formatNumber(g.callsBooked) + '</td>' +
       '<td>' + formatCurrency(g.costPerLead) + '</td>';
     tbody.appendChild(tr);
   });
@@ -1446,7 +1446,7 @@ function renderFunnel() {
   var stages = [
     { label: 'Impressions', value: agg.impressions, costPer: agg.impressions > 0 ? agg.spend / agg.impressions : 0 },
     { label: 'Clicks',      value: agg.clicks,      costPer: agg.clicks > 0 ? agg.spend / agg.clicks : 0 },
-    { label: 'Leads',       value: agg.leads,        costPer: agg.leads > 0 ? agg.spend / agg.leads : 0 }
+    { label: 'Calls Booked',       value: agg.callsBooked,        costPer: agg.callsBooked > 0 ? agg.spend / agg.callsBooked : 0 }
   ];
 
   var wrap = document.getElementById('funnelWrap');
@@ -1530,15 +1530,15 @@ function renderPacing() {
   // Group by date
   var byDate = {};
   sorted.forEach(function(r) {
-    if (!byDate[r.date]) byDate[r.date] = { spend: 0, leads: 0, leadGoal: 0 };
+    if (!byDate[r.date]) byDate[r.date] = { spend: 0, callsBooked: 0, leadGoal: 0 };
     byDate[r.date].spend += r.spend;
-    byDate[r.date].leads += r.leads;
+    byDate[r.date].callsBooked += r.callsBooked;
     if (r.leadGoal) byDate[r.date].leadGoal = r.leadGoal; // take from meta daily data
   });
 
   var dates = Object.keys(byDate).sort();
   var dailySpend = dates.map(function(d) { return byDate[d].spend; });
-  var dailyLeads = dates.map(function(d) { return byDate[d].leads; });
+  var dailyCalls Booked = dates.map(function(d) { return byDate[d].callsBooked; });
 
   // Cumulative spend
   var cumSpend = [];
@@ -1548,28 +1548,28 @@ function renderPacing() {
     cumSpend.push(runningTotal);
   });
 
-  // Cumulative leads
-  var cumLeads = [];
-  var runningLeads = 0;
-  dailyLeads.forEach(function(l) {
-    runningLeads += l;
-    cumLeads.push(runningLeads);
+  // Cumulative callsBooked
+  var cumCalls Booked = [];
+  var runningCalls Booked = 0;
+  dailyCalls Booked.forEach(function(l) {
+    runningCalls Booked += l;
+    cumCalls Booked.push(runningCalls Booked);
   });
 
   var totalSpend = runningTotal;
-  var totalLeads = runningLeads;
+  var totalCalls Booked = runningCalls Booked;
   var avgDailySpend = dates.length > 0 ? totalSpend / dates.length : 0;
-  var avgDailyLeads = dates.length > 0 ? totalLeads / dates.length : 0;
-  var overallCPL = totalLeads > 0 ? totalSpend / totalLeads : 0;
+  var avgDailyCalls Booked = dates.length > 0 ? totalCalls Booked / dates.length : 0;
+  var overallCost/Call = totalCalls Booked > 0 ? totalSpend / totalCalls Booked : 0;
 
   // KPI cards
   var kpisEl = document.getElementById('pacingKpis');
   kpisEl.innerHTML = '';
   kpisEl.appendChild(buildKpiCard('Total Spend', formatCurrency(totalSpend), null));
   kpisEl.appendChild(buildKpiCard('Avg Daily Spend', formatCurrency(avgDailySpend), null));
-  kpisEl.appendChild(buildKpiCard('Total Leads', formatNumber(totalLeads), null));
-  kpisEl.appendChild(buildKpiCard('Avg Daily Leads', avgDailyLeads.toFixed(1), null));
-  kpisEl.appendChild(buildKpiCard('Overall CPL', formatCurrency(overallCPL), null));
+  kpisEl.appendChild(buildKpiCard('Calls Booked', formatNumber(totalCalls Booked), null));
+  kpisEl.appendChild(buildKpiCard('Avg Daily Calls Booked', avgDailyCalls Booked.toFixed(1), null));
+  kpisEl.appendChild(buildKpiCard('Overall Cost/Call', formatCurrency(overallCost/Call), null));
   kpisEl.appendChild(buildKpiCard('Days Active', formatNumber(dates.length), null));
 
   var maxTicks = dates.length > 90 ? 20 : dates.length > 60 ? 25 : 35;
@@ -1591,8 +1591,8 @@ function renderPacing() {
           pointRadius: pointRadius
         },
         {
-          label: 'Cumulative Leads',
-          data: cumLeads,
+          label: 'Cumulative Calls Booked',
+          data: cumCalls Booked,
           borderColor: '#4A90D9',
           backgroundColor: 'transparent',
           tension: 0.3,
@@ -1613,7 +1613,7 @@ function renderPacing() {
         },
         y1: {
           type: 'linear', position: 'right', beginAtZero: true,
-          title: { display: true, text: 'Leads' },
+          title: { display: true, text: 'Calls Booked' },
           grid: { drawOnChartArea: false },
           ticks: { callback: function(v) { return v.toLocaleString(); } }
         },
