@@ -447,7 +447,7 @@ tr:hover td{background:#fafaf8;}
       </div>
       <div class="chart-container">
         <div class="chart-title">Calls Booked Over Time</div>
-        <div class="chart-wrap"><canvas id="chartCalls Booked"></canvas></div>
+        <div class="chart-wrap"><canvas id="chartCallsBooked"></canvas></div>
       </div>
     </div>
   </div>
@@ -1187,7 +1187,7 @@ function renderTrends() {
   });
 
   // --- Calls Booked Over Time (stacked bar) ---
-  createChart('chartCalls Booked', {
+  createChart('chartCallsBooked', {
     type: 'bar',
     data: {
       labels: labels,
@@ -1538,7 +1538,7 @@ function renderPacing() {
 
   var dates = Object.keys(byDate).sort();
   var dailySpend = dates.map(function(d) { return byDate[d].spend; });
-  var dailyCalls Booked = dates.map(function(d) { return byDate[d].callsBooked; });
+  var dailyCallsBooked = dates.map(function(d) { return byDate[d].callsBooked; });
 
   // Cumulative spend
   var cumSpend = [];
@@ -1549,27 +1549,27 @@ function renderPacing() {
   });
 
   // Cumulative callsBooked
-  var cumCalls Booked = [];
-  var runningCalls Booked = 0;
-  dailyCalls Booked.forEach(function(l) {
-    runningCalls Booked += l;
-    cumCalls Booked.push(runningCalls Booked);
+  var cumCallsBooked = [];
+  var runningCallsBooked = 0;
+  dailyCallsBooked.forEach(function(l) {
+    runningCallsBooked += l;
+    cumCallsBooked.push(runningCallsBooked);
   });
 
   var totalSpend = runningTotal;
-  var totalCalls Booked = runningCalls Booked;
+  var totalCallsBooked = runningCallsBooked;
   var avgDailySpend = dates.length > 0 ? totalSpend / dates.length : 0;
-  var avgDailyCalls Booked = dates.length > 0 ? totalCalls Booked / dates.length : 0;
-  var overallCost/Call = totalCalls Booked > 0 ? totalSpend / totalCalls Booked : 0;
+  var avgDailyCallsBooked = dates.length > 0 ? totalCallsBooked / dates.length : 0;
+  var overallCostPerCall = totalCallsBooked > 0 ? totalSpend / totalCallsBooked : 0;
 
   // KPI cards
   var kpisEl = document.getElementById('pacingKpis');
   kpisEl.innerHTML = '';
   kpisEl.appendChild(buildKpiCard('Total Spend', formatCurrency(totalSpend), null));
   kpisEl.appendChild(buildKpiCard('Avg Daily Spend', formatCurrency(avgDailySpend), null));
-  kpisEl.appendChild(buildKpiCard('Calls Booked', formatNumber(totalCalls Booked), null));
-  kpisEl.appendChild(buildKpiCard('Avg Daily Calls Booked', avgDailyCalls Booked.toFixed(1), null));
-  kpisEl.appendChild(buildKpiCard('Overall Cost/Call', formatCurrency(overallCost/Call), null));
+  kpisEl.appendChild(buildKpiCard('Calls Booked', formatNumber(totalCallsBooked), null));
+  kpisEl.appendChild(buildKpiCard('Avg Daily Calls Booked', avgDailyCallsBooked.toFixed(1), null));
+  kpisEl.appendChild(buildKpiCard('Overall Cost/Call', formatCurrency(overallCostPerCall), null));
   kpisEl.appendChild(buildKpiCard('Days Active', formatNumber(dates.length), null));
 
   var maxTicks = dates.length > 90 ? 20 : dates.length > 60 ? 25 : 35;
@@ -1592,7 +1592,7 @@ function renderPacing() {
         },
         {
           label: 'Cumulative Calls Booked',
-          data: cumCalls Booked,
+          data: cumCallsBooked,
           borderColor: '#4A90D9',
           backgroundColor: 'transparent',
           tension: 0.3,
