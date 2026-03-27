@@ -142,6 +142,19 @@ body{
 }
 .reset-btn:hover{background:var(--red);color:#fff;}
 
+/* ===== CHANNEL TOGGLE ===== */
+.channel-toggle{display:flex;gap:0;margin-left:6px;}
+.channel-btn{
+  padding:4px 14px;border:1px solid var(--border);font-size:12px;
+  cursor:pointer;background:#fff;transition:all 0.2s;font-weight:500;
+}
+.channel-btn:first-child{border-radius:12px 0 0 12px;}
+.channel-btn:last-child{border-radius:0 12px 12px 0;}
+.channel-btn:not(:first-child){border-left:none;}
+.channel-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.channel-btn[data-channel="meta"].active{background:#1877F2;border-color:#1877F2;}
+.channel-btn[data-channel="google"].active{background:#EA4335;border-color:#EA4335;}
+
 /* ===== MAIN CONTENT ===== */
 .main{max-width:1440px;margin:0 auto;padding:24px;display:none;}
 .tab-content{display:none;}
@@ -277,7 +290,8 @@ tr:hover td{background:#fafaf8;}
   font-size:11px;font-weight:500;margin-right:4px;margin-bottom:4px;
 }
 .badge-platform{background:#e8f5e9;color:#2e7d32;}
-.badge-campaign{background:#e3f2fd;color:#1565c0;}
+.badge-google{background:#fce8e6;color:#c5221f;}
+.badge-meta{background:#e3f2fd;color:#1565c0;}
 
 /* ===== ERROR STATE ===== */
 .error-card{
@@ -361,6 +375,7 @@ tr:hover td{background:#fafaf8;}
   <div class="tabs-inner">
     <button class="tab-btn active" data-tab="overview">Overview</button>
     <button class="tab-btn" data-tab="trends">Trends</button>
+    <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
     <button class="tab-btn" data-tab="campaigns">Campaigns</button>
     <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
@@ -391,12 +406,14 @@ tr:hover td{background:#fafaf8;}
       <input type="checkbox" id="compareToggle"> vs Previous Period
     </label>
     <div class="filter-group">
+      <div class="channel-toggle" id="channelToggle">
+        <button class="channel-btn active" data-channel="">All</button>
+        <button class="channel-btn" data-channel="meta">Meta</button>
+        <button class="channel-btn" data-channel="google">Google</button>
+      </div>
+    </div>
+    <div class="filter-group">
       <select id="filterCampaign" class="filter-select"><option value="">All Campaigns</option></select>
-      <select id="filterPlatform" class="filter-select">
-        <option value="">All Platforms</option>
-        <option value="meta">Meta</option>
-        <option value="google">Google</option>
-      </select>
     </div>
     <button class="reset-btn" id="resetFilters">Reset All</button>
   </div>
@@ -438,7 +455,7 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-container">
       <div class="chart-title">Cost per Call Over Time</div>
-      <div class="chart-wrap"><canvas id="chartCost/Call"></canvas></div>
+      <div class="chart-wrap"><canvas id="chartCostPerCall"></canvas></div>
     </div>
     <div class="chart-row">
       <div class="chart-container">
@@ -452,6 +469,26 @@ tr:hover td{background:#fafaf8;}
     </div>
   </div>
 
+  <!-- LEADERBOARD TAB -->
+  <div id="tab-leaderboard" class="tab-content">
+    <div class="leader-controls">
+      <label>Metric:
+        <select id="leaderMetric">
+          <option value="costPerLead">Cost / Call</option>
+          <option value="cpc">CPC</option>
+          <option value="cpm">CPM</option>
+          <option value="ctr">CTR</option>
+        </select>
+      </label>
+      <label>Min Spend: $<input type="number" id="leaderMinSpend" value="10" min="0" max="500" step="5" style="width:75px;"></label>
+    </div>
+    <div class="leader-cards" id="leaderCards"></div>
+    <div class="chart-container">
+      <div class="chart-title">Cost per Call vs Clicks (bubble size = spend)</div>
+      <div class="chart-wrap"><canvas id="chartScatter"></canvas></div>
+    </div>
+  </div>
+
   <!-- CAMPAIGNS TAB -->
   <div id="tab-campaigns" class="tab-content">
     <input type="text" class="search-box" id="campaignSearch" placeholder="Search by campaign name...">
@@ -459,13 +496,15 @@ tr:hover td{background:#fafaf8;}
       <table id="campaignTable">
         <thead><tr>
           <th data-col="campaign">Campaign</th>
+          <th data-col="platform">Platform</th>
           <th data-col="spend">Spend</th>
           <th data-col="impressions">Imp</th>
           <th data-col="reach">Reach</th>
           <th data-col="clicks">Clicks</th>
           <th data-col="ctr">CTR</th>
           <th data-col="cpc">CPC</th>
-          <th data-col="callsBooked">Calls Booked</th>
+          <th data-col="cpm">CPM</th>
+          <th data-col="callsBooked">Calls</th>
           <th data-col="costPerLead">Cost/Call</th>
           <th data-col="frequency">Freq</th>
         </tr></thead>
@@ -479,8 +518,8 @@ tr:hover td{background:#fafaf8;}
     <div class="leader-controls">
       <label>Dimension:
         <select id="breakdownDim">
-          <option value="campaign">Campaign</option>
           <option value="platform">Platform</option>
+          <option value="campaign">Campaign</option>
         </select>
       </label>
     </div>
@@ -491,7 +530,7 @@ tr:hover td{background:#fafaf8;}
       </div>
       <div class="chart-container">
         <div class="chart-title">Cost per Call by Dimension</div>
-        <div class="chart-wrap"><canvas id="chartBreakCost/Call"></canvas></div>
+        <div class="chart-wrap"><canvas id="chartBreakCPL"></canvas></div>
       </div>
     </div>
     <div class="table-wrap">
@@ -515,7 +554,7 @@ tr:hover td{background:#fafaf8;}
   <div id="tab-pacing" class="tab-content">
     <div class="kpi-grid" id="pacingKpis" style="margin-bottom:16px;"></div>
     <div class="chart-container">
-      <div class="chart-title">Cumulative Spend vs Budget</div>
+      <div class="chart-title">Cumulative Spend &amp; Calls Booked</div>
       <div class="chart-wrap"><canvas id="chartPacing"></canvas></div>
     </div>
     <div class="chart-container">
@@ -529,7 +568,7 @@ tr:hover td{background:#fafaf8;}
 <script>
 /* ================================================================
    SHADES OF GREEN — ADS DASHBOARD
-   Self-contained single-file dashboard (Meta + Google)
+   Single data source: Campaign Breakdown sheet (daily rows, Date + Platform)
    ================================================================ */
 
 // ========================================================================
@@ -545,14 +584,12 @@ const PASSWORD = 'sog2026';
 // ========================================================================
 // GLOBAL STATE
 // ========================================================================
-let dailyData = [];         // normalized rows from Daily Performance
 let campaignData = [];      // normalized rows from Campaign Breakdown
-let googleDailyData = [];   // normalized rows from Google Ads Daily (if exists)
-let allDailyData = [];      // combined meta + google daily data
 let chartInstances = {};
 let currentTab = 'overview';
 let campaignSort = { col: 'spend', asc: false };
 let breakdownSort = { col: 'spend', asc: false };
+let activeChannel = '';     // '' = all, 'meta', 'google'
 
 // ========================================================================
 // PARSING HELPER
@@ -579,12 +616,6 @@ function formatNumber(v) {
 function formatPct(v) {
   if (v === null || v === undefined || isNaN(v) || !isFinite(v)) return '0.00%';
   return (v * 100).toFixed(2) + '%';
-}
-
-function formatPctRaw(v) {
-  // For values already in percentage form (e.g., 3.5 = 3.5%)
-  if (v === null || v === undefined || isNaN(v) || !isFinite(v)) return '0.00%';
-  return v.toFixed(2) + '%';
 }
 
 function formatDelta(current, previous, invertColor) {
@@ -722,44 +753,18 @@ async function fetchSheetData(sheetName) {
   }
 }
 
-async function fetchSheetDataSafe(sheetName) {
-  try {
-    return await fetchSheetData(sheetName);
-  } catch (e) {
-    console.warn('[Dashboard] Could not load "' + sheetName + '":', e.message);
-    return [];
-  }
-}
-
 // ========================================================================
 // DATA NORMALIZATION
 // ========================================================================
-// Daily Performance columns: Date, Spend, Impressions, Reach, Clicks, CTR %, CPC, CPM, Calls Booked, Cost/Lead, Lead Goal, Goal %, Frequency
-function normalizeDailyRow(r) {
+// Campaign Breakdown columns: Date, Campaign, Campaign ID, Platform, Spend,
+// Impressions, Reach, Clicks, CTR %, CPC, Leads, Cost/Lead, Frequency
+function normalizeCampaignRow(r) {
+  var plat = String(r['Platform'] || 'meta').trim().toLowerCase();
   return {
     date: normalizeDateStr(r['Date']),
-    platform: 'meta',
-    spend: pv(r['Spend']),
-    impressions: pv(r['Impressions']),
-    reach: pv(r['Reach']),
-    clicks: pv(r['Clicks']),
-    ctrRaw: pv(r['CTR %']),
-    cpcRaw: pv(r['CPC']),
-    cpmRaw: pv(r['CPM']),
-    callsBooked: pv(r['Leads']),
-    costPerLeadRaw: pv(r['Cost/Lead']),
-    leadGoal: pv(r['Lead Goal']),
-    goalPct: pv(r['Goal %']),
-    frequency: pv(r['Frequency'])
-  };
-}
-
-// Campaign Breakdown columns: Campaign, Campaign ID, Spend, Impressions, Reach, Clicks, CTR %, CPC, Calls Booked, Cost/Lead, Frequency
-function normalizeCampaignRow(r) {
-  return {
     campaign: String(r['Campaign'] || '').trim(),
     campaignId: String(r['Campaign ID'] || '').trim(),
-    platform: 'meta',
+    platform: plat === 'google' ? 'google' : 'meta',
     spend: pv(r['Spend']),
     impressions: pv(r['Impressions']),
     reach: pv(r['Reach']),
@@ -769,26 +774,6 @@ function normalizeCampaignRow(r) {
     callsBooked: pv(r['Leads']),
     costPerLeadRaw: pv(r['Cost/Lead']),
     frequency: pv(r['Frequency'])
-  };
-}
-
-// Google Ads Daily columns (expected): Date, Spend, Impressions, Clicks, CTR %, CPC, Calls Booked, Cost/Lead
-function normalizeGoogleDailyRow(r) {
-  return {
-    date: normalizeDateStr(r['Date']),
-    platform: 'google',
-    spend: pv(r['Spend']),
-    impressions: pv(r['Impressions']),
-    reach: 0,
-    clicks: pv(r['Clicks']),
-    ctrRaw: pv(r['CTR %']),
-    cpcRaw: pv(r['CPC']),
-    cpmRaw: 0,
-    callsBooked: pv(r['Leads']),
-    costPerLeadRaw: pv(r['Cost/Lead']),
-    leadGoal: 0,
-    goalPct: 0,
-    frequency: 0
   };
 }
 
@@ -808,7 +793,6 @@ function aggregateRows(rows) {
     t.clicks += r.clicks;
     t.callsBooked += r.callsBooked;
   }
-  // Derived metrics
   t.ctr = t.impressions > 0 ? t.clicks / t.impressions : 0;
   t.cpc = t.clicks > 0 ? t.spend / t.clicks : 0;
   t.cpm = t.impressions > 0 ? (t.spend / t.impressions) * 1000 : 0;
@@ -844,7 +828,7 @@ function getFilterState() {
     from: document.getElementById('filterFrom').value,
     to: document.getElementById('filterTo').value,
     campaign: document.getElementById('filterCampaign').value,
-    platform: document.getElementById('filterPlatform').value
+    platform: activeChannel
   };
 }
 
@@ -852,26 +836,14 @@ function applyFilters(data, f) {
   return data.filter(function(r) {
     if (f.from && r.date < f.from) return false;
     if (f.to && r.date > f.to) return false;
-    if (f.campaign && r.campaign && r.campaign !== f.campaign) return false;
+    if (f.campaign && r.campaign !== f.campaign) return false;
     if (f.platform && r.platform !== f.platform) return false;
     return true;
   });
 }
 
 function getFilteredData() {
-  return applyFilters(allDailyData, getFilterState());
-}
-
-function getFilteredCampaignData() {
-  const f = getFilterState();
-  let data = campaignData.slice();
-  if (f.platform) {
-    data = data.filter(function(r) { return r.platform === f.platform; });
-  }
-  if (f.campaign) {
-    data = data.filter(function(r) { return r.campaign === f.campaign; });
-  }
-  return data;
+  return applyFilters(campaignData, getFilterState());
 }
 
 function getPreviousPeriodData() {
@@ -889,7 +861,7 @@ function getPreviousPeriodData() {
     from: formatDateStr(prevFrom),
     to: formatDateStr(prevTo)
   });
-  return applyFilters(allDailyData, pf);
+  return applyFilters(campaignData, pf);
 }
 
 // ========================================================================
@@ -914,7 +886,6 @@ function createChart(canvasId, config) {
 // POPULATE FILTER DROPDOWNS
 // ========================================================================
 function populateFilterDropdowns() {
-  // Campaign dropdown from campaign data
   const campaigns = [];
   const seen = {};
   campaignData.forEach(function(r) {
@@ -933,8 +904,7 @@ function populateFilterDropdowns() {
     sel.appendChild(opt);
   });
 
-  // Set date range from data
-  const dates = allDailyData.map(function(r) { return r.date; }).filter(function(d) { return d; }).sort();
+  const dates = campaignData.map(function(r) { return r.date; }).filter(function(d) { return d; }).sort();
   if (dates.length > 0) {
     document.getElementById('filterFrom').value = dates[0];
     document.getElementById('filterTo').value = dates[dates.length - 1];
@@ -986,7 +956,7 @@ function renderOverview() {
   combEl.innerHTML = '';
   combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false), true));
   combEl.appendChild(buildKpiCard('Calls Booked', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
-  combEl.appendChild(buildKpiCard('Combined Cost/Call', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
+  combEl.appendChild(buildKpiCard('Cost / Call', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
   combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false)));
   combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false)));
 
@@ -994,8 +964,8 @@ function renderOverview() {
   const metaEl = document.getElementById('kpiMeta');
   metaEl.innerHTML = '';
   metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), null));
-  metaEl.appendChild(buildKpiCard('Meta Calls Booked', formatNumber(metaAgg.callsBooked), null));
-  metaEl.appendChild(buildKpiCard('Meta CPC (Call)', formatCurrency(metaAgg.costPerLead), null));
+  metaEl.appendChild(buildKpiCard('Meta Calls', formatNumber(metaAgg.callsBooked), null));
+  metaEl.appendChild(buildKpiCard('Meta Cost/Call', formatCurrency(metaAgg.costPerLead), null));
   metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), null));
   metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), null));
   metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), null));
@@ -1006,8 +976,8 @@ function renderOverview() {
   const googleEl = document.getElementById('kpiGoogle');
   googleEl.innerHTML = '';
   googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), null));
-  googleEl.appendChild(buildKpiCard('Google Calls Booked', formatNumber(googleAgg.callsBooked), null));
-  googleEl.appendChild(buildKpiCard('Google CPC (Call)', formatCurrency(googleAgg.costPerLead), null));
+  googleEl.appendChild(buildKpiCard('Google Calls', formatNumber(googleAgg.callsBooked), null));
+  googleEl.appendChild(buildKpiCard('Google Cost/Call', formatCurrency(googleAgg.costPerLead), null));
   googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), null));
   googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), null));
   googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), null));
@@ -1048,7 +1018,6 @@ function renderTrends() {
   const googleGrouped = groupBy(googleRows, keyFn).sort(function(a, b) { return a.key.localeCompare(b.key); });
   const allGrouped = groupBy(filtered, keyFn).sort(function(a, b) { return a.key.localeCompare(b.key); });
 
-  // Get union of all date keys
   const allKeysSet = {};
   metaGrouped.forEach(function(g) { allKeysSet[g.key] = true; });
   googleGrouped.forEach(function(g) { allKeysSet[g.key] = true; });
@@ -1073,13 +1042,13 @@ function renderTrends() {
         {
           label: 'Meta Spend',
           data: labels.map(function(k) { return metaMap[k] ? metaMap[k].spend : 0; }),
-          backgroundColor: '#209D50',
+          backgroundColor: '#1877F2',
           borderRadius: 2
         },
         {
           label: 'Google Spend',
           data: labels.map(function(k) { return googleMap[k] ? googleMap[k].spend : 0; }),
-          backgroundColor: '#4A90D9',
+          backgroundColor: '#EA4335',
           borderRadius: 2
         }
       ]
@@ -1096,7 +1065,7 @@ function renderTrends() {
   });
 
   // --- Cost per Call Over Time (line) ---
-  createChart('chartCost/Call', {
+  createChart('chartCostPerCall', {
     type: 'line',
     data: {
       labels: labels,
@@ -1111,17 +1080,17 @@ function renderTrends() {
           pointRadius: pointRadius
         },
         {
-          label: 'Meta CPC (Call)',
+          label: 'Meta Cost/Call',
           data: labels.map(function(k) { return metaMap[k] ? metaMap[k].costPerLead : 0; }),
-          borderColor: '#4A90D9',
+          borderColor: '#1877F2',
           backgroundColor: 'transparent',
           tension: 0.3,
           pointRadius: pointRadius
         },
         {
-          label: 'Google CPC (Call)',
+          label: 'Google Cost/Call',
           data: labels.map(function(k) { return googleMap[k] ? googleMap[k].costPerLead : 0; }),
-          borderColor: '#FFA500',
+          borderColor: '#EA4335',
           backgroundColor: 'transparent',
           tension: 0.3,
           pointRadius: pointRadius
@@ -1193,15 +1162,15 @@ function renderTrends() {
       labels: labels,
       datasets: [
         {
-          label: 'Meta Calls Booked',
+          label: 'Meta Calls',
           data: labels.map(function(k) { return metaMap[k] ? metaMap[k].callsBooked : 0; }),
-          backgroundColor: '#209D50',
+          backgroundColor: '#1877F2',
           borderRadius: 2
         },
         {
-          label: 'Google Calls Booked',
+          label: 'Google Calls',
           data: labels.map(function(k) { return googleMap[k] ? googleMap[k].callsBooked : 0; }),
-          backgroundColor: '#4A90D9',
+          backgroundColor: '#EA4335',
           borderRadius: 2
         }
       ]
@@ -1219,11 +1188,135 @@ function renderTrends() {
 }
 
 // ========================================================================
+// TAB: LEADERBOARD
+// ========================================================================
+function metricLabel(m) {
+  var map = {
+    costPerLead: 'Cost/Call',
+    cpc: 'CPC',
+    cpm: 'CPM',
+    ctr: 'CTR'
+  };
+  return map[m] || m;
+}
+
+function metricDisplay(m, v) {
+  if (m === 'ctr') return formatPct(v);
+  return formatCurrency(v);
+}
+
+function renderLeaderboard() {
+  const filtered = getFilteredData();
+  const metric = document.getElementById('leaderMetric').value;
+  const minSpend = parseFloat(document.getElementById('leaderMinSpend').value) || 0;
+
+  // Group by campaign name
+  const byCampaign = groupBy(filtered, function(r) { return r.campaign; }).filter(function(a) {
+    return a.spend >= minSpend && a.key && a.key !== '(none)';
+  });
+
+  // For cost metrics, lower is better; for CTR higher is better
+  const costMetrics = ['costPerLead', 'cpc', 'cpm'];
+  const isCost = costMetrics.indexOf(metric) !== -1;
+
+  const validCampaigns = byCampaign.filter(function(a) {
+    var v = a[metric];
+    return v !== undefined && v !== null && isFinite(v) && v > 0;
+  });
+
+  var sorted = validCampaigns.slice().sort(function(a, b) {
+    return isCost ? a[metric] - b[metric] : b[metric] - a[metric];
+  });
+
+  var top5 = sorted.slice(0, 5);
+  var bottom5 = sorted.length > 5 ? sorted.slice(-5).reverse() : [];
+
+  var container = document.getElementById('leaderCards');
+  container.innerHTML = '';
+
+  function buildCol(title, items, cls) {
+    var col = document.createElement('div');
+    col.innerHTML = '<div class="leader-col-title ' + cls + '">' + title + '</div>';
+    items.forEach(function(a, i) {
+      var card = document.createElement('div');
+      card.className = 'leader-card ' + cls;
+      card.innerHTML =
+        '<div class="leader-card-rank">#' + (i + 1) + '</div>' +
+        '<div class="leader-card-name">' + escHtml(a.key) + '</div>' +
+        '<div class="leader-card-stats">' +
+          '<div class="leader-card-stat">' + metricLabel(metric) + ': <span>' + metricDisplay(metric, a[metric]) + '</span></div>' +
+          '<div class="leader-card-stat">Spend: <span>' + formatCurrency(a.spend) + '</span></div>' +
+          '<div class="leader-card-stat">Calls: <span>' + formatNumber(a.callsBooked) + '</span></div>' +
+          '<div class="leader-card-stat">Clicks: <span>' + formatNumber(a.clicks) + '</span></div>' +
+          '<div class="leader-card-stat">CTR: <span>' + formatPct(a.ctr) + '</span></div>' +
+        '</div>';
+      col.appendChild(card);
+    });
+    return col;
+  }
+
+  container.appendChild(buildCol('Top 5 Campaigns', top5, 'top'));
+  container.appendChild(buildCol('Bottom 5 Campaigns', bottom5, 'bottom'));
+
+  // --- Scatter (bubble) plot: CPL vs Clicks ---
+  var scatterData = validCampaigns.map(function(a) {
+    return {
+      x: a.clicks,
+      y: a.costPerLead,
+      r: Math.max(4, Math.min(25, Math.sqrt(a.spend) / 3)),
+      label: a.key,
+      callsBooked: a.callsBooked
+    };
+  }).filter(function(d) { return d.y > 0 && d.y < Infinity; });
+
+  createChart('chartScatter', {
+    type: 'bubble',
+    data: {
+      datasets: [{
+        label: 'Campaigns',
+        data: scatterData,
+        backgroundColor: scatterData.map(function(d) { return d.callsBooked > 0 ? 'rgba(32,157,80,0.45)' : 'rgba(229,57,53,0.45)'; }),
+        borderColor: scatterData.map(function(d) { return d.callsBooked > 0 ? '#209D50' : '#E53935'; }),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              var p = ctx.raw;
+              return p.label + ' | Clicks: ' + p.x.toLocaleString() + ' | Cost/Call: $' + p.y.toFixed(2) + ' | Calls: ' + p.callsBooked;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Clicks' },
+          ticks: { callback: function(v) { return v.toLocaleString(); } }
+        },
+        y: {
+          title: { display: true, text: 'Cost per Call ($)' },
+          beginAtZero: true,
+          ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
+        }
+      }
+    }
+  });
+}
+
+// ========================================================================
 // TAB: CAMPAIGNS
 // ========================================================================
 function renderCampaigns() {
   const f = getFilterState();
   let data = campaignData.slice();
+  if (f.from) data = data.filter(function(r) { return r.date >= f.from; });
+  if (f.to) data = data.filter(function(r) { return r.date <= f.to; });
   if (f.platform) data = data.filter(function(r) { return r.platform === f.platform; });
 
   const search = document.getElementById('campaignSearch').value.toLowerCase().trim();
@@ -1231,33 +1324,37 @@ function renderCampaigns() {
     data = data.filter(function(r) { return r.campaign.toLowerCase().indexOf(search) !== -1; });
   }
 
-  // Aggregate by campaign name (in case same campaign appears in multiple platforms)
-  const byName = {};
+  // Aggregate by campaign + platform
+  const byKey = {};
   data.forEach(function(r) {
     const key = r.campaign + '|' + r.platform;
-    if (!byName[key]) {
-      byName[key] = { campaign: r.campaign, platform: r.platform, spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0 };
+    if (!byKey[key]) {
+      byKey[key] = { campaign: r.campaign, platform: r.platform, spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0 };
     }
-    byName[key].spend += r.spend;
-    byName[key].impressions += r.impressions;
-    byName[key].reach += r.reach;
-    byName[key].clicks += r.clicks;
-    byName[key].callsBooked += r.callsBooked;
+    byKey[key].spend += r.spend;
+    byKey[key].impressions += r.impressions;
+    byKey[key].reach += r.reach;
+    byKey[key].clicks += r.clicks;
+    byKey[key].callsBooked += r.callsBooked;
   });
 
-  var rows = Object.values(byName).map(function(r) {
+  var rows = Object.values(byKey).map(function(r) {
     r.ctr = r.impressions > 0 ? r.clicks / r.impressions : 0;
     r.cpc = r.clicks > 0 ? r.spend / r.clicks : 0;
+    r.cpm = r.impressions > 0 ? (r.spend / r.impressions) * 1000 : 0;
     r.costPerLead = r.callsBooked > 0 ? r.spend / r.callsBooked : 0;
     r.frequency = r.reach > 0 ? r.impressions / r.reach : 0;
     return r;
   });
 
-  // Sort
   rows.sort(function(a, b) {
     var va, vb;
     if (campaignSort.col === 'campaign') {
       va = a.campaign; vb = b.campaign;
+      return campaignSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    if (campaignSort.col === 'platform') {
+      va = a.platform; vb = b.platform;
       return campaignSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
     }
     va = a[campaignSort.col] || 0; vb = b[campaignSort.col] || 0;
@@ -1268,18 +1365,20 @@ function renderCampaigns() {
   tbody.innerHTML = '';
   rows.forEach(function(r) {
     var tr = document.createElement('tr');
-    var displayName = r.campaign.length > 65 ? r.campaign.substring(0, 62) + '...' : r.campaign;
+    var displayName = r.campaign.length > 55 ? r.campaign.substring(0, 52) + '...' : r.campaign;
     var platformBadge = r.platform === 'google'
-      ? '<span class="badge badge-campaign" style="margin-left:6px;">Google</span>'
-      : '<span class="badge badge-platform" style="margin-left:6px;">Meta</span>';
+      ? '<span class="badge badge-google">Google</span>'
+      : '<span class="badge badge-meta">Meta</span>';
     tr.innerHTML =
-      '<td title="' + escHtml(r.campaign) + '">' + escHtml(displayName) + platformBadge + '</td>' +
+      '<td title="' + escHtml(r.campaign) + '">' + escHtml(displayName) + '</td>' +
+      '<td>' + platformBadge + '</td>' +
       '<td>' + formatCurrency(r.spend) + '</td>' +
       '<td>' + formatNumber(r.impressions) + '</td>' +
       '<td>' + formatNumber(r.reach) + '</td>' +
       '<td>' + formatNumber(r.clicks) + '</td>' +
       '<td>' + formatPct(r.ctr) + '</td>' +
       '<td>' + formatCurrency(r.cpc) + '</td>' +
+      '<td>' + formatCurrency(r.cpm) + '</td>' +
       '<td>' + formatNumber(r.callsBooked) + '</td>' +
       '<td>' + formatCurrency(r.costPerLead) + '</td>' +
       '<td>' + r.frequency.toFixed(2) + '</td>';
@@ -1307,47 +1406,11 @@ function renderBreakdowns() {
   var filtered = getFilteredData();
   var dim = document.getElementById('breakdownDim').value;
 
-  var dimKeyFns = {
-    campaign: function(r) { return r.campaign || '(none)'; },
-    platform: function(r) { return r.platform || '(none)'; }
-  };
+  var grouped = groupBy(filtered, dim === 'campaign'
+    ? function(r) { return r.campaign || '(none)'; }
+    : function(r) { return r.platform || '(none)'; }
+  );
 
-  // For daily data that doesn't have campaign, group differently
-  var dataToGroup = filtered;
-
-  // If grouping by campaign, use campaign data instead
-  if (dim === 'campaign') {
-    var f = getFilterState();
-    var campData = campaignData.slice();
-    if (f.platform) campData = campData.filter(function(r) { return r.platform === f.platform; });
-    // Aggregate
-    var byKey = {};
-    campData.forEach(function(r) {
-      var k = r.campaign || '(none)';
-      if (!byKey[k]) byKey[k] = { spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0, key: k };
-      byKey[k].spend += r.spend;
-      byKey[k].impressions += r.impressions;
-      byKey[k].reach += r.reach;
-      byKey[k].clicks += r.clicks;
-      byKey[k].callsBooked += r.callsBooked;
-    });
-    var grouped = Object.values(byKey).map(function(g) {
-      g.ctr = g.impressions > 0 ? g.clicks / g.impressions : 0;
-      g.cpc = g.clicks > 0 ? g.spend / g.clicks : 0;
-      g.cpm = g.impressions > 0 ? (g.spend / g.impressions) * 1000 : 0;
-      g.costPerLead = g.callsBooked > 0 ? g.spend / g.callsBooked : 0;
-      g.frequency = g.reach > 0 ? g.impressions / g.reach : 0;
-      return g;
-    });
-    renderBreakdownCharts(grouped, dim);
-    return;
-  }
-
-  var grouped = groupBy(dataToGroup, dimKeyFns[dim] || dimKeyFns.platform);
-  renderBreakdownCharts(grouped, dim);
-}
-
-function renderBreakdownCharts(grouped, dim) {
   var chartSorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; }).slice(0, 15);
   var chartLabels = chartSorted.map(function(g) {
     return (g.key || '').length > 35 ? g.key.substring(0, 32) + '...' : g.key;
@@ -1368,7 +1431,7 @@ function renderBreakdownCharts(grouped, dim) {
     }
   });
 
-  createChart('chartBreakCost/Call', {
+  createChart('chartBreakCPL', {
     type: 'bar',
     data: {
       labels: chartLabels,
@@ -1389,12 +1452,14 @@ function renderBreakdownCharts(grouped, dim) {
     '<th data-col="key">' + dimLabel + '</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
+    '<th data-col="reach">Reach</th>' +
     '<th data-col="clicks">Clicks</th>' +
     '<th data-col="ctr">CTR</th>' +
     '<th data-col="cpc">CPC</th>' +
     '<th data-col="cpm">CPM</th>' +
-    '<th data-col="callsBooked">Calls Booked</th>' +
-    '<th data-col="costPerLead">Cost/Call</th>';
+    '<th data-col="callsBooked">Calls</th>' +
+    '<th data-col="costPerLead">Cost/Call</th>' +
+    '<th data-col="frequency">Freq</th>';
 
   var tableSorted = grouped.slice().sort(function(a, b) {
     var va, vb;
@@ -1414,12 +1479,14 @@ function renderBreakdownCharts(grouped, dim) {
       '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 50 ? g.key.substring(0, 47) + '...' : (g.key || '')) + '</td>' +
       '<td>' + formatCurrency(g.spend) + '</td>' +
       '<td>' + formatNumber(g.impressions) + '</td>' +
+      '<td>' + formatNumber(g.reach) + '</td>' +
       '<td>' + formatNumber(g.clicks) + '</td>' +
       '<td>' + formatPct(g.ctr) + '</td>' +
       '<td>' + formatCurrency(g.cpc) + '</td>' +
       '<td>' + formatCurrency(g.cpm) + '</td>' +
       '<td>' + formatNumber(g.callsBooked) + '</td>' +
-      '<td>' + formatCurrency(g.costPerLead) + '</td>';
+      '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+      '<td>' + g.frequency.toFixed(2) + '</td>';
     tbody.appendChild(tr);
   });
 
@@ -1446,7 +1513,7 @@ function renderFunnel() {
   var stages = [
     { label: 'Impressions', value: agg.impressions, costPer: agg.impressions > 0 ? agg.spend / agg.impressions : 0 },
     { label: 'Clicks',      value: agg.clicks,      costPer: agg.clicks > 0 ? agg.spend / agg.clicks : 0 },
-    { label: 'Calls Booked',       value: agg.callsBooked,        costPer: agg.callsBooked > 0 ? agg.spend / agg.callsBooked : 0 }
+    { label: 'Calls Booked', value: agg.callsBooked, costPer: agg.callsBooked > 0 ? agg.spend / agg.callsBooked : 0 }
   ];
 
   var wrap = document.getElementById('funnelWrap');
@@ -1523,24 +1590,20 @@ function renderFunnel() {
 // TAB: BUDGET PACING
 // ========================================================================
 function renderPacing() {
-  // Use daily data to show cumulative spend vs a simple budget line
   var filtered = getFilteredData();
   var sorted = filtered.slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
 
-  // Group by date
   var byDate = {};
   sorted.forEach(function(r) {
-    if (!byDate[r.date]) byDate[r.date] = { spend: 0, callsBooked: 0, leadGoal: 0 };
+    if (!byDate[r.date]) byDate[r.date] = { spend: 0, callsBooked: 0 };
     byDate[r.date].spend += r.spend;
     byDate[r.date].callsBooked += r.callsBooked;
-    if (r.leadGoal) byDate[r.date].leadGoal = r.leadGoal; // take from meta daily data
   });
 
   var dates = Object.keys(byDate).sort();
   var dailySpend = dates.map(function(d) { return byDate[d].spend; });
   var dailyCallsBooked = dates.map(function(d) { return byDate[d].callsBooked; });
 
-  // Cumulative spend
   var cumSpend = [];
   var runningTotal = 0;
   dailySpend.forEach(function(s) {
@@ -1548,7 +1611,6 @@ function renderPacing() {
     cumSpend.push(runningTotal);
   });
 
-  // Cumulative callsBooked
   var cumCallsBooked = [];
   var runningCallsBooked = 0;
   dailyCallsBooked.forEach(function(l) {
@@ -1562,20 +1624,18 @@ function renderPacing() {
   var avgDailyCallsBooked = dates.length > 0 ? totalCallsBooked / dates.length : 0;
   var overallCostPerCall = totalCallsBooked > 0 ? totalSpend / totalCallsBooked : 0;
 
-  // KPI cards
   var kpisEl = document.getElementById('pacingKpis');
   kpisEl.innerHTML = '';
   kpisEl.appendChild(buildKpiCard('Total Spend', formatCurrency(totalSpend), null));
   kpisEl.appendChild(buildKpiCard('Avg Daily Spend', formatCurrency(avgDailySpend), null));
   kpisEl.appendChild(buildKpiCard('Calls Booked', formatNumber(totalCallsBooked), null));
-  kpisEl.appendChild(buildKpiCard('Avg Daily Calls Booked', avgDailyCallsBooked.toFixed(1), null));
+  kpisEl.appendChild(buildKpiCard('Avg Daily Calls', avgDailyCallsBooked.toFixed(1), null));
   kpisEl.appendChild(buildKpiCard('Overall Cost/Call', formatCurrency(overallCostPerCall), null));
   kpisEl.appendChild(buildKpiCard('Days Active', formatNumber(dates.length), null));
 
   var maxTicks = dates.length > 90 ? 20 : dates.length > 60 ? 25 : 35;
   var pointRadius = dates.length > 60 ? 0 : 3;
 
-  // Cumulative spend chart
   createChart('chartPacing', {
     type: 'line',
     data: {
@@ -1591,7 +1651,7 @@ function renderPacing() {
           pointRadius: pointRadius
         },
         {
-          label: 'Cumulative Calls Booked',
+          label: 'Cumulative Calls',
           data: cumCallsBooked,
           borderColor: '#4A90D9',
           backgroundColor: 'transparent',
@@ -1622,7 +1682,6 @@ function renderPacing() {
     }
   });
 
-  // Daily spend bar chart
   createChart('chartDailyPacing', {
     type: 'bar',
     data: {
@@ -1653,12 +1712,13 @@ function renderPacing() {
 // ========================================================================
 function renderCurrentTab() {
   switch (currentTab) {
-    case 'overview':   renderOverview(); break;
-    case 'trends':     renderTrends(); break;
-    case 'campaigns':  renderCampaigns(); break;
-    case 'breakdowns': renderBreakdowns(); break;
-    case 'funnel':     renderFunnel(); break;
-    case 'pacing':     renderPacing(); break;
+    case 'overview':    renderOverview(); break;
+    case 'trends':      renderTrends(); break;
+    case 'leaderboard': renderLeaderboard(); break;
+    case 'campaigns':   renderCampaigns(); break;
+    case 'breakdowns':  renderBreakdowns(); break;
+    case 'funnel':      renderFunnel(); break;
+    case 'pacing':      renderPacing(); break;
   }
   updateHeaderDateRange();
 }
@@ -1667,15 +1727,16 @@ function updateHeaderDateRange() {
   var from = document.getElementById('filterFrom').value;
   var to = document.getElementById('filterTo').value;
   var filtered = getFilteredData();
+  var channelLabel = activeChannel ? ' (' + activeChannel.charAt(0).toUpperCase() + activeChannel.slice(1) + ')' : '';
   document.getElementById('headerDateRange').textContent =
-    (from || '...') + '  to  ' + (to || '...') + '  |  ' + filtered.length + ' rows';
+    (from || '...') + '  to  ' + (to || '...') + '  |  ' + filtered.length + ' rows' + channelLabel;
 }
 
 // ========================================================================
 // DATE PRESETS
 // ========================================================================
 function applyPreset(preset) {
-  var dates = allDailyData.map(function(r) { return r.date; }).filter(function(d) { return d; }).sort();
+  var dates = campaignData.map(function(r) { return r.date; }).filter(function(d) { return d; }).sort();
   if (dates.length === 0) return;
 
   var minDate = dates[0];
@@ -1737,47 +1798,23 @@ function doLogin() {
 // ========================================================================
 async function loadData() {
   try {
-    var results = await Promise.all([
-      fetchSheetData('Daily Performance'),
-      fetchSheetData('Campaign Breakdown'),
-      fetchSheetDataSafe('Google Ads Daily')
-    ]);
+    var campaignRows = await fetchSheetData('Campaign Breakdown');
 
-    var dailyRows = results[0];
-    var campaignRows = results[1];
-    var googleRows = results[2];
-
-    // Normalize daily performance (Meta)
-    dailyData = [];
-    for (var i = 0; i < dailyRows.length; i++) {
-      var nr = normalizeDailyRow(dailyRows[i]);
-      if (nr.date) dailyData.push(nr);
-    }
-
-    // Normalize campaign breakdown (Meta)
+    // Normalize campaign breakdown (daily rows with Date + Platform)
     campaignData = [];
-    for (var j = 0; j < campaignRows.length; j++) {
-      var cr = normalizeCampaignRow(campaignRows[j]);
-      if (cr.campaign) campaignData.push(cr);
+    for (var i = 0; i < campaignRows.length; i++) {
+      var cr = normalizeCampaignRow(campaignRows[i]);
+      if (cr.date && cr.campaign) campaignData.push(cr);
     }
 
-    // Normalize Google Ads Daily
-    googleDailyData = [];
-    for (var k = 0; k < googleRows.length; k++) {
-      var gr = normalizeGoogleDailyRow(googleRows[k]);
-      if (gr.date) googleDailyData.push(gr);
-    }
-
-    // Combine all daily data
-    allDailyData = dailyData.concat(googleDailyData);
-    allDailyData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+    campaignData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
     // Data diagnostics
-    console.log('[SOG Dashboard] Meta daily rows:', dailyData.length);
+    var platforms = {};
+    campaignData.forEach(function(r) { platforms[r.platform] = (platforms[r.platform] || 0) + 1; });
     console.log('[SOG Dashboard] Campaign rows:', campaignData.length);
-    console.log('[SOG Dashboard] Google daily rows:', googleDailyData.length);
-    console.log('[SOG Dashboard] Combined daily rows:', allDailyData.length);
-    console.log('[SOG Dashboard] Date range:', allDailyData.length > 0 ? allDailyData[0].date + ' to ' + allDailyData[allDailyData.length-1].date : 'no data');
+    console.log('[SOG Dashboard] Platforms:', platforms);
+    console.log('[SOG Dashboard] Date range:', campaignData.length > 0 ? campaignData[0].date + ' to ' + campaignData[campaignData.length-1].date : 'no data');
 
     // Populate filter dropdowns
     populateFilterDropdowns();
@@ -1836,8 +1873,18 @@ function bindEvents() {
     });
   });
 
+  // --- Channel toggle ---
+  document.querySelectorAll('#channelToggle .channel-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('#channelToggle .channel-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      activeChannel = btn.dataset.channel;
+      renderCurrentTab();
+    });
+  });
+
   // --- Filter changes ---
-  ['filterFrom', 'filterTo', 'filterCampaign', 'filterPlatform'].forEach(function(id) {
+  ['filterFrom', 'filterTo', 'filterCampaign'].forEach(function(id) {
     document.getElementById(id).addEventListener('change', function() {
       document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
       renderCurrentTab();
@@ -1854,8 +1901,11 @@ function bindEvents() {
     document.querySelectorAll('.preset-btn').forEach(function(b) { b.classList.remove('active'); });
     document.querySelector('.preset-btn[data-preset="all"]').classList.add('active');
     document.getElementById('filterCampaign').value = '';
-    document.getElementById('filterPlatform').value = '';
     document.getElementById('compareToggle').checked = false;
+    // Reset channel toggle
+    document.querySelectorAll('#channelToggle .channel-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelector('#channelToggle .channel-btn[data-channel=""]').classList.add('active');
+    activeChannel = '';
     applyPreset('all');
   });
 
@@ -1866,6 +1916,17 @@ function bindEvents() {
       btn.classList.add('active');
       if (currentTab === 'trends') renderTrends();
     });
+  });
+
+  // --- Leaderboard controls ---
+  document.getElementById('leaderMetric').addEventListener('change', function() {
+    if (currentTab === 'leaderboard') renderLeaderboard();
+  });
+  document.getElementById('leaderMinSpend').addEventListener('change', function() {
+    if (currentTab === 'leaderboard') renderLeaderboard();
+  });
+  document.getElementById('leaderMinSpend').addEventListener('input', function() {
+    if (currentTab === 'leaderboard') renderLeaderboard();
   });
 
   // --- Campaign search ---
@@ -1882,7 +1943,7 @@ function bindEvents() {
         campaignSort.asc = !campaignSort.asc;
       } else {
         campaignSort.col = col;
-        campaignSort.asc = (col === 'campaign');
+        campaignSort.asc = (col === 'campaign' || col === 'platform');
       }
       if (currentTab === 'campaigns') renderCampaigns();
     });
