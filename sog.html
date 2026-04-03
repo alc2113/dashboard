@@ -378,6 +378,7 @@ tr:hover td{background:#fafaf8;}
     <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
     <button class="tab-btn" data-tab="campaigns">Campaigns</button>
     <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
+    <button class="tab-btn" data-tab="assets">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
   </div>
@@ -515,11 +516,50 @@ tr:hover td{background:#fafaf8;}
 
   <!-- BREAKDOWNS TAB -->
   <div id="tab-breakdowns" class="tab-content">
-    <div class="leader-controls">
+    <div class="leader-controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
       <label>Dimension:
         <select id="breakdownDim">
-          <option value="platform">Platform</option>
-          <option value="campaign">Campaign</option>
+          <optgroup label="Both Platforms">
+            <option value="platform">Platform</option>
+            <option value="campaign">Campaign</option>
+            <option value="lp">Landing Page</option>
+            <option value="adset">Ad Set / Ad Group</option>
+          </optgroup>
+          <optgroup label="Meta">
+            <option value="color">Color</option>
+            <option value="creative_theme">Creative Theme</option>
+            <option value="creative_type">Creative Type (CRS/IMG/VID)</option>
+            <option value="funnel">Funnel (Prospecting/Retargeting)</option>
+            <option value="targeting">Targeting (Interest/LAL/CA)</option>
+          </optgroup>
+          <optgroup label="Google">
+            <option value="campaign_type">Campaign Type (Search/Display/YouTube)</option>
+            <option value="creative_direction">Creative Direction</option>
+            <option value="direction">Direction (1 vs 2)</option>
+          </optgroup>
+        </select>
+      </label>
+      <label>Cross-cut:
+        <select id="breakdownDim2">
+          <option value="">None</option>
+          <optgroup label="Both Platforms">
+            <option value="platform">Platform</option>
+            <option value="campaign">Campaign</option>
+            <option value="lp">Landing Page</option>
+            <option value="adset">Ad Set / Ad Group</option>
+          </optgroup>
+          <optgroup label="Meta">
+            <option value="color">Color</option>
+            <option value="creative_theme">Creative Theme</option>
+            <option value="creative_type">Creative Type</option>
+            <option value="funnel">Funnel</option>
+            <option value="targeting">Targeting</option>
+          </optgroup>
+          <optgroup label="Google">
+            <option value="campaign_type">Campaign Type</option>
+            <option value="creative_direction">Creative Direction</option>
+            <option value="direction">Direction</option>
+          </optgroup>
         </select>
       </label>
     </div>
@@ -537,6 +577,34 @@ tr:hover td{background:#fafaf8;}
       <table id="breakdownTable">
         <thead><tr id="breakdownHead"></tr></thead>
         <tbody id="breakdownBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ASSETS TAB -->
+  <div id="tab-assets" class="tab-content">
+    <div class="leader-controls" style="display:flex;gap:12px;align-items:center;">
+      <label>View:
+        <select id="assetType">
+          <option value="headline">Headlines</option>
+          <option value="description">Descriptions</option>
+        </select>
+      </label>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Spend by Asset</div>
+        <div class="chart-wrap"><canvas id="chartAssetSpend"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">CPL by Asset</div>
+        <div class="chart-wrap"><canvas id="chartAssetCPL"></canvas></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="assetTable">
+        <thead><tr id="assetHead"></tr></thead>
+        <tbody id="assetBody"></tbody>
       </table>
     </div>
   </div>
@@ -585,10 +653,14 @@ const PASSWORD = 'sog2026';
 // GLOBAL STATE
 // ========================================================================
 let campaignData = [];      // normalized rows from Campaign Breakdown
+let adDetailData = [];      // normalized rows from Meta Ad Detail + Google Ad Detail
+let headlineData = [];      // headline asset performance
+let descriptionData = [];   // description asset performance
 let chartInstances = {};
 let currentTab = 'overview';
 let campaignSort = { col: 'spend', asc: false };
 let breakdownSort = { col: 'spend', asc: false };
+let assetSort = { col: 'spend', asc: false };
 let activeChannel = '';     // '' = all, 'meta', 'google'
 
 // ========================================================================
@@ -756,6 +828,68 @@ async function fetchSheetData(sheetName) {
 // ========================================================================
 // DATA NORMALIZATION
 // ========================================================================
+// Ad Detail normalization (Meta Ad Detail + Google Ad Detail)
+function normalizeMetaAdDetail(r) {
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: 'meta',
+    campaign: String(r['Campaign'] || '').trim(),
+    adName: String(r['Ad Name'] || '').trim(),
+    adset: String(r['Ad Set'] || '').trim(),
+    color: String(r['Color'] || '').trim(),
+    creative_theme: String(r['Creative Theme'] || '').trim(),
+    creative_type: String(r['Creative Type'] || '').trim(),
+    lp: String(r['LP'] || '').trim(),
+    funnel: String(r['Funnel'] || '').trim(),
+    targeting: String(r['Targeting'] || '').trim(),
+    campaign_type: 'Meta',
+    creative_direction: '',
+    direction: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    frequency: 0
+  };
+}
+
+function normalizeGoogleAdDetail(r) {
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: 'google',
+    campaign: String(r['Campaign'] || '').trim(),
+    adName: '',
+    adset: String(r['Ad Group'] || '').trim(),
+    color: '',
+    creative_theme: '',
+    creative_type: '',
+    lp: String(r['LP'] || '').trim(),
+    funnel: '',
+    targeting: '',
+    campaign_type: String(r['Campaign Type'] || '').trim(),
+    creative_direction: String(r['Creative Direction'] || '').trim(),
+    direction: String(r['Direction'] || '').trim(),
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    frequency: 0
+  };
+}
+
+function normalizeAssetRow(r, type) {
+  var textCol = type === 'headline' ? 'Headline' : 'Description';
+  return {
+    text: String(r[textCol] || '').trim(),
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+  };
+}
+
 // Campaign Breakdown columns: Date, Campaign, Campaign ID, Platform, Spend,
 // Impressions, Reach, Clicks, CTR %, CPC, Leads, Cost/Lead, Frequency
 function normalizeCampaignRow(r) {
@@ -1402,18 +1536,55 @@ function renderCampaigns() {
 // ========================================================================
 // TAB: BREAKDOWNS
 // ========================================================================
-function renderBreakdowns() {
-  var filtered = getFilteredData();
-  var dim = document.getElementById('breakdownDim').value;
+function getFilteredAdDetail() {
+  var fs = getFilterState();
+  var data = adDetailData.length > 0 ? adDetailData : campaignData;
+  return applyFilters(data, fs);
+}
 
-  var grouped = groupBy(filtered, dim === 'campaign'
-    ? function(r) { return r.campaign || '(none)'; }
-    : function(r) { return r.platform || '(none)'; }
-  );
+function renderBreakdowns() {
+  var filtered = getFilteredAdDetail();
+  var dim = document.getElementById('breakdownDim').value;
+  var dim2 = document.getElementById('breakdownDim2').value;
+
+  var dimLabels = {
+    platform: 'Platform', campaign: 'Campaign', lp: 'Landing Page',
+    adset: 'Ad Set / Ad Group', color: 'Color', creative_theme: 'Creative Theme',
+    creative_type: 'Creative Type', funnel: 'Funnel', targeting: 'Targeting',
+    campaign_type: 'Campaign Type', creative_direction: 'Creative Direction',
+    direction: 'Direction'
+  };
+
+  var keyFn;
+  var dimLabel;
+  if (dim2) {
+    keyFn = function(r) {
+      var v1 = r[dim] || '(none)';
+      var v2 = r[dim2] || '(none)';
+      return v1 + ' \u00D7 ' + v2;
+    };
+    dimLabel = (dimLabels[dim] || dim) + ' \u00D7 ' + (dimLabels[dim2] || dim2);
+  } else {
+    keyFn = function(r) { return r[dim] || '(none)'; };
+    dimLabel = dimLabels[dim] || dim;
+  }
+
+  // Filter out rows with empty values for the selected dimension
+  var relevantData = filtered.filter(function(r) {
+    var v = r[dim];
+    if (!v || v === '(none)') return false;
+    if (dim2) {
+      var v2 = r[dim2];
+      if (!v2 || v2 === '(none)') return false;
+    }
+    return true;
+  });
+
+  var grouped = groupBy(relevantData, keyFn);
 
   var chartSorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; }).slice(0, 15);
   var chartLabels = chartSorted.map(function(g) {
-    return (g.key || '').length > 35 ? g.key.substring(0, 32) + '...' : g.key;
+    return (g.key || '').length > 40 ? g.key.substring(0, 37) + '...' : g.key;
   });
   var chartColors = [];
   for (var ci = 0; ci < chartSorted.length; ci++) chartColors.push(COLORS[ci % COLORS.length]);
@@ -1444,22 +1615,16 @@ function renderBreakdowns() {
     }
   });
 
-  var dimLabels = { campaign: 'Campaign', platform: 'Platform' };
-  var dimLabel = dimLabels[dim] || dim;
-
   var thead = document.getElementById('breakdownHead');
   thead.innerHTML =
-    '<th data-col="key">' + dimLabel + '</th>' +
+    '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
-    '<th data-col="reach">Reach</th>' +
     '<th data-col="clicks">Clicks</th>' +
     '<th data-col="ctr">CTR</th>' +
     '<th data-col="cpc">CPC</th>' +
-    '<th data-col="cpm">CPM</th>' +
     '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="costPerLead">Cost/Call</th>' +
-    '<th data-col="frequency">Freq</th>';
+    '<th data-col="costPerLead">Cost/Call</th>';
 
   var tableSorted = grouped.slice().sort(function(a, b) {
     var va, vb;
@@ -1476,17 +1641,14 @@ function renderBreakdowns() {
   tableSorted.forEach(function(g) {
     var tr = document.createElement('tr');
     tr.innerHTML =
-      '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 50 ? g.key.substring(0, 47) + '...' : (g.key || '')) + '</td>' +
+      '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 60 ? g.key.substring(0, 57) + '...' : (g.key || '')) + '</td>' +
       '<td>' + formatCurrency(g.spend) + '</td>' +
       '<td>' + formatNumber(g.impressions) + '</td>' +
-      '<td>' + formatNumber(g.reach) + '</td>' +
       '<td>' + formatNumber(g.clicks) + '</td>' +
       '<td>' + formatPct(g.ctr) + '</td>' +
       '<td>' + formatCurrency(g.cpc) + '</td>' +
-      '<td>' + formatCurrency(g.cpm) + '</td>' +
       '<td>' + formatNumber(g.callsBooked) + '</td>' +
-      '<td>' + formatCurrency(g.costPerLead) + '</td>' +
-      '<td>' + g.frequency.toFixed(2) + '</td>';
+      '<td>' + formatCurrency(g.costPerLead) + '</td>';
     tbody.appendChild(tr);
   });
 
@@ -1498,6 +1660,103 @@ function renderBreakdowns() {
       var span = document.createElement('span');
       span.className = 'sort-arrow';
       span.textContent = breakdownSort.asc ? '\u25B2' : '\u25BC';
+      th.appendChild(span);
+    }
+  });
+}
+
+// ========================================================================
+// TAB: ASSETS (Headlines & Descriptions)
+// ========================================================================
+function renderAssets() {
+  var type = document.getElementById('assetType').value;
+  var data = type === 'headline' ? headlineData : descriptionData;
+  var typeLabel = type === 'headline' ? 'Headline' : 'Description';
+
+  var sorted = data.slice().sort(function(a, b) {
+    var va, vb;
+    if (assetSort.col === 'text') {
+      va = a.text; vb = b.text;
+      return assetSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    va = a[assetSort.col] || 0; vb = b[assetSort.col] || 0;
+    return assetSort.asc ? va - vb : vb - va;
+  });
+
+  // Charts (top 15 by spend)
+  var chartTop = sorted.slice(0, 15);
+  var chartLabels = chartTop.map(function(r) {
+    return r.text.length > 35 ? r.text.substring(0, 32) + '...' : r.text;
+  });
+  var chartColors = [];
+  for (var ci = 0; ci < chartTop.length; ci++) chartColors.push(COLORS[ci % COLORS.length]);
+
+  createChart('chartAssetSpend', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'Spend', data: chartTop.map(function(r) { return r.spend; }), backgroundColor: chartColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+    }
+  });
+
+  var cplData = chartTop.map(function(r) { return r.callsBooked > 0 ? r.spend / r.callsBooked : 0; });
+  createChart('chartAssetCPL', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'CPL', data: cplData, backgroundColor: chartColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(2); } } } }
+    }
+  });
+
+  // Table
+  var thead = document.getElementById('assetHead');
+  thead.innerHTML =
+    '<th data-col="text">' + typeLabel + '</th>' +
+    '<th data-col="spend">Spend</th>' +
+    '<th data-col="impressions">Imp</th>' +
+    '<th data-col="clicks">Clicks</th>' +
+    '<th data-col="ctr">CTR</th>' +
+    '<th data-col="cpc">CPC</th>' +
+    '<th data-col="callsBooked">Calls</th>' +
+    '<th data-col="cpl">Cost/Call</th>';
+
+  var tbody = document.getElementById('assetBody');
+  tbody.innerHTML = '';
+  sorted.forEach(function(r) {
+    var ctr = r.impressions > 0 ? r.clicks / r.impressions : 0;
+    var cpc = r.clicks > 0 ? r.spend / r.clicks : 0;
+    var cpl = r.callsBooked > 0 ? r.spend / r.callsBooked : 0;
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td title="' + escHtml(r.text) + '">' + escHtml(r.text.length > 60 ? r.text.substring(0, 57) + '...' : r.text) + '</td>' +
+      '<td>' + formatCurrency(r.spend) + '</td>' +
+      '<td>' + formatNumber(r.impressions) + '</td>' +
+      '<td>' + formatNumber(r.clicks) + '</td>' +
+      '<td>' + formatPct(ctr) + '</td>' +
+      '<td>' + formatCurrency(cpc) + '</td>' +
+      '<td>' + formatNumber(r.callsBooked) + '</td>' +
+      '<td>' + formatCurrency(cpl) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('#assetHead th').forEach(function(th) {
+    var col = th.dataset.col;
+    var existing = th.querySelector('.sort-arrow');
+    if (existing) existing.remove();
+    if (col === assetSort.col) {
+      var span = document.createElement('span');
+      span.className = 'sort-arrow';
+      span.textContent = assetSort.asc ? '\u25B2' : '\u25BC';
       th.appendChild(span);
     }
   });
@@ -1717,6 +1976,7 @@ function renderCurrentTab() {
     case 'leaderboard': renderLeaderboard(); break;
     case 'campaigns':   renderCampaigns(); break;
     case 'breakdowns':  renderBreakdowns(); break;
+    case 'assets':      renderAssets(); break;
     case 'funnel':      renderFunnel(); break;
     case 'pacing':      renderPacing(); break;
   }
@@ -1798,7 +2058,13 @@ function doLogin() {
 // ========================================================================
 async function loadData() {
   try {
-    var campaignRows = await fetchSheetData('Campaign Breakdown');
+    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows] = await Promise.all([
+      fetchSheetData('Campaign Breakdown'),
+      fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
+      fetchSheetData('Google Ad Detail').catch(function() { return []; }),
+      fetchSheetData('Headline Performance').catch(function() { return []; }),
+      fetchSheetData('Description Performance').catch(function() { return []; }),
+    ]);
 
     // Normalize campaign breakdown (daily rows with Date + Platform)
     campaignData = [];
@@ -1807,12 +2073,38 @@ async function loadData() {
       if (cr.date && cr.campaign) campaignData.push(cr);
     }
 
+    // Normalize ad detail data (for breakdowns)
+    adDetailData = [];
+    for (var i = 0; i < metaAdRows.length; i++) {
+      var mr = normalizeMetaAdDetail(metaAdRows[i]);
+      if (mr.date && mr.spend > 0) adDetailData.push(mr);
+    }
+    for (var i = 0; i < googleAdRows.length; i++) {
+      var gr = normalizeGoogleAdDetail(googleAdRows[i]);
+      if (gr.date && gr.spend > 0) adDetailData.push(gr);
+    }
+    adDetailData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+    // Normalize asset performance
+    headlineData = [];
+    for (var i = 0; i < headlineRows.length; i++) {
+      var hr = normalizeAssetRow(headlineRows[i], 'headline');
+      if (hr.text && hr.spend > 0) headlineData.push(hr);
+    }
+    descriptionData = [];
+    for (var i = 0; i < descRows.length; i++) {
+      var dr = normalizeAssetRow(descRows[i], 'description');
+      if (dr.text && dr.spend > 0) descriptionData.push(dr);
+    }
+
     campaignData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
     // Data diagnostics
     var platforms = {};
     campaignData.forEach(function(r) { platforms[r.platform] = (platforms[r.platform] || 0) + 1; });
     console.log('[SOG Dashboard] Campaign rows:', campaignData.length);
+    console.log('[SOG Dashboard] Ad detail rows:', adDetailData.length);
+    console.log('[SOG Dashboard] Headlines:', headlineData.length, '| Descriptions:', descriptionData.length);
     console.log('[SOG Dashboard] Platforms:', platforms);
     console.log('[SOG Dashboard] Date range:', campaignData.length > 0 ? campaignData[0].date + ' to ' + campaignData[campaignData.length-1].date : 'no data');
 
@@ -1953,6 +2245,31 @@ function bindEvents() {
   document.getElementById('breakdownDim').addEventListener('change', function() {
     breakdownSort = { col: 'spend', asc: false };
     if (currentTab === 'breakdowns') renderBreakdowns();
+  });
+
+  document.getElementById('breakdownDim2').addEventListener('change', function() {
+    breakdownSort = { col: 'spend', asc: false };
+    if (currentTab === 'breakdowns') renderBreakdowns();
+  });
+
+  // --- Asset type change ---
+  document.getElementById('assetType').addEventListener('change', function() {
+    assetSort = { col: 'spend', asc: false };
+    if (currentTab === 'assets') renderAssets();
+  });
+
+  // --- Asset table sort (delegated) ---
+  document.getElementById('assetHead').addEventListener('click', function(e) {
+    var th = e.target.closest('th');
+    if (!th || !th.dataset.col) return;
+    var col = th.dataset.col;
+    if (assetSort.col === col) {
+      assetSort.asc = !assetSort.asc;
+    } else {
+      assetSort.col = col;
+      assetSort.asc = (col === 'text');
+    }
+    if (currentTab === 'assets') renderAssets();
   });
 
   // --- Breakdown table sort (delegated) ---
