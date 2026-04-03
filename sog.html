@@ -378,6 +378,7 @@ tr:hover td{background:#fafaf8;}
     <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
     <button class="tab-btn" data-tab="campaigns">Campaigns</button>
     <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
+    <button class="tab-btn" data-tab="keywords">Keywords</button>
     <button class="tab-btn" data-tab="assets">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
@@ -565,18 +566,70 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Spend by Dimension</div>
-        <div class="chart-wrap"><canvas id="chartBreakSpend"></canvas></div>
+        <div class="chart-title">Calls Booked by Dimension</div>
+        <div class="chart-wrap"><canvas id="chartBreakCalls"></canvas></div>
       </div>
       <div class="chart-container">
         <div class="chart-title">Cost per Call by Dimension</div>
         <div class="chart-wrap"><canvas id="chartBreakCPL"></canvas></div>
       </div>
     </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Spend by Dimension</div>
+        <div class="chart-wrap"><canvas id="chartBreakSpend"></canvas></div>
+      </div>
+    </div>
     <div class="table-wrap">
       <table id="breakdownTable">
         <thead><tr id="breakdownHead"></tr></thead>
         <tbody id="breakdownBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- KEYWORDS TAB -->
+  <div id="tab-keywords" class="tab-content">
+    <div class="leader-controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+      <label>Group by:
+        <select id="keywordGroup">
+          <option value="keyword_theme">Keyword Theme</option>
+          <option value="match_type">Match Type</option>
+          <option value="keyword">Individual Keyword</option>
+          <option value="campaign">Campaign</option>
+          <option value="ad_group">Ad Group</option>
+        </select>
+      </label>
+      <label>Cross-cut:
+        <select id="keywordGroup2">
+          <option value="">None</option>
+          <option value="keyword_theme">Keyword Theme</option>
+          <option value="match_type">Match Type</option>
+          <option value="campaign">Campaign</option>
+          <option value="ad_group">Ad Group</option>
+        </select>
+      </label>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Calls Booked by Keywords</div>
+        <div class="chart-wrap"><canvas id="chartKwCalls"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Cost per Call by Keywords</div>
+        <div class="chart-wrap"><canvas id="chartKwCPL"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Spend by Keywords</div>
+        <div class="chart-wrap"><canvas id="chartKwSpend"></canvas></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="keywordTable">
+        <thead><tr id="keywordHead"></tr></thead>
+        <tbody id="keywordBody"></tbody>
       </table>
     </div>
   </div>
@@ -593,12 +646,18 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Spend by Asset</div>
-        <div class="chart-wrap"><canvas id="chartAssetSpend"></canvas></div>
+        <div class="chart-title">Calls Booked by Asset</div>
+        <div class="chart-wrap"><canvas id="chartAssetCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">CPL by Asset</div>
+        <div class="chart-title">Cost per Call by Asset</div>
         <div class="chart-wrap"><canvas id="chartAssetCPL"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Spend by Asset</div>
+        <div class="chart-wrap"><canvas id="chartAssetSpend"></canvas></div>
       </div>
     </div>
     <div class="table-wrap">
@@ -656,11 +715,13 @@ let campaignData = [];      // normalized rows from Campaign Breakdown
 let adDetailData = [];      // normalized rows from Meta Ad Detail + Google Ad Detail
 let headlineData = [];      // headline asset performance
 let descriptionData = [];   // description asset performance
+let keywordData = [];       // keyword performance
 let chartInstances = {};
 let currentTab = 'overview';
 let campaignSort = { col: 'spend', asc: false };
 let breakdownSort = { col: 'spend', asc: false };
 let assetSort = { col: 'spend', asc: false };
+let keywordSort = { col: 'spend', asc: false };
 let activeChannel = '';     // '' = all, 'meta', 'google'
 
 // ========================================================================
@@ -887,6 +948,41 @@ function normalizeAssetRow(r, type) {
     impressions: pv(r['Impressions']),
     clicks: pv(r['Clicks']),
     callsBooked: pv(r['Leads']),
+  };
+}
+
+function classifyKeywordTheme(kw) {
+  kw = ' ' + kw.toLowerCase() + ' ';
+  var themes = [];
+  if (kw.indexOf('brandy') !== -1) themes.push('Branded \u2014 Brandy');
+  if (kw.indexOf('shades of green') !== -1 || kw.indexOf('shadesofgreen') !== -1 || kw.indexOf(' sog ') !== -1)
+    themes.push('Branded \u2014 SOG');
+  if (kw.indexOf('atlanta') !== -1) themes.push('Atlanta');
+  var ecoTerms = ['eco ','eco-','permaculture','sustainable','organic','regenerative','native',
+    'pollinator','edible','biodiversity','habitat','wildlife','clover','meadow',
+    'food forest','rain garden','drought','xeriscap','no mow','rewild'];
+  for (var i = 0; i < ecoTerms.length; i++) { if (kw.indexOf(ecoTerms[i]) !== -1) { themes.push('Eco'); break; } }
+  var landTerms = ['landscape','landscaping','landscaper','yard design','garden design',
+    'backyard','hardscape','yard architect','outdoor architect','lawn',' yard '];
+  for (var i = 0; i < landTerms.length; i++) { if (kw.indexOf(landTerms[i]) !== -1) { themes.push('Landscape'); break; } }
+  return themes.length > 0 ? themes.join(', ') : 'Other';
+}
+
+var MATCH_TYPE_MAP = {'2':'Exact','3':'Phrase','4':'Broad','EXACT':'Exact','PHRASE':'Phrase','BROAD':'Broad'};
+
+function normalizeKeywordRow(r) {
+  var mt = String(r['Match Type'] || '').trim();
+  return {
+    date: normalizeDateStr(r['Date']),
+    campaign: String(r['Campaign'] || '').trim(),
+    ad_group: String(r['Ad Group'] || '').trim(),
+    keyword: String(r['Keyword'] || '').trim(),
+    match_type: MATCH_TYPE_MAP[mt] || mt,
+    keyword_theme: classifyKeywordTheme(String(r['Keyword'] || '')),
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Conversions']),
   };
 }
 
@@ -1589,16 +1685,16 @@ function renderBreakdowns() {
   var chartColors = [];
   for (var ci = 0; ci < chartSorted.length; ci++) chartColors.push(COLORS[ci % COLORS.length]);
 
-  createChart('chartBreakSpend', {
+  createChart('chartBreakCalls', {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Spend', data: chartSorted.map(function(g) { return g.spend; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Calls Booked', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+      scales: { x: { beginAtZero: true } }
     }
   });
 
@@ -1615,16 +1711,29 @@ function renderBreakdowns() {
     }
   });
 
+  createChart('chartBreakSpend', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'Spend', data: chartSorted.map(function(g) { return g.spend; }), backgroundColor: chartColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+    }
+  });
+
   var thead = document.getElementById('breakdownHead');
   thead.innerHTML =
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
+    '<th data-col="callsBooked">Calls</th>' +
+    '<th data-col="costPerLead">Cost/Call</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
     '<th data-col="ctr">CTR</th>' +
-    '<th data-col="cpc">CPC</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="costPerLead">Cost/Call</th>';
+    '<th data-col="cpc">CPC</th>';
 
   var tableSorted = grouped.slice().sort(function(a, b) {
     var va, vb;
@@ -1642,13 +1751,13 @@ function renderBreakdowns() {
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 60 ? g.key.substring(0, 57) + '...' : (g.key || '')) + '</td>' +
+      '<td>' + formatNumber(g.callsBooked) + '</td>' +
+      '<td>' + formatCurrency(g.costPerLead) + '</td>' +
       '<td>' + formatCurrency(g.spend) + '</td>' +
       '<td>' + formatNumber(g.impressions) + '</td>' +
       '<td>' + formatNumber(g.clicks) + '</td>' +
       '<td>' + formatPct(g.ctr) + '</td>' +
-      '<td>' + formatCurrency(g.cpc) + '</td>' +
-      '<td>' + formatNumber(g.callsBooked) + '</td>' +
-      '<td>' + formatCurrency(g.costPerLead) + '</td>';
+      '<td>' + formatCurrency(g.cpc) + '</td>';
     tbody.appendChild(tr);
   });
 
@@ -1691,16 +1800,16 @@ function renderAssets() {
   var chartColors = [];
   for (var ci = 0; ci < chartTop.length; ci++) chartColors.push(COLORS[ci % COLORS.length]);
 
-  createChart('chartAssetSpend', {
+  createChart('chartAssetCalls', {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Spend', data: chartTop.map(function(r) { return r.spend; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Calls', data: chartTop.map(function(r) { return r.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
-      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+      scales: { x: { beginAtZero: true } }
     }
   });
 
@@ -1718,17 +1827,30 @@ function renderAssets() {
     }
   });
 
+  createChart('chartAssetSpend', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'Spend', data: chartTop.map(function(r) { return r.spend; }), backgroundColor: chartColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+    }
+  });
+
   // Table
   var thead = document.getElementById('assetHead');
   thead.innerHTML =
     '<th data-col="text">' + typeLabel + '</th>' +
+    '<th data-col="callsBooked">Calls</th>' +
+    '<th data-col="cpl">Cost/Call</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
     '<th data-col="ctr">CTR</th>' +
-    '<th data-col="cpc">CPC</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="cpl">Cost/Call</th>';
+    '<th data-col="cpc">CPC</th>';
 
   var tbody = document.getElementById('assetBody');
   tbody.innerHTML = '';
@@ -1739,13 +1861,13 @@ function renderAssets() {
     var tr = document.createElement('tr');
     tr.innerHTML =
       '<td title="' + escHtml(r.text) + '">' + escHtml(r.text.length > 60 ? r.text.substring(0, 57) + '...' : r.text) + '</td>' +
+      '<td>' + formatNumber(r.callsBooked) + '</td>' +
+      '<td>' + formatCurrency(cpl) + '</td>' +
       '<td>' + formatCurrency(r.spend) + '</td>' +
       '<td>' + formatNumber(r.impressions) + '</td>' +
       '<td>' + formatNumber(r.clicks) + '</td>' +
       '<td>' + formatPct(ctr) + '</td>' +
-      '<td>' + formatCurrency(cpc) + '</td>' +
-      '<td>' + formatNumber(r.callsBooked) + '</td>' +
-      '<td>' + formatCurrency(cpl) + '</td>';
+      '<td>' + formatCurrency(cpc) + '</td>';
     tbody.appendChild(tr);
   });
 
@@ -1757,6 +1879,143 @@ function renderAssets() {
       var span = document.createElement('span');
       span.className = 'sort-arrow';
       span.textContent = assetSort.asc ? '\u25B2' : '\u25BC';
+      th.appendChild(span);
+    }
+  });
+}
+
+// ========================================================================
+// TAB: KEYWORDS
+// ========================================================================
+function getFilteredKeywords() {
+  var fs = getFilterState();
+  return keywordData.filter(function(r) {
+    if (fs.from && r.date < fs.from) return false;
+    if (fs.to && r.date > fs.to) return false;
+    return true;
+  });
+}
+
+function renderKeywords() {
+  var filtered = getFilteredKeywords();
+  var dim = document.getElementById('keywordGroup').value;
+  var dim2 = document.getElementById('keywordGroup2').value;
+
+  var dimLabels = {
+    keyword_theme: 'Keyword Theme', match_type: 'Match Type',
+    keyword: 'Keyword', campaign: 'Campaign', ad_group: 'Ad Group'
+  };
+
+  var keyFn;
+  var dimLabel;
+  if (dim2) {
+    keyFn = function(r) { return (r[dim] || '(none)') + ' \u00D7 ' + (r[dim2] || '(none)'); };
+    dimLabel = (dimLabels[dim] || dim) + ' \u00D7 ' + (dimLabels[dim2] || dim2);
+  } else {
+    keyFn = function(r) { return r[dim] || '(none)'; };
+    dimLabel = dimLabels[dim] || dim;
+  }
+
+  var grouped = groupBy(filtered, keyFn);
+
+  var chartSorted = grouped.slice().sort(function(a, b) { return b.callsBooked - a.callsBooked; }).slice(0, 15);
+  var chartLabels = chartSorted.map(function(g) {
+    return (g.key || '').length > 40 ? g.key.substring(0, 37) + '...' : g.key;
+  });
+  var chartColors = [];
+  for (var ci = 0; ci < chartSorted.length; ci++) chartColors.push(COLORS[ci % COLORS.length]);
+
+  createChart('chartKwCalls', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'Calls', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  createChart('chartKwCPL', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'Cost/Call', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(2); } } } }
+    }
+  });
+
+  var spendSorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; }).slice(0, 15);
+  var spendLabels = spendSorted.map(function(g) {
+    return (g.key || '').length > 40 ? g.key.substring(0, 37) + '...' : g.key;
+  });
+  var spendColors = [];
+  for (var ci = 0; ci < spendSorted.length; ci++) spendColors.push(COLORS[ci % COLORS.length]);
+
+  createChart('chartKwSpend', {
+    type: 'bar',
+    data: {
+      labels: spendLabels,
+      datasets: [{ label: 'Spend', data: spendSorted.map(function(g) { return g.spend; }), backgroundColor: spendColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+    }
+  });
+
+  var thead = document.getElementById('keywordHead');
+  thead.innerHTML =
+    '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
+    '<th data-col="callsBooked">Calls</th>' +
+    '<th data-col="costPerLead">Cost/Call</th>' +
+    '<th data-col="spend">Spend</th>' +
+    '<th data-col="impressions">Imp</th>' +
+    '<th data-col="clicks">Clicks</th>' +
+    '<th data-col="ctr">CTR</th>' +
+    '<th data-col="cpc">CPC</th>';
+
+  var tableSorted = grouped.slice().sort(function(a, b) {
+    var va, vb;
+    if (keywordSort.col === 'key') {
+      va = a.key; vb = b.key;
+      return keywordSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    va = a[keywordSort.col] || 0; vb = b[keywordSort.col] || 0;
+    return keywordSort.asc ? va - vb : vb - va;
+  });
+
+  var tbody = document.getElementById('keywordBody');
+  tbody.innerHTML = '';
+  tableSorted.forEach(function(g) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 60 ? g.key.substring(0, 57) + '...' : (g.key || '')) + '</td>' +
+      '<td>' + formatNumber(g.callsBooked) + '</td>' +
+      '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+      '<td>' + formatCurrency(g.spend) + '</td>' +
+      '<td>' + formatNumber(g.impressions) + '</td>' +
+      '<td>' + formatNumber(g.clicks) + '</td>' +
+      '<td>' + formatPct(g.ctr) + '</td>' +
+      '<td>' + formatCurrency(g.cpc) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('#keywordHead th').forEach(function(th) {
+    var col = th.dataset.col;
+    var existing = th.querySelector('.sort-arrow');
+    if (existing) existing.remove();
+    if (col === keywordSort.col) {
+      var span = document.createElement('span');
+      span.className = 'sort-arrow';
+      span.textContent = keywordSort.asc ? '\u25B2' : '\u25BC';
       th.appendChild(span);
     }
   });
@@ -1976,6 +2235,7 @@ function renderCurrentTab() {
     case 'leaderboard': renderLeaderboard(); break;
     case 'campaigns':   renderCampaigns(); break;
     case 'breakdowns':  renderBreakdowns(); break;
+    case 'keywords':    renderKeywords(); break;
     case 'assets':      renderAssets(); break;
     case 'funnel':      renderFunnel(); break;
     case 'pacing':      renderPacing(); break;
@@ -2058,12 +2318,13 @@ function doLogin() {
 // ========================================================================
 async function loadData() {
   try {
-    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows] = await Promise.all([
+    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
       fetchSheetData('Google Ad Detail').catch(function() { return []; }),
       fetchSheetData('Headline Performance').catch(function() { return []; }),
       fetchSheetData('Description Performance').catch(function() { return []; }),
+      fetchSheetData('Keywords').catch(function() { return []; }),
     ]);
 
     // Normalize campaign breakdown (daily rows with Date + Platform)
@@ -2104,6 +2365,14 @@ async function loadData() {
     campaignData.forEach(function(r) { platforms[r.platform] = (platforms[r.platform] || 0) + 1; });
     console.log('[SOG Dashboard] Campaign rows:', campaignData.length);
     console.log('[SOG Dashboard] Ad detail rows:', adDetailData.length);
+    // Normalize keyword data
+    keywordData = [];
+    for (var i = 0; i < kwRows.length; i++) {
+      var kr = normalizeKeywordRow(kwRows[i]);
+      if (kr.keyword && kr.spend > 0) keywordData.push(kr);
+    }
+
+    console.log('[SOG Dashboard] Keywords:', keywordData.length);
     console.log('[SOG Dashboard] Headlines:', headlineData.length, '| Descriptions:', descriptionData.length);
     console.log('[SOG Dashboard] Platforms:', platforms);
     console.log('[SOG Dashboard] Date range:', campaignData.length > 0 ? campaignData[0].date + ' to ' + campaignData[campaignData.length-1].date : 'no data');
@@ -2250,6 +2519,30 @@ function bindEvents() {
   document.getElementById('breakdownDim2').addEventListener('change', function() {
     breakdownSort = { col: 'spend', asc: false };
     if (currentTab === 'breakdowns') renderBreakdowns();
+  });
+
+  // --- Keyword group change ---
+  document.getElementById('keywordGroup').addEventListener('change', function() {
+    keywordSort = { col: 'spend', asc: false };
+    if (currentTab === 'keywords') renderKeywords();
+  });
+  document.getElementById('keywordGroup2').addEventListener('change', function() {
+    keywordSort = { col: 'spend', asc: false };
+    if (currentTab === 'keywords') renderKeywords();
+  });
+
+  // --- Keyword table sort (delegated) ---
+  document.getElementById('keywordHead').addEventListener('click', function(e) {
+    var th = e.target.closest('th');
+    if (!th || !th.dataset.col) return;
+    var col = th.dataset.col;
+    if (keywordSort.col === col) {
+      keywordSort.asc = !keywordSort.asc;
+    } else {
+      keywordSort.col = col;
+      keywordSort.asc = (col === 'key');
+    }
+    if (currentTab === 'keywords') renderKeywords();
   });
 
   // --- Asset type change ---
