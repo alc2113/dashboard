@@ -580,6 +580,22 @@ tr:hover td{background:#fafaf8;}
         <div class="chart-wrap"><canvas id="chartBreakSpend"></canvas></div>
       </div>
     </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Calls Booked by Day of Week</div>
+        <div class="chart-wrap"><canvas id="chartDowCalls"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Cost per Call by Day of Week</div>
+        <div class="chart-wrap"><canvas id="chartDowCPL"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Spend by Day of Week</div>
+        <div class="chart-wrap"><canvas id="chartDowSpend"></canvas></div>
+      </div>
+    </div>
     <div class="table-wrap">
       <table id="breakdownTable">
         <thead><tr id="breakdownHead"></tr></thead>
@@ -819,6 +835,13 @@ function getMonthKey(dateStr) {
   const d = parseDate(dateStr);
   if (!d) return dateStr;
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+const DOW_ORDER = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const JS_DAY_TO_LABEL = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function dowLabel(dateStr) {
+  const d = parseDate(dateStr);
+  return d ? JS_DAY_TO_LABEL[d.getDay()] : '';
 }
 
 function daysAgo(n) {
@@ -1638,7 +1661,58 @@ function getFilteredAdDetail() {
   return applyFilters(data, fs);
 }
 
+function renderDowCharts() {
+  var filtered = getFilteredAdDetail();
+  var byDow = groupBy(filtered, function(r) { return dowLabel(r.date); });
+  var keyed = {};
+  byDow.forEach(function(g) { if (g.key) keyed[g.key] = g; });
+  var rowsInOrder = DOW_ORDER.map(function(d) {
+    return keyed[d] || { key: d, spend: 0, callsBooked: 0, costPerLead: 0, impressions: 0, clicks: 0 };
+  });
+  var dowColors = DOW_ORDER.map(function(_, i) { return COLORS[i % COLORS.length]; });
+
+  createChart('chartDowCalls', {
+    type: 'bar',
+    data: {
+      labels: DOW_ORDER,
+      datasets: [{ label: 'Calls Booked', data: rowsInOrder.map(function(g) { return g.callsBooked; }), backgroundColor: dowColors, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+
+  createChart('chartDowCPL', {
+    type: 'bar',
+    data: {
+      labels: DOW_ORDER,
+      datasets: [{ label: 'Cost per Call', data: rowsInOrder.map(function(g) { return g.costPerLead; }), backgroundColor: dowColors, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(2); } } } }
+    }
+  });
+
+  createChart('chartDowSpend', {
+    type: 'bar',
+    data: {
+      labels: DOW_ORDER,
+      datasets: [{ label: 'Spend', data: rowsInOrder.map(function(g) { return g.spend; }), backgroundColor: dowColors, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+    }
+  });
+}
+
 function renderBreakdowns() {
+  renderDowCharts();
   var filtered = getFilteredAdDetail();
   var dim = document.getElementById('breakdownDim').value;
   var dim2 = document.getElementById('breakdownDim2').value;
