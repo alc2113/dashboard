@@ -1663,51 +1663,138 @@ function getFilteredAdDetail() {
 
 function renderDowCharts() {
   var filtered = getFilteredAdDetail();
-  var byDow = groupBy(filtered, function(r) { return dowLabel(r.date); });
-  var keyed = {};
-  byDow.forEach(function(g) { if (g.key) keyed[g.key] = g; });
-  var rowsInOrder = DOW_ORDER.map(function(d) {
-    return keyed[d] || { key: d, spend: 0, callsBooked: 0, costPerLead: 0, impressions: 0, clicks: 0 };
-  });
-  var dowColors = DOW_ORDER.map(function(_, i) { return COLORS[i % COLORS.length]; });
+  var dim = document.getElementById('breakdownDim').value;
+  var dim2El = document.getElementById('breakdownDim2');
+  var dim2 = dim2El ? dim2El.value : '';
 
+  // Build the same key fn used by renderBreakdowns so the DOW charts mirror
+  // the dimension selector above them.
+  var keyFn;
+  if (dim2) {
+    keyFn = function(r) {
+      var v1 = r[dim] || '(none)';
+      var v2 = r[dim2] || '(none)';
+      return v1 + ' × ' + v2;
+    };
+  } else {
+    keyFn = function(r) { return r[dim] || '(none)'; };
+  }
+
+  // Drop rows with missing dim values so the legend isn't polluted by (none).
+  var relevant = filtered.filter(function(r) {
+    var v = r[dim];
+    if (!v || v === '(none)') return false;
+    if (dim2) {
+      var v2 = r[dim2];
+      if (!v2 || v2 === '(none)') return false;
+    }
+    return true;
+  });
+
+  // Aggregate into a [DOW][breakdownKey] grid.
+  var grid = {};       // grid[dow][bkey] = {spend, callsBooked, impressions, clicks}
+  var totalsByKey = {};
+  DOW_ORDER.forEach(function(d) { grid[d] = {}; });
+  for (var i = 0; i < relevant.length; i++) {
+    var r = relevant[i];
+    var d = dowLabel(r.date);
+    if (!d || DOW_ORDER.indexOf(d) === -1) continue;
+    var bk = keyFn(r) || '(none)';
+    if (!grid[d][bk]) grid[d][bk] = { spend: 0, callsBooked: 0, impressions: 0, clicks: 0 };
+    grid[d][bk].spend += r.spend;
+    grid[d][bk].callsBooked += r.callsBooked;
+    grid[d][bk].impressions += r.impressions;
+    grid[d][bk].clicks += r.clicks;
+    if (!totalsByKey[bk]) totalsByKey[bk] = 0;
+    totalsByKey[bk] += r.spend;
+  }
+
+  // Top 8 breakdown values by spend; everything else lumped into "Other".
+  var allKeys = Object.keys(totalsByKey).sort(function(a, b) {
+    return totalsByKey[b] - totalsByKey[a];
+  });
+  var TOP_N = 8;
+  var topKeys = allKeys.slice(0, TOP_N);
+  var hasOther = allKeys.length > TOP_N;
+  if (hasOther) {
+    DOW_ORDER.forEach(function(d) {
+      var otherAgg = { spend: 0, callsBooked: 0, impressions: 0, clicks: 0 };
+      allKeys.slice(TOP_N).forEach(function(k) {
+        var cell = grid[d][k];
+        if (cell) {
+          otherAgg.spend += cell.spend;
+          otherAgg.callsBooked += cell.callsBooked;
+          otherAgg.impressions += cell.impressions;
+          otherAgg.clicks += cell.clicks;
+        }
+      });
+      grid[d]['Other'] = otherAgg;
+    });
+    topKeys.push('Other');
+  }
+
+  function truncate(s, n) { return s.length > n ? s.substring(0, n - 1) + '…' : s; }
+
+  function buildDatasets(metricKey, isCPL) {
+    return topKeys.map(function(bk, ix) {
+      var color = COLORS[ix % COLORS.length];
+      var data = DOW_ORDER.map(function(d) {
+        var cell = grid[d][bk];
+        if (!cell) return 0;
+        if (isCPL) {
+          return cell.callsBooked > 0 ? cell.spend / cell.callsBooked : 0;
+        }
+        return cell[metricKey];
+      });
+      return {
+        label: truncate(bk, 40),
+        data: data,
+        backgroundColor: color,
+        borderRadius: 4,
+      };
+    });
+  }
+
+  var stackedOpts = function(yTick) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true, beginAtZero: true, ticks: yTick ? { callback: yTick } : {} },
+      },
+    };
+  };
+  var groupedOpts = function(yTick) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+      scales: {
+        x: { stacked: false },
+        y: { stacked: false, beginAtZero: true, ticks: yTick ? { callback: yTick } : {} },
+      },
+    };
+  };
+
+  // Calls Booked — additive, stacked.
   createChart('chartDowCalls', {
     type: 'bar',
-    data: {
-      labels: DOW_ORDER,
-      datasets: [{ label: 'Calls Booked', data: rowsInOrder.map(function(g) { return g.callsBooked; }), backgroundColor: dowColors, borderRadius: 4 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true } }
-    }
+    data: { labels: DOW_ORDER, datasets: buildDatasets('callsBooked', false) },
+    options: stackedOpts(null),
   });
 
+  // Cost per Call — ratio, NOT additive. Group side-by-side instead of stack.
   createChart('chartDowCPL', {
     type: 'bar',
-    data: {
-      labels: DOW_ORDER,
-      datasets: [{ label: 'Cost per Call', data: rowsInOrder.map(function(g) { return g.costPerLead; }), backgroundColor: dowColors, borderRadius: 4 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(2); } } } }
-    }
+    data: { labels: DOW_ORDER, datasets: buildDatasets(null, true) },
+    options: groupedOpts(function(v) { return '$' + Number(v).toFixed(2); }),
   });
 
+  // Spend — additive, stacked.
   createChart('chartDowSpend', {
     type: 'bar',
-    data: {
-      labels: DOW_ORDER,
-      datasets: [{ label: 'Spend', data: rowsInOrder.map(function(g) { return g.spend; }), backgroundColor: dowColors, borderRadius: 4 }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
-      scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
-    }
+    data: { labels: DOW_ORDER, datasets: buildDatasets('spend', false) },
+    options: stackedOpts(function(v) { return '$' + Number(v).toLocaleString(); }),
   });
 }
 
