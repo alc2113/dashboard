@@ -259,7 +259,6 @@ table.data tbody td.group-start{border-left:2px solid #b8a99c;}
     <button class="tab-btn active" data-tab="overview">📊 Overview</button>
     <button class="tab-btn" data-tab="pnl">📈 P&amp;L Detail</button>
     <button class="tab-btn" data-tab="history">📅 Annual &amp; YoY</button>
-    <button class="tab-btn" data-tab="forecast">🔮 Forecast</button>
     <button class="tab-btn" data-tab="club">🍇 Wine Club &amp; Releases</button>
   </div>
 </div>
@@ -374,23 +373,7 @@ table.data tbody td.group-start{border-left:2px solid #b8a99c;}
     </div>
   </div>
 
-  <!-- FORECAST -->
-  <div id="tab-forecast" class="tab-content">
-    <div class="section">
-      <div class="section-title">2026 Forecast — Remaining Months</div>
-      <div class="table-wrap"><table class="data" id="forecastTable"><thead></thead><tbody></tbody></table></div>
-      <div class="chart-row" style="margin-top:18px;">
-        <div class="chart-card"><div class="chart-title">DTC-Only Months</div>
-          <div class="chart-wrap"><canvas id="chartForecastDTC"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Release Months</div>
-          <div class="chart-wrap"><canvas id="chartForecastRel"></canvas></div></div>
-      </div>
-    </div>
-    <div class="section">
-      <div class="section-title">Annual Projection</div>
-      <div class="table-wrap"><table class="data" id="forecastProjTable"><thead></thead><tbody></tbody></table></div>
-    </div>
-  </div>
+  <!-- Forecast tab removed per Amy — not useful at this stage. -->
 
   <!-- WINE CLUB & RELEASES -->
   <div id="tab-club" class="tab-content">
@@ -1217,17 +1200,9 @@ function renderTrendCharts(){
 //     latest month present in P&L History (= current month).
 //   - % Chg cells are color-coded green/red and formatted as percent.
 function renderYoyTable(tbodyEl, theadEl, headers, rows){
-  // Figure out the latest month with data (used to hide future months).
-  var latestMonthIdx = 12; // 1-12 (calendar month, 1=Jan)
-  if (parsed.pnlHistory && parsed.pnlHistory.months.length){
-    var lastMo = parsed.pnlHistory.months[parsed.pnlHistory.months.length - 1];
-    var m = lastMo.match(/^\d{4}-(\d{2})$/);
-    if (m) latestMonthIdx = parseInt(m[1], 10);
-  }
-
-  // Classify each column by month-group + role. Column 0 is the metric label;
-  // columns 1+ come in triples (prev-year / curr-year / % chg).
-  // Month numbers come from the header text like "Jan 2025" / "Mar 2026" / "Apr % Chg".
+  // Show every calendar month (Jan-Dec). 2026 cells for months that haven't
+  // happened yet will just be empty/zero — keeping the column gives the
+  // reader the full annual frame.
   var MONTH_RE = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i;
   var MONTH_MAP = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
 
@@ -1244,7 +1219,7 @@ function renderYoyTable(tbodyEl, theadEl, headers, rows){
     else if (/2026/.test(h)) role = 'col-current';
     else role = 'other';
     colMeta.push({ month: monthNum, role: role });
-    if (monthNum <= latestMonthIdx) visibleCols.push(i);
+    visibleCols.push(i);
   }
 
   // Header row
@@ -1483,7 +1458,7 @@ function switchTab(tab){
   // Render charts on demand (avoid sizing bugs)
   if (tab === 'pnl') renderTrendCharts();
   if (tab === 'history') renderAnnualYoY();
-  if (tab === 'forecast') renderForecast();
+  // Forecast tab removed from dashboard.
   if (tab === 'club') renderClub();
 }
 
