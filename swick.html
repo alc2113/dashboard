@@ -262,7 +262,7 @@ table.data td.neg{color:var(--red);}
     <div class="kpi-strip" id="kpiStrip"></div>
     <div id="overviewExecSections"></div>
     <div class="section">
-      <div class="section-title">Today</div>
+      <div class="section-title" id="dailyBlockTitle">Yesterday</div>
       <div id="todayBlock"></div>
     </div>
   </div>
@@ -849,6 +849,19 @@ function renderOverviewExecSections(){
 function renderToday(){
   var rows = raw.daily_summary || [];
   if (!rows.length){ document.getElementById('todayBlock').innerHTML = '<div class="muted">No daily summary available.</div>'; return; }
+  // Daily Summary is populated by the 3 AM PT nightly job, so the data covers
+  // the prior 24 hours = effectively yesterday. Label with that date.
+  var reportRow = findRow(rows, 'Report Date');
+  if (reportRow && reportRow[1]){
+    var m = String(reportRow[1]).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m){
+      var d = new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
+      d.setDate(d.getDate() - 1);
+      var label = d.toLocaleDateString('en-US',{weekday:'long', month:'short', day:'numeric'});
+      var el = document.getElementById('dailyBlockTitle');
+      if (el) el.textContent = 'Yesterday — ' + label;
+    }
+  }
   var labels = ['Total Orders','Total Revenue','Average Order Value (AOV)',
                  'New Customers','New Customer Revenue',
                  'Returning Customers','Returning Customer Revenue'];
