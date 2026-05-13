@@ -1433,9 +1433,7 @@ function renderClub(){
       var rel = rels[i];
       html += '<div style="margin-bottom:24px;">';
       html += '<div class="chart-title" style="font-size:16px;margin-bottom:10px;">' + escHtml(rel.name) + '</div>';
-      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Sold','Tasting Notes'];
-      // Show the 6 numeric columns in a clean table; tasting notes get their
-      // own card per SKU below.
+      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Sold'];
       var ncols = 6;
       html += '<table class="data" style="width:100%;">';
       html += '<thead><tr>' + hdr.slice(0, ncols).map(function(h){ return '<th>' + escHtml(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
@@ -1455,50 +1453,6 @@ function renderClub(){
                 }).join('') + '</tr>';
       }
       html += '</tbody></table>';
-
-      // Tasting notes — Joe's prose, one card per wine in lineup order.
-      var hasNotes = rel.skus.some(function(s){ return (s[6] || '').toString().trim() !== ''; });
-      if (hasNotes){
-        html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px;">';
-        for (var k = 0; k < rel.skus.length; k++){
-          var srow = rel.skus[k];
-          var noteText = (srow[6] || '').toString().trim();
-          if (!noteText) continue;
-          var wineName = srow[1] || srow[0] || '';
-          html += '<div style="background:#fdfaf8;border:1px solid var(--border);border-radius:8px;padding:14px 16px;">';
-          html += '<div style="font-weight:600;color:var(--primary);font-size:14px;margin-bottom:6px;">' +
-                  escHtml(wineName) + '</div>';
-          html += '<div style="font-size:13px;color:var(--text);line-height:1.6;">' +
-                  escHtml(noteText) + '</div>';
-          html += '</div>';
-        }
-        html += '</div>';
-      }
-
-      // Supplemental section: retail purchases of release wines + non-lineup
-      // sales in the same month.
-      if (rel.suppRows && rel.suppRows.length){
-        html += '<div style="margin-top:14px;font-size:13px;color:var(--text-muted);font-style:italic;">' +
-                'Supplemental bottles sold in this month (retail purchases of release wines + non-lineup wines):</div>';
-        html += '<table class="data" style="width:100%;margin-top:6px;">';
-        html += '<thead><tr><th>SKU</th><th>Wine Name</th><th>Source</th><th>Bottles Sold</th></tr></thead><tbody>';
-        for (var k = 0; k < rel.suppRows.length; k++){
-          var sr = rel.suppRows[k];
-          html += '<tr>' +
-                  '<td>' + escHtml(sr[0] || '') + '</td>' +
-                  '<td>' + escHtml(sr[1] || '') + '</td>' +
-                  '<td>' + escHtml(sr[2] || '') + '</td>' +
-                  '<td class="num">' + escHtml(sr[5] !== undefined ? sr[5] : '') + '</td>' +
-                  '</tr>';
-        }
-        if (rel.suppTotal){
-          html += '<tr style="font-weight:600;background:var(--header-bg);">' +
-                  '<td>SUPPLEMENTAL TOTAL</td><td></td><td></td>' +
-                  '<td class="num">' + escHtml(rel.suppTotal[5] || '') + '</td>' +
-                  '</tr>';
-        }
-        html += '</tbody></table>';
-      }
       html += '</div>';
     }
   }
