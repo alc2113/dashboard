@@ -895,17 +895,19 @@ function renderKpiStrip(){
   var ytdNp = ytdSum('Net Profit');
   var ytdOrders = ytdSum('Total Orders');
 
-  // Active members = Current + Pending (Bloom ships to both for next release).
-  // Pull the "Active …" row written by write_wine_club_tab; fall back to Current
-  // if that row isn't there (older sheet snapshots).
+  // Active members = Current + Pending. The Active row in Wine Club Tracker
+  // lives below a blank-row gap (after the Total row was removed), and
+  // parseClubSnapshot stops at the blank — so search the full raw rows.
   var active = '—';
-  if (club && club.data){
-    var act = club.data.find(function(r){ return /^Active/.test(String(r[0])); });
-    if (act) active = act[3] || '—';
-    else {
-      var cur = club.data.find(function(r){ return r[0] === 'Current'; });
-      if (cur) active = cur[3] || '—';
-    }
+  var allClubRows = raw.club_tracker || [];
+  var actRow = allClubRows.find(function(r){
+    return r && r[0] && /^Active/.test(String(r[0]));
+  });
+  if (actRow && actRow[3] !== undefined && actRow[3] !== '') {
+    active = actRow[3];
+  } else if (club && club.data) {
+    var cur = club.data.find(function(r){ return r[0] === 'Current'; });
+    if (cur) active = cur[3] || '—';
   }
 
   function dtxt(d, suffix){
@@ -947,16 +949,42 @@ function renderKpiStrip(){
   document.getElementById('kpiStrip').innerHTML = html;
 }
 
+// Classify an Annual-style header for tinting: 2026 YTD + Full Year Projected
+// = current, all 4-digit year columns = prior, % Change = pct.
+function annualColRole(headerCell){
+  var h = String(headerCell || '').trim();
+  if (!h) return null;
+  if (/2026/i.test(h)) return 'col-current';
+  if (/^\d{4}$/.test(h)) return 'col-prior';
+  if (/(%|Chg|Change)/i.test(h)) return 'col-pct';
+  return null;
+}
+
 function renderTable(tbodyEl, theadEl, headers, rows){
+  var roles = headers.map(annualColRole);
   if (theadEl){
-    theadEl.innerHTML = '<tr>' + headers.map(function(h){
-      return '<th>' + escHtml(h) + '</th>';
+    theadEl.innerHTML = '<tr>' + headers.map(function(h, i){
+      var role = roles[i];
+      // Group-start border whenever we cross from current → prior, or land
+      // on the % column.
+      var groupStart = (role === 'col-prior' && i > 0 && roles[i-1] === 'col-current') ||
+                       (role === 'col-pct' && i > 0 && roles[i-1] !== 'col-pct');
+      var cls = [];
+      if (role) cls.push(role);
+      if (groupStart) cls.push('group-start');
+      return '<th' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' + escHtml(h) + '</th>';
     }).join('') + '</tr>';
   }
   tbodyEl.innerHTML = rows.map(function(r){
     return '<tr>' + r.map(function(c, idx){
-      var classes = idx === 0 ? '' : ' class="num"';
-      return '<td' + classes + '>' + escHtml(c) + '</td>';
+      var role = roles[idx];
+      var cls = [];
+      if (idx > 0) cls.push('num');
+      if (role) cls.push(role);
+      var groupStart = (role === 'col-prior' && idx > 0 && roles[idx-1] === 'col-current') ||
+                       (role === 'col-pct' && idx > 0 && roles[idx-1] !== 'col-pct');
+      if (groupStart) cls.push('group-start');
+      return '<td' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' + escHtml(c) + '</td>';
     }).join('') + '</tr>';
   }).join('');
 }
