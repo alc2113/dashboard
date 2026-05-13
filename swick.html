@@ -920,26 +920,28 @@ function renderKpiStrip(){
     return dt.toLocaleString('en-US',{month:'short', year:'numeric'});
   })();
 
-  function ytdLine(label, val){
-    if (val === null || val === undefined || isNaN(val)) return '';
+  function ytdLine(label, rawVal, formatter){
+    // Check the underlying number, not the formatted string (isNaN("$40,960")
+    // is true because parseFloat fails on the $, which suppressed the line).
+    if (rawVal === null || rawVal === undefined || isNaN(rawVal)) return '';
     return '<div class="kpi-sub" style="color:var(--text-muted);">' +
-            label + ' ' + val + '</div>';
+            label + ' ' + formatter(rawVal) + '</div>';
   }
 
   var html = '';
   html += '<div class="kpi-card highlight"><div class="kpi-label">Revenue · ' + monthLabel + '</div>' +
           '<div class="kpi-value">' + fmtMoney(rev) + '</div>' +
           dtxt(delta(rev, prevRev), 'vs prev mo') +
-          ytdLine(latestYear + ' YTD:', fmtMoney(ytdRev)) + '</div>';
+          ytdLine(latestYear + ' YTD:', ytdRev, fmtMoney) + '</div>';
   html += '<div class="kpi-card highlight"><div class="kpi-label">Net Profit · ' + monthLabel + '</div>' +
           '<div class="kpi-value">' + fmtMoney(np) + '</div>' +
           dtxt(delta(np, prevNp), 'vs prev mo') +
-          ytdLine(latestYear + ' YTD:', fmtMoney(ytdNp)) + '</div>';
+          ytdLine(latestYear + ' YTD:', ytdNp, fmtMoney) + '</div>';
   html += '<div class="kpi-card"><div class="kpi-label">Net Margin</div>' +
           '<div class="kpi-value">' + fmtPct(nm) + '</div></div>';
   html += '<div class="kpi-card"><div class="kpi-label">Orders</div>' +
           '<div class="kpi-value">' + fmtInt(orders) + '</div>' +
-          ytdLine(latestYear + ' YTD:', fmtInt(ytdOrders)) + '</div>';
+          ytdLine(latestYear + ' YTD:', ytdOrders, fmtInt) + '</div>';
   html += '<div class="kpi-card"><div class="kpi-label">Active Members</div>' +
           '<div class="kpi-value">' + escHtml(active) + '</div></div>';
   document.getElementById('kpiStrip').innerHTML = html;
