@@ -794,22 +794,40 @@ function parseExecDashboard(rows){
 function parseReleaseConfig(rows){
   var releases = [];
   var cur = null;
+  var inSupp = false;
   var monthRe = /^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\s+Release/i;
   for (var i = 0; i < (rows||[]).length; i++){
     var r = rows[i];
-    if (!r || !r.length) continue;
+    if (!r || !r.length) { inSupp = false; continue; }
     var first = String(r[0] || '').trim();
     if (monthRe.test(first)){
       if (cur && cur.skus.length) releases.push(cur);
-      cur = { name: first, header: null, skus: [], total: null };
+      cur = { name: first, header: null, skus: [], total: null,
+              suppHeader: null, suppRows: [], suppTotal: null };
+      inSupp = false;
       continue;
     }
     if (!cur) continue;
-    if (first === 'SKU') { cur.header = r; continue; }
-    if (first.startsWith('SW') && r.length >= 5){
-      cur.skus.push(r);
-    } else if (first === 'TOTAL') {
+    if (/^Supplemental Bottles Sold/i.test(first)){
+      inSupp = true;
+      continue;
+    }
+    if (first === 'SKU'){
+      if (inSupp) cur.suppHeader = r; else cur.header = r;
+      continue;
+    }
+    if (first === 'TOTAL'){
       cur.total = r;
+      continue;
+    }
+    if (first === 'SUPPLEMENTAL TOTAL'){
+      cur.suppTotal = r;
+      inSupp = false;
+      continue;
+    }
+    if (first.startsWith('SW') && r.length >= 5){
+      if (inSupp) cur.suppRows.push(r);
+      else cur.skus.push(r);
     }
   }
   if (cur && cur.skus.length) releases.push(cur);
@@ -1323,6 +1341,29 @@ function renderClub(){
                 }).join('') + '</tr>';
       }
       html += '</tbody></table>';
+
+      // Supplemental section (bottles sold in non-lineup SKUs that month)
+      if (rel.suppRows && rel.suppRows.length){
+        html += '<div style="margin-top:14px;font-size:13px;color:var(--text-muted);font-style:italic;">' +
+                'Supplemental bottles sold in this month (non-lineup SKUs — retail orders + club add-ons):</div>';
+        html += '<table class="data" style="width:100%;margin-top:6px;">';
+        html += '<thead><tr><th>SKU</th><th>Wine Name</th><th>Bottles Sold</th></tr></thead><tbody>';
+        for (var k = 0; k < rel.suppRows.length; k++){
+          var sr = rel.suppRows[k];
+          html += '<tr>' +
+                  '<td>' + escHtml(sr[0] || '') + '</td>' +
+                  '<td>' + escHtml(sr[1] || '') + '</td>' +
+                  '<td class="num">' + escHtml(sr[5] !== undefined ? sr[5] : '') + '</td>' +
+                  '</tr>';
+        }
+        if (rel.suppTotal){
+          html += '<tr style="font-weight:600;background:var(--header-bg);">' +
+                  '<td>SUPPLEMENTAL TOTAL</td><td></td>' +
+                  '<td class="num">' + escHtml(rel.suppTotal[5] || '') + '</td>' +
+                  '</tr>';
+        }
+        html += '</tbody></table>';
+      }
       html += '</div>';
     }
   }
