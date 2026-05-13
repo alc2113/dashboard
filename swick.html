@@ -1342,23 +1342,25 @@ function renderClub(){
       }
       html += '</tbody></table>';
 
-      // Supplemental section (bottles sold in non-lineup SKUs that month)
+      // Supplemental section: retail purchases of release wines + non-lineup
+      // sales in the same month.
       if (rel.suppRows && rel.suppRows.length){
         html += '<div style="margin-top:14px;font-size:13px;color:var(--text-muted);font-style:italic;">' +
-                'Supplemental bottles sold in this month (non-lineup SKUs — retail orders + club add-ons):</div>';
+                'Supplemental bottles sold in this month (retail purchases of release wines + non-lineup wines):</div>';
         html += '<table class="data" style="width:100%;margin-top:6px;">';
-        html += '<thead><tr><th>SKU</th><th>Wine Name</th><th>Bottles Sold</th></tr></thead><tbody>';
+        html += '<thead><tr><th>SKU</th><th>Wine Name</th><th>Source</th><th>Bottles Sold</th></tr></thead><tbody>';
         for (var k = 0; k < rel.suppRows.length; k++){
           var sr = rel.suppRows[k];
           html += '<tr>' +
                   '<td>' + escHtml(sr[0] || '') + '</td>' +
                   '<td>' + escHtml(sr[1] || '') + '</td>' +
+                  '<td>' + escHtml(sr[2] || '') + '</td>' +
                   '<td class="num">' + escHtml(sr[5] !== undefined ? sr[5] : '') + '</td>' +
                   '</tr>';
         }
         if (rel.suppTotal){
           html += '<tr style="font-weight:600;background:var(--header-bg);">' +
-                  '<td>SUPPLEMENTAL TOTAL</td><td></td>' +
+                  '<td>SUPPLEMENTAL TOTAL</td><td></td><td></td>' +
                   '<td class="num">' + escHtml(rel.suppTotal[5] || '') + '</td>' +
                   '</tr>';
         }
