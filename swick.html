@@ -1127,6 +1127,11 @@ function monthLabel(ym){
 }
 
 // Chart factory helpers — every chart is single-series so they're easy to read.
+// Common X-axis config — show every label and rotate so 36+ months still fit.
+function xAxisAllLabels(){
+  return { ticks: { autoSkip: false, maxRotation: 60, minRotation: 45, font: { size: 10 } } };
+}
+
 function singleBarChart(canvasId, labels, data, color, isMoney){
   createChart(canvasId, {
     type:'bar',
@@ -1135,7 +1140,8 @@ function singleBarChart(canvasId, labels, data, color, isMoney){
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ display:false },
                 tooltip:{ callbacks:{ label: function(ctx){ return isMoney ? fmtMoney(ctx.parsed.y) : fmtInt(ctx.parsed.y); } } } },
-      scales:{ y:{ beginAtZero:true,
+      scales:{ x: xAxisAllLabels(),
+               y:{ beginAtZero:true,
                    ticks:{ callback: function(v){ return isMoney ? fmtMoney(v) : v.toLocaleString(); } } } }
     }
   });
@@ -1159,7 +1165,8 @@ function singleLineChart(canvasId, labels, data, color, kind){
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ display:false },
                 tooltip:{ callbacks:{ label: function(ctx){ return fmt(ctx.parsed.y); } } } },
-      scales:{ y:{ ticks:{ callback: tick } } }
+      scales:{ x: xAxisAllLabels(),
+               y:{ ticks:{ callback: tick } } }
     }
   });
 }
