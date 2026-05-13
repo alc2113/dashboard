@@ -182,6 +182,16 @@ table.data td.num{font-variant-numeric:tabular-nums;}
 table.data td.pos{color:var(--green);}
 table.data td.neg{color:var(--red);}
 
+/* YoY-by-Month: each month group of 3 cols (prev-year / curr-year / % chg)
+   gets a stronger left border so the eye can scan month-to-month. */
+table.data-yoy thead th.month-start,
+table.data-yoy tbody td.month-start{border-left:2px solid #b8a99c;}
+table.data-yoy thead th.year-25{background:#f5edea;color:#5c1a1b;font-weight:600;}
+table.data-yoy thead th.year-26{background:#fbe9dd;color:#5c1a1b;font-weight:600;}
+table.data-yoy thead th.pct{background:#efe5e2;color:#3f1112;}
+table.data-yoy tbody td.year-25{background:#fbf6f4;}
+table.data-yoy tbody td.year-26{background:#fdf2eb;}
+
 .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
 .toolbar label{font-size:13px;color:var(--text-muted);}
 .toolbar select{
@@ -335,17 +345,6 @@ table.data td.neg{color:var(--red);}
   <!-- ANNUAL & YOY -->
   <div id="tab-history" class="tab-content">
     <div class="section">
-      <div class="section-title">Annual Summary</div>
-      <div class="table-wrap"><table class="data" id="annualTable"><thead></thead><tbody></tbody></table></div>
-      <div class="chart-row" style="margin-top:18px;">
-        <div class="chart-card"><div class="chart-title">Annual Gross Revenue</div>
-          <div class="chart-wrap"><canvas id="chartAnnualRev"></canvas></div></div>
-        <div class="chart-card"><div class="chart-title">Annual Net Profit</div>
-          <div class="chart-wrap"><canvas id="chartAnnualNp"></canvas></div></div>
-      </div>
-    </div>
-
-    <div class="section">
       <div class="section-title">Adjusted Comparison — Half Club Releases</div>
       <div class="section-sub">What if 2020–2025 had half the club releases? Makes prior years comparable to 2026's reduced release schedule.</div>
       <div class="table-wrap"><table class="data" id="adjTable"><thead></thead><tbody></tbody></table></div>
@@ -358,8 +357,20 @@ table.data td.neg{color:var(--red);}
     </div>
 
     <div class="section">
+      <div class="section-title">Annual Summary</div>
+      <div class="table-wrap"><table class="data" id="annualTable"><thead></thead><tbody></tbody></table></div>
+      <div class="chart-row" style="margin-top:18px;">
+        <div class="chart-card"><div class="chart-title">Annual Gross Revenue</div>
+          <div class="chart-wrap"><canvas id="chartAnnualRev"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Annual Net Profit</div>
+          <div class="chart-wrap"><canvas id="chartAnnualNp"></canvas></div></div>
+      </div>
+    </div>
+
+    <div class="section">
       <div class="section-title">Year-over-Year by Month</div>
-      <div class="table-wrap"><table class="data" id="yoyMonthlyTable"><thead></thead><tbody></tbody></table></div>
+      <div class="section-sub">Only months that have already occurred are shown. Each month group is grouped visually with a stronger column border.</div>
+      <div class="table-wrap"><table class="data data-yoy" id="yoyMonthlyTable"><thead></thead><tbody></tbody></table></div>
     </div>
   </div>
 
@@ -390,7 +401,7 @@ table.data td.neg{color:var(--red);}
     <div class="section">
       <div class="section-title">Membership Over Time (last 36 months)</div>
       <div class="chart-row">
-        <div class="chart-card"><div class="chart-title">Total Active Members</div>
+        <div class="chart-card"><div class="chart-title">Current Active Members (excludes On Hold)</div>
           <div class="chart-wrap"><canvas id="chartMembersTotal"></canvas></div></div>
         <div class="chart-card"><div class="chart-title">Net Membership Change</div>
           <div class="chart-wrap"><canvas id="chartNet"></canvas></div></div>
@@ -825,6 +836,8 @@ function parseReleaseConfig(rows){
       inSupp = false;
       continue;
     }
+    // SKU rows: 7-column structure
+    //   [SKU, Wine Name, Style, Retail, COGS, Bottles Sold, Tasting Notes]
     if (first.startsWith('SW') && r.length >= 5){
       if (inSupp) cur.suppRows.push(r);
       else cur.skus.push(r);
@@ -1141,30 +1154,86 @@ function renderTrendCharts(){
   renderPnlHistoryTable(visible);
 }
 
-// Render a table with red/green coloring on % Change cells.
+// Render the YoY-by-Month table with future months hidden + month-group styling.
+//   - Each calendar month occupies 3 consecutive columns (prev-yr / curr-yr / %Chg).
+//   - We hide month groups whose calendar month is in the future relative to the
+//     latest month present in P&L History (= current month).
+//   - % Chg cells are color-coded green/red and formatted as percent.
 function renderYoyTable(tbodyEl, theadEl, headers, rows){
-  theadEl.innerHTML = '<tr>' + headers.map(function(h){
-    return '<th>' + escHtml(h) + '</th>';
-  }).join('') + '</tr>';
-  // Find columns whose header contains '%' or 'Chg' — color those cells.
-  var pctCols = headers.map(function(h){
-    var s = String(h);
-    return /(%|Chg|Change)/i.test(s);
-  });
-  tbodyEl.innerHTML = rows.map(function(r){
-    return '<tr>' + r.map(function(c, idx){
-      var cls = idx === 0 ? '' : ' class="num';
-      if (idx > 0 && pctCols[idx]){
-        var n = toNum(c);
+  // Figure out the latest month with data (used to hide future months).
+  var latestMonthIdx = 12; // 1-12 (calendar month, 1=Jan)
+  if (parsed.pnlHistory && parsed.pnlHistory.months.length){
+    var lastMo = parsed.pnlHistory.months[parsed.pnlHistory.months.length - 1];
+    var m = lastMo.match(/^\d{4}-(\d{2})$/);
+    if (m) latestMonthIdx = parseInt(m[1], 10);
+  }
+
+  // Classify each column by month-group + role. Column 0 is the metric label;
+  // columns 1+ come in triples (prev-year / curr-year / % chg).
+  // Month numbers come from the header text like "Jan 2025" / "Mar 2026" / "Apr % Chg".
+  var MONTH_RE = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/i;
+  var MONTH_MAP = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+
+  var visibleCols = [0]; // always keep the metric label column
+  var colMeta = [{ month: 0, role: 'metric' }];
+  for (var i = 1; i < headers.length; i++){
+    var h = String(headers[i] || '');
+    var monthHit = h.match(MONTH_RE);
+    if (!monthHit){ colMeta.push({ month: 0, role: 'other' }); continue; }
+    var monthNum = MONTH_MAP[monthHit[1].toLowerCase()];
+    var role;
+    if (/% Chg/i.test(h)) role = 'pct';
+    else if (/2025/.test(h)) role = 'y25';
+    else if (/2026/.test(h)) role = 'y26';
+    else role = 'other';
+    colMeta.push({ month: monthNum, role: role });
+    if (monthNum <= latestMonthIdx) visibleCols.push(i);
+  }
+
+  // Header row
+  var headHtml = '<tr>';
+  for (var k = 0; k < visibleCols.length; k++){
+    var idx = visibleCols[k];
+    var meta = colMeta[idx];
+    var cls = [];
+    if (meta.role === 'y25') cls.push('year-25');
+    else if (meta.role === 'y26') cls.push('year-26');
+    else if (meta.role === 'pct') cls.push('pct');
+    if (meta.role === 'y25' && idx > 0) cls.push('month-start'); // start of a month group
+    headHtml += '<th' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' +
+                escHtml(headers[idx] || '') + '</th>';
+  }
+  headHtml += '</tr>';
+  theadEl.innerHTML = headHtml;
+
+  // Body rows
+  var bodyHtml = '';
+  for (var ri = 0; ri < rows.length; ri++){
+    var r = rows[ri];
+    bodyHtml += '<tr>';
+    for (var ki = 0; ki < visibleCols.length; ki++){
+      var ix = visibleCols[ki];
+      var meta2 = colMeta[ix];
+      var cell = (ix < r.length) ? r[ix] : '';
+      var cls2 = [];
+      if (ix > 0) cls2.push('num');
+      if (meta2.role === 'y25') cls2.push('year-25');
+      else if (meta2.role === 'y26') cls2.push('year-26');
+      if (meta2.role === 'y25' && ix > 0) cls2.push('month-start');
+      if (meta2.role === 'pct'){
+        var n = toNum(cell);
         if (!isNaN(n)){
-          if (n > 0) cls += ' pos';
-          else if (n < 0) cls += ' neg';
+          // Format as percent in case the sheet's number format hasn't propagated yet
+          cell = (n >= 0 ? '+' : '') + (n * 100).toFixed(1) + '%';
+          cls2.push(n > 0 ? 'pos' : (n < 0 ? 'neg' : ''));
         }
       }
-      if (idx > 0) cls += '"';
-      return '<td' + cls + '>' + escHtml(c) + '</td>';
-    }).join('') + '</tr>';
-  }).join('');
+      bodyHtml += '<td' + (cls2.length ? ' class="' + cls2.join(' ') + '"' : '') + '>' +
+                  escHtml(cell) + '</td>';
+    }
+    bodyHtml += '</tr>';
+  }
+  tbodyEl.innerHTML = bodyHtml;
 }
 
 // Pull years out of the Annual Summary header in the order they appear in the
@@ -1319,9 +1388,11 @@ function renderClub(){
   } else {
     for (var i = 0; i < rels.length; i++){
       var rel = rels[i];
-      html += '<div style="margin-bottom:18px;">';
-      html += '<div class="chart-title">' + escHtml(rel.name) + '</div>';
-      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Sold'];
+      html += '<div style="margin-bottom:24px;">';
+      html += '<div class="chart-title" style="font-size:16px;margin-bottom:10px;">' + escHtml(rel.name) + '</div>';
+      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Sold','Tasting Notes'];
+      // Show the 6 numeric columns in a clean table; tasting notes get their
+      // own card per SKU below.
       var ncols = 6;
       html += '<table class="data" style="width:100%;">';
       html += '<thead><tr>' + hdr.slice(0, ncols).map(function(h){ return '<th>' + escHtml(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
@@ -1341,6 +1412,25 @@ function renderClub(){
                 }).join('') + '</tr>';
       }
       html += '</tbody></table>';
+
+      // Tasting notes — Joe's prose, one card per wine in lineup order.
+      var hasNotes = rel.skus.some(function(s){ return (s[6] || '').toString().trim() !== ''; });
+      if (hasNotes){
+        html += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:14px;">';
+        for (var k = 0; k < rel.skus.length; k++){
+          var srow = rel.skus[k];
+          var noteText = (srow[6] || '').toString().trim();
+          if (!noteText) continue;
+          var wineName = srow[1] || srow[0] || '';
+          html += '<div style="background:#fdfaf8;border:1px solid var(--border);border-radius:8px;padding:14px 16px;">';
+          html += '<div style="font-weight:600;color:var(--primary);font-size:14px;margin-bottom:6px;">' +
+                  escHtml(wineName) + '</div>';
+          html += '<div style="font-size:13px;color:var(--text);line-height:1.6;">' +
+                  escHtml(noteText) + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
 
       // Supplemental section: retail purchases of release wines + non-lineup
       // sales in the same month.
