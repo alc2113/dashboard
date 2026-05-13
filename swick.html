@@ -878,6 +878,23 @@ function renderKpiStrip(){
   var prevRev = prev ? v('Gross Revenue', prev) : NaN;
   var prevNp = prev ? v('Net Profit', prev) : NaN;
 
+  // YTD sums — every month so far in the latest year.
+  var latestYear = latest.slice(0, 4);
+  function ytdSum(metric){
+    if (!hist.byMetric[metric]) return NaN;
+    var total = 0, any = false;
+    for (var i = 0; i < hist.months.length; i++){
+      if (hist.months[i].startsWith(latestYear)){
+        var c = hist.byMetric[metric][hist.months[i]];
+        if (c && !isNaN(c.num)){ total += c.num; any = true; }
+      }
+    }
+    return any ? total : NaN;
+  }
+  var ytdRev = ytdSum('Gross Revenue');
+  var ytdNp = ytdSum('Net Profit');
+  var ytdOrders = ytdSum('Total Orders');
+
   // Active members = Current + Pending (Bloom ships to both for next release).
   // Pull the "Active …" row written by write_wine_club_tab; fall back to Current
   // if that row isn't there (older sheet snapshots).
@@ -903,15 +920,26 @@ function renderKpiStrip(){
     return dt.toLocaleString('en-US',{month:'short', year:'numeric'});
   })();
 
+  function ytdLine(label, val){
+    if (val === null || val === undefined || isNaN(val)) return '';
+    return '<div class="kpi-sub" style="color:var(--text-muted);">' +
+            label + ' ' + val + '</div>';
+  }
+
   var html = '';
   html += '<div class="kpi-card highlight"><div class="kpi-label">Revenue · ' + monthLabel + '</div>' +
-          '<div class="kpi-value">' + fmtMoney(rev) + '</div>' + dtxt(delta(rev, prevRev), 'vs prev mo') + '</div>';
+          '<div class="kpi-value">' + fmtMoney(rev) + '</div>' +
+          dtxt(delta(rev, prevRev), 'vs prev mo') +
+          ytdLine(latestYear + ' YTD:', fmtMoney(ytdRev)) + '</div>';
   html += '<div class="kpi-card highlight"><div class="kpi-label">Net Profit · ' + monthLabel + '</div>' +
-          '<div class="kpi-value">' + fmtMoney(np) + '</div>' + dtxt(delta(np, prevNp), 'vs prev mo') + '</div>';
+          '<div class="kpi-value">' + fmtMoney(np) + '</div>' +
+          dtxt(delta(np, prevNp), 'vs prev mo') +
+          ytdLine(latestYear + ' YTD:', fmtMoney(ytdNp)) + '</div>';
   html += '<div class="kpi-card"><div class="kpi-label">Net Margin</div>' +
           '<div class="kpi-value">' + fmtPct(nm) + '</div></div>';
   html += '<div class="kpi-card"><div class="kpi-label">Orders</div>' +
-          '<div class="kpi-value">' + fmtInt(orders) + '</div></div>';
+          '<div class="kpi-value">' + fmtInt(orders) + '</div>' +
+          ytdLine(latestYear + ' YTD:', fmtInt(ytdOrders)) + '</div>';
   html += '<div class="kpi-card"><div class="kpi-label">Active Members</div>' +
           '<div class="kpi-value">' + escHtml(active) + '</div></div>';
   document.getElementById('kpiStrip').innerHTML = html;
@@ -1119,7 +1147,7 @@ function xAxisAllLabels(){
   return { ticks: { autoSkip: false, maxRotation: 60, minRotation: 45, font: { size: 10 } } };
 }
 
-function singleBarChart(canvasId, labels, data, color, isMoney){
+function singleBarChart(canvasId, labels, data, color, isMoney, yLabel){
   createChart(canvasId, {
     type:'bar',
     data:{ labels: labels, datasets:[{ data: data, backgroundColor: color, borderWidth: 0 }] },
@@ -1129,12 +1157,13 @@ function singleBarChart(canvasId, labels, data, color, isMoney){
                 tooltip:{ callbacks:{ label: function(ctx){ return isMoney ? fmtMoney(ctx.parsed.y) : fmtInt(ctx.parsed.y); } } } },
       scales:{ x: xAxisAllLabels(),
                y:{ beginAtZero:true,
-                   ticks:{ callback: function(v){ return isMoney ? fmtMoney(v) : v.toLocaleString(); } } } }
+                   ticks:{ callback: function(v){ return isMoney ? fmtMoney(v) : v.toLocaleString(); } },
+                   title: yLabel ? { display: true, text: yLabel, font: { size: 11, weight: '600' } } : { display: false } } }
     }
   });
 }
-function singleLineChart(canvasId, labels, data, color, kind){
-  // kind: 'money' | 'pct' | 'int'
+function singleLineChart(canvasId, labels, data, color, kind, yLabel){
+  // kind: 'money' | 'pct' | 'int'; yLabel optional Y-axis title.
   var fmt = kind === 'money' ? fmtMoney : kind === 'pct' ? fmtPct : fmtInt;
   var tick = kind === 'money'
     ? function(v){ return fmtMoney(v); }
@@ -1153,7 +1182,8 @@ function singleLineChart(canvasId, labels, data, color, kind){
       plugins:{ legend:{ display:false },
                 tooltip:{ callbacks:{ label: function(ctx){ return fmt(ctx.parsed.y); } } } },
       scales:{ x: xAxisAllLabels(),
-               y:{ ticks:{ callback: tick } } }
+               y:{ ticks:{ callback: tick },
+                   title: yLabel ? { display: true, text: yLabel, font: { size: 11, weight: '600' } } : { display: false } } }
     }
   });
 }
@@ -1380,17 +1410,17 @@ function renderClub(){
     var data = m.data.slice(-36);
     var labels = data.map(function(r){ return monthLabel(r[monthIdx]); });
 
-    // Membership lines + bars, each metric in its own chart.
+    // Membership lines + bars, each metric in its own chart, with Y-axis labels.
     singleLineChart('chartMembersTotal', labels,
-      data.map(function(r){ return toNum(r[curIdx]); }), PALETTE.primary, 'int');
+      data.map(function(r){ return toNum(r[curIdx]); }), PALETTE.primary, 'int', 'Active Members');
     singleLineChart('chartMembers6', labels,
-      data.map(function(r){ return toNum(r[c6Idx]); }), PALETTE.accent2, 'int');
+      data.map(function(r){ return toNum(r[c6Idx]); }), PALETTE.accent2, 'int', '6-Bottle Members');
     singleLineChart('chartMembers12', labels,
-      data.map(function(r){ return toNum(r[c12Idx]); }), PALETTE.accent, 'int');
+      data.map(function(r){ return toNum(r[c12Idx]); }), PALETTE.accent, 'int', '12-Bottle Members');
     singleBarChart('chartNew', labels,
-      data.map(function(r){ return toNum(r[newIdx]); }), PALETTE.primary, false);
+      data.map(function(r){ return toNum(r[newIdx]); }), PALETTE.primary, false, 'New Sign-ups');
     singleBarChart('chartChurned', labels,
-      data.map(function(r){ return toNum(r[churnIdx]); }), PALETTE.accent, false);
+      data.map(function(r){ return toNum(r[churnIdx]); }), PALETTE.accent, false, 'Churned Members');
 
     // Net change: keep bicolor (green positive, red negative) since it's a
     // single series visualised with sign.
