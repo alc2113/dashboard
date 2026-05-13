@@ -1440,7 +1440,7 @@ function renderClub(){
       var rel = rels[i];
       html += '<div style="margin-bottom:24px;">';
       html += '<div class="chart-title" style="font-size:16px;margin-bottom:10px;">' + escHtml(rel.name) + '</div>';
-      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Sold'];
+      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Allocated'];
       var ncols = 6;
       html += '<table class="data" style="width:100%;">';
       html += '<thead><tr>' + hdr.slice(0, ncols).map(function(h){ return '<th>' + escHtml(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
