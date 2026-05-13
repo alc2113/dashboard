@@ -182,15 +182,15 @@ table.data td.num{font-variant-numeric:tabular-nums;}
 table.data td.pos{color:var(--green);}
 table.data td.neg{color:var(--red);}
 
-/* YoY-by-Month: each month group of 3 cols (prev-year / curr-year / % chg)
-   gets a stronger left border so the eye can scan month-to-month. */
-table.data-yoy thead th.month-start,
-table.data-yoy tbody td.month-start{border-left:2px solid #b8a99c;}
-table.data-yoy thead th.year-25{background:#f5edea;color:#5c1a1b;font-weight:600;}
-table.data-yoy thead th.year-26{background:#fbe9dd;color:#5c1a1b;font-weight:600;}
-table.data-yoy thead th.pct{background:#efe5e2;color:#3f1112;}
-table.data-yoy tbody td.year-25{background:#fbf6f4;}
-table.data-yoy tbody td.year-26{background:#fdf2eb;}
+/* Reusable comparison-table tints applied wherever we compare a current and a
+   prior period side-by-side (YoY-by-Month, exec Dashboard sections). */
+table.data thead th.col-current{background:#fbe9dd;color:#5c1a1b;font-weight:600;}
+table.data thead th.col-prior{background:#f5edea;color:#5c1a1b;font-weight:600;}
+table.data thead th.col-pct{background:#efe5e2;color:#3f1112;}
+table.data tbody td.col-current{background:#fdf2eb;}
+table.data tbody td.col-prior{background:#fbf6f4;}
+table.data thead th.group-start,
+table.data tbody td.group-start{border-left:2px solid #b8a99c;}
 
 .toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
 .toolbar label{font-size:13px;color:var(--text-muted);}
@@ -944,6 +944,18 @@ function renderTable(tbodyEl, theadEl, headers, rows){
   }).join('');
 }
 
+// Classify a header cell for exec-dashboard sections so we can apply the same
+// current/prior/pct tinting used in YoY-by-Month.
+function execColRole(headerCell){
+  var h = String(headerCell || '').trim().toLowerCase();
+  if (!h) return null;
+  if (h.indexOf('this month') >= 0 || h.indexOf('2026 ytd') >= 0) return 'col-current';
+  if (h.indexOf('last month') >= 0 || h.indexOf('year-over-year') >= 0 ||
+      h.indexOf('2025 ytd') >= 0) return 'col-prior';
+  if (h.indexOf('%') >= 0 || h.indexOf('chg') >= 0 || h.indexOf('change') >= 0) return 'col-pct';
+  return null;
+}
+
 function renderOverviewExecSections(){
   var sections = parsed.execSections || [];
   var out = '';
@@ -954,9 +966,27 @@ function renderOverviewExecSections(){
     out += '<div class="section-title">' + escHtml(title) + '</div>';
     out += '<div class="table-wrap"><table class="data">';
     var hdr = s.header || [];
+    // Per-column role for tinting
+    var roles = hdr.map(function(h){ return execColRole(h); });
     if (hdr.length){
-      out += '<thead><tr>' + hdr.map(function(h){ return '<th>' + escHtml(h) + '</th>'; }).join('') + '</tr></thead>';
+      out += '<thead><tr>';
+      for (var hi = 0; hi < hdr.length; hi++){
+        var role = roles[hi];
+        // First "prior" column after a "current" column gets a left border
+        // to delimit the group visually.
+        var groupStart = (role === 'col-prior' && hi > 0 && roles[hi-1] === 'col-current') ||
+                          (role === 'col-pct' && hi > 0 && roles[hi-1] !== 'col-pct');
+        var cls = [];
+        if (role) cls.push(role);
+        if (groupStart) cls.push('group-start');
+        out += '<th' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' +
+                escHtml(hdr[hi]) + '</th>';
+      }
+      out += '</tr></thead>';
     }
+    // % change cells get green/red colored text. For COSTS rows the convention
+    // is inverted (cost going up is bad), so check the section name.
+    var costsSection = s.name === 'COSTS';
     out += '<tbody>';
     for (var j = 0; j < s.data.length; j++){
       var r = s.data[j];
@@ -964,8 +994,24 @@ function renderOverviewExecSections(){
       out += '<tr>';
       for (var k = 0; k < maxLen; k++){
         var c = r[k] !== undefined ? r[k] : '';
-        var cls = k === 0 ? '' : ' class="num"';
-        out += '<td' + cls + '>' + escHtml(c) + '</td>';
+        var role2 = roles[k];
+        var cls2 = [];
+        if (k > 0) cls2.push('num');
+        if (role2) cls2.push(role2);
+        var groupStart2 = (role2 === 'col-prior' && k > 0 && roles[k-1] === 'col-current') ||
+                           (role2 === 'col-pct' && k > 0 && roles[k-1] !== 'col-pct');
+        if (groupStart2) cls2.push('group-start');
+        if (role2 === 'col-pct'){
+          var n = toNum(c);
+          if (!isNaN(n)){
+            var posClass = costsSection ? 'neg' : 'pos';
+            var negClass = costsSection ? 'pos' : 'neg';
+            if (n > 0) cls2.push(posClass);
+            else if (n < 0) cls2.push(negClass);
+          }
+        }
+        out += '<td' + (cls2.length ? ' class="' + cls2.join(' ') + '"' : '') + '>' +
+                escHtml(c) + '</td>';
       }
       out += '</tr>';
     }
@@ -1182,9 +1228,9 @@ function renderYoyTable(tbodyEl, theadEl, headers, rows){
     if (!monthHit){ colMeta.push({ month: 0, role: 'other' }); continue; }
     var monthNum = MONTH_MAP[monthHit[1].toLowerCase()];
     var role;
-    if (/% Chg/i.test(h)) role = 'pct';
-    else if (/2025/.test(h)) role = 'y25';
-    else if (/2026/.test(h)) role = 'y26';
+    if (/% Chg/i.test(h)) role = 'col-pct';
+    else if (/2025/.test(h)) role = 'col-prior';
+    else if (/2026/.test(h)) role = 'col-current';
     else role = 'other';
     colMeta.push({ month: monthNum, role: role });
     if (monthNum <= latestMonthIdx) visibleCols.push(i);
@@ -1196,10 +1242,8 @@ function renderYoyTable(tbodyEl, theadEl, headers, rows){
     var idx = visibleCols[k];
     var meta = colMeta[idx];
     var cls = [];
-    if (meta.role === 'y25') cls.push('year-25');
-    else if (meta.role === 'y26') cls.push('year-26');
-    else if (meta.role === 'pct') cls.push('pct');
-    if (meta.role === 'y25' && idx > 0) cls.push('month-start'); // start of a month group
+    if (meta.role && meta.role.indexOf('col-') === 0) cls.push(meta.role);
+    if (meta.role === 'col-prior' && idx > 0) cls.push('group-start');
     headHtml += '<th' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + '>' +
                 escHtml(headers[idx] || '') + '</th>';
   }
@@ -1217,10 +1261,9 @@ function renderYoyTable(tbodyEl, theadEl, headers, rows){
       var cell = (ix < r.length) ? r[ix] : '';
       var cls2 = [];
       if (ix > 0) cls2.push('num');
-      if (meta2.role === 'y25') cls2.push('year-25');
-      else if (meta2.role === 'y26') cls2.push('year-26');
-      if (meta2.role === 'y25' && ix > 0) cls2.push('month-start');
-      if (meta2.role === 'pct'){
+      if (meta2.role && meta2.role.indexOf('col-') === 0) cls2.push(meta2.role);
+      if (meta2.role === 'col-prior' && ix > 0) cls2.push('group-start');
+      if (meta2.role === 'col-pct'){
         var n = toNum(cell);
         if (!isNaN(n)){
           // Format as percent in case the sheet's number format hasn't propagated yet
