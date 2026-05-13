@@ -991,7 +991,7 @@ function renderToday(){
   html += '</table></div>';
 
   // Top products
-  html += '<div><div class="chart-title">Top Products Today</div>';
+  html += '<div><div class="chart-title">Top Products Yesterday</div>';
   var topRows = [];
   var inTop = false;
   for (var k = 0; k < rows.length; k++){
@@ -1010,7 +1010,7 @@ function renderToday(){
     }
     html += '</tbody></table>';
   } else {
-    html += '<div class="muted">No sales recorded yet today.</div>';
+    html += '<div class="muted">No sales recorded yesterday.</div>';
   }
   html += '</div></div>';
   document.getElementById('todayBlock').innerHTML = html;
