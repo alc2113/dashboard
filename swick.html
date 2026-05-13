@@ -285,28 +285,46 @@ table.data td.neg{color:var(--red);}
           <option value="0">All</option>
         </select>
       </div>
-      <div class="chart-row one">
-        <div class="chart-card">
-          <div class="chart-title">Revenue by Segment</div>
-          <div class="chart-wrap tall"><canvas id="chartRevSeg"></canvas></div>
-        </div>
+
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-title">Club Release Revenue</div>
+          <div class="chart-wrap"><canvas id="chartRevRelease"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Club Member Revenue</div>
+          <div class="chart-wrap"><canvas id="chartRevMember"></canvas></div></div>
       </div>
       <div class="chart-row">
-        <div class="chart-card">
-          <div class="chart-title">Gross &amp; Net Profit</div>
-          <div class="chart-wrap"><canvas id="chartProfit"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Margins</div>
-          <div class="chart-wrap"><canvas id="chartMargins"></canvas></div>
-        </div>
+        <div class="chart-card"><div class="chart-title">Non-Club DTC Revenue</div>
+          <div class="chart-wrap"><canvas id="chartRevNonClub"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Gross Revenue (all segments)</div>
+          <div class="chart-wrap"><canvas id="chartRevTotal"></canvas></div></div>
       </div>
-      <div class="chart-row one">
-        <div class="chart-card">
-          <div class="chart-title">Orders by Segment</div>
-          <div class="chart-wrap"><canvas id="chartOrdersSeg"></canvas></div>
-        </div>
+
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-title">Gross Profit</div>
+          <div class="chart-wrap"><canvas id="chartGrossProfit"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Net Profit</div>
+          <div class="chart-wrap"><canvas id="chartNetProfit"></canvas></div></div>
       </div>
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-title">Gross Margin %</div>
+          <div class="chart-wrap"><canvas id="chartGrossMargin"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Net Margin %</div>
+          <div class="chart-wrap"><canvas id="chartNetMargin"></canvas></div></div>
+      </div>
+
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-title">Club Release Orders</div>
+          <div class="chart-wrap"><canvas id="chartOrdersRelease"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Club Member Orders</div>
+          <div class="chart-wrap"><canvas id="chartOrdersMember"></canvas></div></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-title">Non-Club DTC Orders</div>
+          <div class="chart-wrap"><canvas id="chartOrdersNonClub"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Total Orders</div>
+          <div class="chart-wrap"><canvas id="chartOrdersTotal"></canvas></div></div>
+      </div>
+
       <details class="details">
         <summary>Show raw P&amp;L history table</summary>
         <div class="table-wrap"><table class="data" id="pnlHistoryTable"><thead></thead><tbody></tbody></table></div>
@@ -319,11 +337,26 @@ table.data td.neg{color:var(--red);}
     <div class="section">
       <div class="section-title">Annual Summary</div>
       <div class="table-wrap"><table class="data" id="annualTable"><thead></thead><tbody></tbody></table></div>
-      <div class="chart-card" style="margin-top:18px;">
-        <div class="chart-title">Annual Revenue &amp; Net Profit</div>
-        <div class="chart-wrap"><canvas id="chartAnnual"></canvas></div>
+      <div class="chart-row" style="margin-top:18px;">
+        <div class="chart-card"><div class="chart-title">Annual Gross Revenue</div>
+          <div class="chart-wrap"><canvas id="chartAnnualRev"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Annual Net Profit</div>
+          <div class="chart-wrap"><canvas id="chartAnnualNp"></canvas></div></div>
       </div>
     </div>
+
+    <div class="section">
+      <div class="section-title">Adjusted Comparison — Half Club Releases</div>
+      <div class="section-sub">What if 2020–2025 had half the club releases? Makes prior years comparable to 2026's reduced release schedule.</div>
+      <div class="table-wrap"><table class="data" id="adjTable"><thead></thead><tbody></tbody></table></div>
+      <div class="chart-row" style="margin-top:18px;">
+        <div class="chart-card"><div class="chart-title">Adjusted Net Revenue</div>
+          <div class="chart-wrap"><canvas id="chartAdjRev"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Adjusted Net Profit</div>
+          <div class="chart-wrap"><canvas id="chartAdjNp"></canvas></div></div>
+      </div>
+    </div>
+
     <div class="section">
       <div class="section-title">Year-over-Year by Month</div>
       <div class="table-wrap"><table class="data" id="yoyMonthlyTable"><thead></thead><tbody></tbody></table></div>
@@ -335,9 +368,11 @@ table.data td.neg{color:var(--red);}
     <div class="section">
       <div class="section-title">2026 Forecast — Remaining Months</div>
       <div class="table-wrap"><table class="data" id="forecastTable"><thead></thead><tbody></tbody></table></div>
-      <div class="chart-card" style="margin-top:18px;">
-        <div class="chart-title">Forecast Revenue by Month</div>
-        <div class="chart-wrap"><canvas id="chartForecast"></canvas></div>
+      <div class="chart-row" style="margin-top:18px;">
+        <div class="chart-card"><div class="chart-title">DTC-Only Months</div>
+          <div class="chart-wrap"><canvas id="chartForecastDTC"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Release Months</div>
+          <div class="chart-wrap"><canvas id="chartForecastRel"></canvas></div></div>
       </div>
     </div>
     <div class="section">
@@ -354,21 +389,23 @@ table.data td.neg{color:var(--red);}
     </div>
     <div class="section">
       <div class="section-title">Membership Over Time (last 36 months)</div>
-      <div class="chart-row one">
-        <div class="chart-card">
-          <div class="chart-title">Active Members</div>
-          <div class="chart-wrap tall"><canvas id="chartMembers"></canvas></div>
-        </div>
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-title">Total Active Members</div>
+          <div class="chart-wrap"><canvas id="chartMembersTotal"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Net Membership Change</div>
+          <div class="chart-wrap"><canvas id="chartNet"></canvas></div></div>
       </div>
       <div class="chart-row">
-        <div class="chart-card">
-          <div class="chart-title">Acquisition vs Churn</div>
-          <div class="chart-wrap"><canvas id="chartChurn"></canvas></div>
-        </div>
-        <div class="chart-card">
-          <div class="chart-title">Net Membership Change</div>
-          <div class="chart-wrap"><canvas id="chartNet"></canvas></div>
-        </div>
+        <div class="chart-card"><div class="chart-title">6-Bottle Club</div>
+          <div class="chart-wrap"><canvas id="chartMembers6"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">12-Bottle Club</div>
+          <div class="chart-wrap"><canvas id="chartMembers12"></canvas></div></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card"><div class="chart-title">New Members</div>
+          <div class="chart-wrap"><canvas id="chartNew"></canvas></div></div>
+        <div class="chart-card"><div class="chart-title">Churned</div>
+          <div class="chart-wrap"><canvas id="chartChurned"></canvas></div></div>
       </div>
       <details class="details">
         <summary>Show full membership history</summary>
@@ -587,12 +624,45 @@ function parseMembership(rows){
 }
 
 function parseAnnual(rows){
-  // Title + subtitle + blank + header at row 3
+  // Title + subtitle + blank + header at row 3.
+  // The sheet also embeds an "ADJUSTED COMPARISON: HALF CLUB RELEASES" block
+  // farther down — that's parsed separately by parseAdjusted, so we stop
+  // collecting at that boundary.
   if (!rows || rows.length < 5) return { headers:[], data:[] };
   var header = rows[3] || [];
   var data = [];
   for (var i = 4; i < rows.length; i++){
     var r = rows[i];
+    if (!r || !r[0]) continue;
+    if (/ADJUSTED COMPARISON/i.test(String(r[0]))) break;
+    var padded = r.slice();
+    while (padded.length < header.length) padded.push('');
+    data.push(padded.slice(0, header.length));
+  }
+  return { headers: header, data: data };
+}
+
+function parseAdjusted(rows){
+  // ADJUSTED COMPARISON section in Annual Summary: title, description, blank,
+  // header, then metric rows. Stops at next blank-row run or end of sheet.
+  if (!rows) return { headers:[], data:[] };
+  var start = -1;
+  for (var i = 0; i < rows.length; i++){
+    if (rows[i] && /ADJUSTED COMPARISON/i.test(String(rows[i][0] || ''))){
+      start = i; break;
+    }
+  }
+  if (start < 0) return { headers:[], data:[] };
+  // Find header row (first row after start whose col0 is "Metric")
+  var hdrIdx = -1;
+  for (var j = start + 1; j < Math.min(start + 8, rows.length); j++){
+    if (rows[j] && String(rows[j][0] || '').trim() === 'Metric'){ hdrIdx = j; break; }
+  }
+  if (hdrIdx < 0) return { headers:[], data:[] };
+  var header = rows[hdrIdx];
+  var data = [];
+  for (var k = hdrIdx + 1; k < rows.length; k++){
+    var r = rows[k];
     if (!r || !r[0]) continue;
     var padded = r.slice();
     while (padded.length < header.length) padded.push('');
@@ -602,7 +672,12 @@ function parseAnnual(rows){
 }
 
 function parseForecast(rows){
-  // Title + 'Generated' + blank + header at row 3, monthly rows then projection
+  // Title + 'Generated' + blank + header at row 3, then monthly forecast rows,
+  // then a sequence of named blocks (ANNUAL PROJECTION → REVENUE / COSTS / PROFIT
+  // → APRIL RELEASE LINEUP → ORDER VALUE → PROJECTED APRIL REVENUE →
+  // NON-RELEASE MONTHS → SEASONAL MULTIPLIERS → RECENT NON-RELEASE MONTHS).
+  // We only surface the Revenue / Costs / Profit summary on the dashboard;
+  // the rest stays in the sheet for debugging.
   if (!rows || rows.length < 5) return { headers:[], monthly:[], projection:[] };
   var header = rows[3] || [];
   var monthly = [];
@@ -616,18 +691,38 @@ function parseForecast(rows){
     monthly.push(padded.slice(0, header.length));
     i++;
   }
-  // find 'ANNUAL PROJECTION' marker and gather projection rows
+
+  // Collect projection summary: only the REVENUE / COSTS / PROFIT blocks.
+  // Each block starts on a line like "REVENUE", "COSTS", or "PROFIT", and
+  // ends at the next block-header / known-noise marker / blank stretch.
+  var SUMMARY_HEADS = new Set(['REVENUE','COSTS','PROFIT']);
+  // Sections that signal "we're past the clean projection" — stop collecting.
+  var STOP_RE = /(APRIL\s+\d{4}\s+RELEASE|ORDER VALUE CALCULATION|PROJECTED\s+\w+\s+REVENUE|NON-RELEASE MONTHS|SEASONAL MULTIPLIERS|RECENT NON-RELEASE)/i;
   var projection = [];
-  var inProj = false;
+  var inAnnual = false;
+  var inSummaryBlock = false;
   for (; i < rows.length; i++){
     var r2 = rows[i];
     if (!r2 || !r2[0]) continue;
-    var first = String(r2[0]).toUpperCase();
-    if (first.indexOf('ANNUAL PROJECTION') >= 0){ inProj = true; continue; }
-    if (inProj && r2[0]){
-      var p = r2.slice(0,3);
-      while (p.length < 3) p.push('');
-      projection.push(p);
+    var first = String(r2[0]).trim();
+    var firstU = first.toUpperCase();
+    if (firstU.indexOf('ANNUAL PROJECTION') >= 0){
+      inAnnual = true;
+      projection.push([first, '']);
+      continue;
+    }
+    if (!inAnnual) continue;
+    if (STOP_RE.test(first)) break;
+    if (SUMMARY_HEADS.has(firstU)){
+      inSummaryBlock = true;
+      projection.push([first, '']);
+      continue;
+    }
+    // Months Remaining row sits before the first summary block — keep it.
+    if (firstU === 'MONTHS REMAINING' || firstU.indexOf('EST.') === 0 ||
+        ['CLUB RELEASE REVENUE','CLUB MEMBER REVENUE','NON-CLUB DTC REVENUE',
+         'COGS (PRODUCT)','FIXED COSTS','REFUNDS'].indexOf(firstU) >= 0){
+      projection.push([first, r2[1] !== undefined ? r2[1] : '']);
     }
   }
   return { headers: header, monthly: monthly, projection: projection };
@@ -706,13 +801,15 @@ function parseReleaseConfig(rows){
     var first = String(r[0] || '').trim();
     if (monthRe.test(first)){
       if (cur && cur.skus.length) releases.push(cur);
-      cur = { name: first, header: null, skus: [] };
+      cur = { name: first, header: null, skus: [], total: null };
       continue;
     }
     if (!cur) continue;
     if (first === 'SKU') { cur.header = r; continue; }
     if (first.startsWith('SW') && r.length >= 5){
       cur.skus.push(r);
+    } else if (first === 'TOTAL') {
+      cur.total = r;
     }
   }
   if (cur && cur.skus.length) releases.push(cur);
@@ -952,6 +1049,44 @@ function monthLabel(ym){
   return dt.toLocaleString('en-US',{month:'short', year:'2-digit'});
 }
 
+// Chart factory helpers — every chart is single-series so they're easy to read.
+function singleBarChart(canvasId, labels, data, color, isMoney){
+  createChart(canvasId, {
+    type:'bar',
+    data:{ labels: labels, datasets:[{ data: data, backgroundColor: color, borderWidth: 0 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false },
+                tooltip:{ callbacks:{ label: function(ctx){ return isMoney ? fmtMoney(ctx.parsed.y) : fmtInt(ctx.parsed.y); } } } },
+      scales:{ y:{ beginAtZero:true,
+                   ticks:{ callback: function(v){ return isMoney ? fmtMoney(v) : v.toLocaleString(); } } } }
+    }
+  });
+}
+function singleLineChart(canvasId, labels, data, color, kind){
+  // kind: 'money' | 'pct' | 'int'
+  var fmt = kind === 'money' ? fmtMoney : kind === 'pct' ? fmtPct : fmtInt;
+  var tick = kind === 'money'
+    ? function(v){ return fmtMoney(v); }
+    : kind === 'pct'
+      ? function(v){ return (v*100).toFixed(0) + '%'; }
+      : function(v){ return v.toLocaleString(); };
+  createChart(canvasId, {
+    type:'line',
+    data:{ labels: labels, datasets:[{
+      data: data, borderColor: color, backgroundColor: color,
+      tension:0.2, fill:false, borderWidth:3,
+      pointRadius:3, pointBackgroundColor: color
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display:false },
+                tooltip:{ callbacks:{ label: function(ctx){ return fmt(ctx.parsed.y); } } } },
+      scales:{ y:{ ticks:{ callback: tick } } }
+    }
+  });
+}
+
 function renderTrendCharts(){
   var hist = parsed.pnlHistory;
   if (!hist || !hist.months.length) return;
@@ -966,68 +1101,63 @@ function renderTrendCharts(){
       return c ? c.num : null;
     });
   }
-  var moneyAx = { ticks: { callback: function(v){ return fmtMoney(v); } } };
-  var pctAx = { ticks: { callback: function(v){ return (v*100).toFixed(0) + '%'; } } };
 
-  // Revenue stacked bars
-  createChart('chartRevSeg', {
-    type:'bar',
-    data:{ labels: labels, datasets:[
-      { label:'Club Release Revenue', data: vals('Club Release Revenue'), backgroundColor: PALETTE.release },
-      { label:'Club Member Revenue',  data: vals('Club Member Revenue'),  backgroundColor: PALETTE.member },
-      { label:'Non-Club DTC Revenue', data: vals('Non-Club DTC Revenue'), backgroundColor: PALETTE.nonClub },
-    ]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true, ticks: moneyAx.ticks } },
-      plugins:{ legend:{ position:'bottom' },
-                tooltip:{ callbacks:{ label: function(ctx){ return ctx.dataset.label + ': ' + fmtMoney(ctx.parsed.y); } } } }
-    }
-  });
+  // Revenue: 3 segment charts + 1 total
+  singleBarChart('chartRevRelease', labels, vals('Club Release Revenue'), PALETTE.release, true);
+  singleBarChart('chartRevMember',  labels, vals('Club Member Revenue'),  PALETTE.member,  true);
+  singleBarChart('chartRevNonClub', labels, vals('Non-Club DTC Revenue'), PALETTE.nonClub, true);
+  singleBarChart('chartRevTotal',   labels, vals('Gross Revenue'),        PALETTE.primary, true);
 
-  createChart('chartProfit', {
-    type:'line',
-    data:{ labels: labels, datasets:[
-      { label:'Gross Profit', data: vals('Gross Profit'), borderColor: PALETTE.primary, backgroundColor: PALETTE.primary, tension:0.2, fill:false },
-      { label:'Net Profit',   data: vals('Net Profit'),   borderColor: PALETTE.accent,  backgroundColor: PALETTE.accent,  tension:0.2, fill:false },
-    ]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{ y:{ ticks: moneyAx.ticks } },
-      plugins:{ legend:{ position:'bottom' },
-                tooltip:{ callbacks:{ label: function(ctx){ return ctx.dataset.label + ': ' + fmtMoney(ctx.parsed.y); } } } }
-    }
-  });
+  // Profit + Margin — separate
+  singleLineChart('chartGrossProfit',  labels, vals('Gross Profit'),   PALETTE.primary, 'money');
+  singleLineChart('chartNetProfit',    labels, vals('Net Profit'),     PALETTE.accent,  'money');
+  singleLineChart('chartGrossMargin',  labels, vals('Gross Margin %'), PALETTE.primary, 'pct');
+  singleLineChart('chartNetMargin',    labels, vals('Net Margin %'),   PALETTE.accent,  'pct');
 
-  createChart('chartMargins', {
-    type:'line',
-    data:{ labels: labels, datasets:[
-      { label:'Gross Margin', data: vals('Gross Margin %'), borderColor: PALETTE.primary, backgroundColor: PALETTE.primary, tension:0.2, fill:false },
-      { label:'Net Margin',   data: vals('Net Margin %'),   borderColor: PALETTE.accent,  backgroundColor: PALETTE.accent,  tension:0.2, fill:false },
-    ]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{ y:{ ticks: pctAx.ticks } },
-      plugins:{ legend:{ position:'bottom' },
-                tooltip:{ callbacks:{ label: function(ctx){ return ctx.dataset.label + ': ' + fmtPct(ctx.parsed.y); } } } }
-    }
-  });
-
-  createChart('chartOrdersSeg', {
-    type:'bar',
-    data:{ labels: labels, datasets:[
-      { label:'Club Release Orders', data: vals('Club Release Orders'), backgroundColor: PALETTE.release },
-      { label:'Club Member Orders',  data: vals('Club Member Orders'),  backgroundColor: PALETTE.member },
-      { label:'Non-Club Orders',     data: vals('Non-Club Orders'),     backgroundColor: PALETTE.nonClub },
-    ]},
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{ x:{ stacked:true }, y:{ stacked:true, beginAtZero:true } },
-      plugins:{ legend:{ position:'bottom' } }
-    }
-  });
+  // Orders — 3 segments + total
+  singleBarChart('chartOrdersRelease', labels, vals('Club Release Orders'), PALETTE.release, false);
+  singleBarChart('chartOrdersMember',  labels, vals('Club Member Orders'),  PALETTE.member,  false);
+  singleBarChart('chartOrdersNonClub', labels, vals('Non-Club Orders'),     PALETTE.nonClub, false);
+  singleBarChart('chartOrdersTotal',   labels, vals('Total Orders'),        PALETTE.primary, false);
 
   renderPnlHistoryTable(visible);
+}
+
+// Render a table with red/green coloring on % Change cells.
+function renderYoyTable(tbodyEl, theadEl, headers, rows){
+  theadEl.innerHTML = '<tr>' + headers.map(function(h){
+    return '<th>' + escHtml(h) + '</th>';
+  }).join('') + '</tr>';
+  // Find columns whose header contains '%' or 'Chg' — color those cells.
+  var pctCols = headers.map(function(h){
+    var s = String(h);
+    return /(%|Chg|Change)/i.test(s);
+  });
+  tbodyEl.innerHTML = rows.map(function(r){
+    return '<tr>' + r.map(function(c, idx){
+      var cls = idx === 0 ? '' : ' class="num';
+      if (idx > 0 && pctCols[idx]){
+        var n = toNum(c);
+        if (!isNaN(n)){
+          if (n > 0) cls += ' pos';
+          else if (n < 0) cls += ' neg';
+        }
+      }
+      if (idx > 0) cls += '"';
+      return '<td' + cls + '>' + escHtml(c) + '</td>';
+    }).join('') + '</tr>';
+  }).join('');
+}
+
+// Pull years out of the Annual Summary header in the order they appear in the
+// sheet (now: 2026 YTD, 2026 Full Year, 2025, 2024, …, 2020).
+function annualLabelCols(headers){
+  return headers.map(function(h, i){
+    var s = String(h);
+    if (i === 0) return null; // metric name column
+    if (/^\d{4}$/.test(s) || /20\d{2}/.test(s)) return { label: s, idx: i };
+    return null;
+  }).filter(Boolean);
 }
 
 function renderAnnualYoY(){
@@ -1036,32 +1166,47 @@ function renderAnnualYoY(){
     var tbl = document.getElementById('annualTable');
     renderTable(tbl.tBodies[0], tbl.tHead, a.headers, a.data);
 
-    // Build chart of Gross Revenue + Net Profit by year
-    var yearCols = a.headers.filter(function(h){ return /^\d{4}$/.test(String(h)); });
+    var cols = annualLabelCols(a.headers);
+    var labels = cols.map(function(c){ return c.label; });
     var revRow = a.data.find(function(r){ return r[0] === 'Gross Revenue'; });
-    var npRow = a.data.find(function(r){ return r[0] === 'Net Profit'; });
-    if (revRow && npRow){
-      var revVals = yearCols.map(function(y){ return toNum(revRow[a.headers.indexOf(y)]); });
-      var npVals  = yearCols.map(function(y){ return toNum(npRow[a.headers.indexOf(y)]); });
-      createChart('chartAnnual', {
-        type:'bar',
-        data:{ labels: yearCols, datasets:[
-          { label:'Gross Revenue', data: revVals, backgroundColor: PALETTE.primary },
-          { label:'Net Profit',    data: npVals,  backgroundColor: PALETTE.accent },
-        ]},
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          scales:{ y:{ ticks:{ callback:function(v){ return fmtMoney(v); } } } },
-          plugins:{ legend:{ position:'bottom' },
-                    tooltip:{ callbacks:{ label:function(ctx){ return ctx.dataset.label + ': ' + fmtMoney(ctx.parsed.y); } } } }
-        }
-      });
+    var npRow  = a.data.find(function(r){ return r[0] === 'Net Profit'; });
+    if (revRow){
+      singleBarChart('chartAnnualRev', labels,
+        cols.map(function(c){ return toNum(revRow[c.idx]); }),
+        PALETTE.primary, true);
+    }
+    if (npRow){
+      singleBarChart('chartAnnualNp', labels,
+        cols.map(function(c){ return toNum(npRow[c.idx]); }),
+        PALETTE.accent, true);
     }
   }
+
+  // Adjusted Comparison — Half Club Releases
+  var adj = parsed.adjusted;
+  if (adj && adj.data && adj.data.length){
+    var tblA = document.getElementById('adjTable');
+    renderTable(tblA.tBodies[0], tblA.tHead, adj.headers, adj.data);
+    var cols2 = annualLabelCols(adj.headers);
+    var labels2 = cols2.map(function(c){ return c.label; });
+    var adjNr  = adj.data.find(function(r){ return r[0] === 'Net Revenue'; });
+    var adjNp  = adj.data.find(function(r){ return r[0] === 'Net Profit'; });
+    if (adjNr){
+      singleBarChart('chartAdjRev', labels2,
+        cols2.map(function(c){ return toNum(adjNr[c.idx]); }),
+        PALETTE.primary, true);
+    }
+    if (adjNp){
+      singleBarChart('chartAdjNp', labels2,
+        cols2.map(function(c){ return toNum(adjNp[c.idx]); }),
+        PALETTE.accent, true);
+    }
+  }
+
   var y = parsed.yoy;
   if (y && y.monthly.length){
     var tbl2 = document.getElementById('yoyMonthlyTable');
-    renderTable(tbl2.tBodies[0], tbl2.tHead, y.headers, y.monthly);
+    renderYoyTable(tbl2.tBodies[0], tbl2.tHead, y.headers, y.monthly);
   }
 }
 
@@ -1074,31 +1219,28 @@ function renderForecast(){
   var monthIdx = 0;
   var typeIdx = f.headers.indexOf('Type');
   var revIdx = f.headers.findIndex(function(h){ return String(h).indexOf('Total Revenue') >= 0; });
+
+  // Split DTC-only vs release months into two charts — the $30k release dwarfs
+  // the $2-4k DTC months in any combined view.
   if (revIdx >= 0){
-    var labels = f.monthly.map(function(r){ return monthLabel(r[monthIdx]); });
-    var types = f.monthly.map(function(r){ return r[typeIdx]; });
-    var vals = f.monthly.map(function(r){ return toNum(r[revIdx]); });
-    var colors = types.map(function(t){ return t === 'RELEASE (est.)' ? PALETTE.primary : PALETTE.accent; });
-    createChart('chartForecast', {
-      type:'bar',
-      data:{ labels: labels, datasets:[
-        { label:'Total Revenue', data: vals, backgroundColor: colors }
-      ]},
-      options:{
-        responsive:true, maintainAspectRatio:false,
-        scales:{ y:{ ticks:{ callback:function(v){ return fmtMoney(v); } } } },
-        plugins:{ legend:{ display:false },
-                  tooltip:{ callbacks:{
-                    label: function(ctx){
-                      return types[ctx.dataIndex] + ': ' + fmtMoney(ctx.parsed.y);
-                    }
-                  } } }
+    var dtcLabels = [], dtcVals = [], relLabels = [], relVals = [];
+    f.monthly.forEach(function(r){
+      var lbl = monthLabel(r[monthIdx]);
+      var v = toNum(r[revIdx]);
+      if (String(r[typeIdx] || '').indexOf('RELEASE') >= 0){
+        relLabels.push(lbl); relVals.push(v);
+      } else {
+        dtcLabels.push(lbl); dtcVals.push(v);
       }
     });
+    singleBarChart('chartForecastDTC', dtcLabels, dtcVals, PALETTE.accent, true);
+    singleBarChart('chartForecastRel', relLabels, relVals, PALETTE.primary, true);
   }
 
+  // Annual Projection: clean summary only (no Notes column, no recent-non-release
+  // data dump). parseForecast already filtered to Revenue/Costs/Profit rows.
   var tbl2 = document.getElementById('forecastProjTable');
-  renderTable(tbl2.tBodies[0], tbl2.tHead, ['Item','Value','Notes'], f.projection);
+  renderTable(tbl2.tBodies[0], tbl2.tHead, ['Item', 'Value'], f.projection);
 }
 
 function renderClub(){
@@ -1122,42 +1264,30 @@ function renderClub(){
     var data = m.data.slice(-36);
     var labels = data.map(function(r){ return monthLabel(r[monthIdx]); });
 
-    createChart('chartMembers', {
-      type:'line',
-      data:{ labels: labels, datasets:[
-        { label:'Total Current', data: data.map(function(r){ return toNum(r[curIdx]); }),
-          borderColor: PALETTE.primary, backgroundColor: PALETTE.primary, tension:0.2, fill:false, borderWidth:3 },
-        { label:'6-Bottle', data: data.map(function(r){ return toNum(r[c6Idx]); }),
-          borderColor: PALETTE.accent2, backgroundColor: PALETTE.accent2, tension:0.2, fill:false, borderDash:[4,4] },
-        { label:'12-Bottle', data: data.map(function(r){ return toNum(r[c12Idx]); }),
-          borderColor: PALETTE.accent, backgroundColor: PALETTE.accent, tension:0.2, fill:false, borderDash:[4,4] },
-      ]},
-      options:{ responsive:true, maintainAspectRatio:false,
-                plugins:{ legend:{ position:'bottom' } },
-                scales:{ y:{ beginAtZero:true } } }
-    });
+    // Membership lines + bars, each metric in its own chart.
+    singleLineChart('chartMembersTotal', labels,
+      data.map(function(r){ return toNum(r[curIdx]); }), PALETTE.primary, 'int');
+    singleLineChart('chartMembers6', labels,
+      data.map(function(r){ return toNum(r[c6Idx]); }), PALETTE.accent2, 'int');
+    singleLineChart('chartMembers12', labels,
+      data.map(function(r){ return toNum(r[c12Idx]); }), PALETTE.accent, 'int');
+    singleBarChart('chartNew', labels,
+      data.map(function(r){ return toNum(r[newIdx]); }), PALETTE.primary, false);
+    singleBarChart('chartChurned', labels,
+      data.map(function(r){ return toNum(r[churnIdx]); }), PALETTE.accent, false);
 
-    createChart('chartChurn', {
-      type:'bar',
-      data:{ labels: labels, datasets:[
-        { label:'New Members', data: data.map(function(r){ return toNum(r[newIdx]); }), backgroundColor: PALETTE.primary },
-        { label:'Churned',     data: data.map(function(r){ var v = toNum(r[churnIdx]); return isNaN(v) ? null : -v; }), backgroundColor: PALETTE.accent },
-      ]},
-      options:{ responsive:true, maintainAspectRatio:false,
-                plugins:{ legend:{ position:'bottom' } },
-                scales:{ y:{ beginAtZero:true } } }
-    });
-
+    // Net change: keep bicolor (green positive, red negative) since it's a
+    // single series visualised with sign.
     createChart('chartNet', {
       type:'bar',
       data:{ labels: labels, datasets:[
-        { label:'Net Change',
-          data: data.map(function(r){ return toNum(r[netIdx]); }),
+        { data: data.map(function(r){ return toNum(r[netIdx]); }),
           backgroundColor: data.map(function(r){ var v = toNum(r[netIdx]); return v >= 0 ? PALETTE.primary : PALETTE.accent; }),
         }
       ]},
       options:{ responsive:true, maintainAspectRatio:false,
-                plugins:{ legend:{ display:false } } }
+                plugins:{ legend:{ display:false },
+                          tooltip:{ callbacks:{ label: function(ctx){ var v = ctx.parsed.y; return (v>=0?'+':'') + fmtInt(v); } } } } }
     });
 
     var tbl = document.getElementById('membershipTable');
@@ -1173,15 +1303,24 @@ function renderClub(){
       var rel = rels[i];
       html += '<div style="margin-bottom:18px;">';
       html += '<div class="chart-title">' + escHtml(rel.name) + '</div>';
-      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle'];
+      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Sold'];
+      var ncols = 6;
       html += '<table class="data" style="width:100%;">';
-      html += '<thead><tr>' + hdr.slice(0,5).map(function(h){ return '<th>' + escHtml(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
+      html += '<thead><tr>' + hdr.slice(0, ncols).map(function(h){ return '<th>' + escHtml(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
       for (var j = 0; j < rel.skus.length; j++){
-        var s = rel.skus[j].slice(0, 5);
-        while (s.length < 5) s.push('');
+        var s = rel.skus[j].slice(0, ncols);
+        while (s.length < ncols) s.push('');
         html += '<tr>' + s.map(function(c, idx){
-          return '<td' + (idx === 0 || idx === 1 || idx === 2 ? '' : ' class="num"') + '>' + escHtml(c) + '</td>';
+          return '<td' + (idx <= 2 ? '' : ' class="num"') + '>' + escHtml(c) + '</td>';
         }).join('') + '</tr>';
+      }
+      if (rel.total){
+        var t = rel.total.slice(0, ncols);
+        while (t.length < ncols) t.push('');
+        html += '<tr style="font-weight:600;background:var(--header-bg);">' +
+                t.map(function(c, idx){
+                  return '<td' + (idx <= 2 ? '' : ' class="num"') + '>' + escHtml(c) + '</td>';
+                }).join('') + '</tr>';
       }
       html += '</tbody></table>';
       html += '</div>';
@@ -1227,6 +1366,7 @@ async function loadData(){
     parsed.pnlHistory   = parsePnlHistory(raw.pnl_history);
     parsed.membership   = parseMembership(raw.membership);
     parsed.annual       = parseAnnual(raw.annual);
+    parsed.adjusted     = parseAdjusted(raw.annual);
     parsed.forecast     = parseForecast(raw.forecast);
     parsed.yoy          = parseYoY(raw.yoy);
     parsed.execSections = parseExecDashboard(raw.dashboard);
