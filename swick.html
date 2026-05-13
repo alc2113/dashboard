@@ -763,11 +763,17 @@ function renderKpiStrip(){
   var prevRev = prev ? v('Gross Revenue', prev) : NaN;
   var prevNp = prev ? v('Net Profit', prev) : NaN;
 
-  // Active members from club snapshot 'Current' row
+  // Active members = Current + Pending (Bloom ships to both for next release).
+  // Pull the "Active …" row written by write_wine_club_tab; fall back to Current
+  // if that row isn't there (older sheet snapshots).
   var active = '—';
   if (club && club.data){
-    var cur = club.data.find(function(r){ return r[0] === 'Current'; });
-    if (cur) active = cur[3] || '—';
+    var act = club.data.find(function(r){ return /^Active/.test(String(r[0])); });
+    if (act) active = act[3] || '—';
+    else {
+      var cur = club.data.find(function(r){ return r[0] === 'Current'; });
+      if (cur) active = cur[3] || '—';
+    }
   }
 
   function dtxt(d, suffix){
