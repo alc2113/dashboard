@@ -814,8 +814,13 @@ function parseReleaseConfig(rows){
     if (monthRe.test(first)){
       if (cur && cur.skus.length) releases.push(cur);
       cur = { name: first, header: null, skus: [], total: null,
+              shipmentsNote: null,
               suppHeader: null, suppRows: [], suppTotal: null };
       inSupp = false;
+      continue;
+    }
+    if (cur && /^Shipments:/i.test(first)){
+      cur.shipmentsNote = first;
       continue;
     }
     if (!cur) continue;
@@ -1440,7 +1445,7 @@ function renderClub(){
       var rel = rels[i];
       html += '<div style="margin-bottom:24px;">';
       html += '<div class="chart-title" style="font-size:16px;margin-bottom:10px;">' + escHtml(rel.name) + '</div>';
-      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Allocated'];
+      var hdr = rel.header || ['SKU','Wine Name','Style','Retail Price','COGS/Bottle','Bottles Shipped'];
       var ncols = 6;
       html += '<table class="data" style="width:100%;">';
       html += '<thead><tr>' + hdr.slice(0, ncols).map(function(h){ return '<th>' + escHtml(h) + '</th>'; }).join('') + '</tr></thead><tbody>';
@@ -1460,6 +1465,10 @@ function renderClub(){
                 }).join('') + '</tr>';
       }
       html += '</tbody></table>';
+      if (rel.shipmentsNote){
+        html += '<div style="font-size:12px;color:var(--text-muted);font-style:italic;margin-top:6px;">' +
+                escHtml(rel.shipmentsNote) + '</div>';
+      }
       html += '</div>';
     }
   }
