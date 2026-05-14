@@ -1052,8 +1052,10 @@ function normalizeGoogleAdDetail(r) {
 
 function normalizeAssetRow(r, type) {
   var textCol = type === 'headline' ? 'Headline' : 'Description';
+  var plat = String(r['Platform'] || '').trim().toLowerCase();
   return {
     text: String(r[textCol] || '').trim(),
+    platform: plat === 'meta' ? 'meta' : (plat === 'google' ? 'google' : ''),
     spend: pv(r['Spend']),
     impressions: pv(r['Impressions']),
     clicks: pv(r['Clicks']),
@@ -2186,20 +2188,38 @@ function renderBreakdowns() {
 // TAB: ASSETS (Headlines & Descriptions)
 // ========================================================================
 function renderAssets() {
+  var fs = getFilterState();
+  var type = document.getElementById('assetType').value;
+  var sourceData = type === 'headline' ? headlineData : descriptionData;
+  var typeLabel = type === 'headline' ? 'Headline' : 'Description';
+
+  // Apply platform filter (rows have .platform set by normalizeAssetRow).
+  var data = sourceData;
+  if (fs.platform) {
+    data = sourceData.filter(function(r) { return r.platform === fs.platform; });
+  }
+
   var emptyEl = document.getElementById('assetsEmpty');
   var contentEl = document.getElementById('assetsContent');
-  if (getFilterState().platform === 'meta') {
-    if (emptyEl) emptyEl.style.display = 'block';
+  if (data.length === 0) {
+    if (emptyEl) {
+      var msg = 'No ' + typeLabel.toLowerCase() + ' data for the current filter.';
+      if (fs.platform === 'meta') {
+        msg = 'No Meta ' + typeLabel.toLowerCase() + ' data in this date range. ' +
+              'Meta only reports asset-level performance for ads using dynamic creative.';
+      } else if (fs.platform === 'google') {
+        msg = 'No Google ' + typeLabel.toLowerCase() + ' data in this date range.';
+      }
+      emptyEl.querySelector('.empty-state-title').textContent = 'No ' + typeLabel.toLowerCase() + ' data';
+      emptyEl.querySelector('.empty-state-body').textContent = msg;
+      emptyEl.style.display = 'block';
+    }
     if (contentEl) contentEl.style.display = 'none';
     destroyChart('chartAssetCalls'); destroyChart('chartAssetCPL'); destroyChart('chartAssetSpend');
     return;
   }
   if (emptyEl) emptyEl.style.display = 'none';
   if (contentEl) contentEl.style.display = '';
-
-  var type = document.getElementById('assetType').value;
-  var data = type === 'headline' ? headlineData : descriptionData;
-  var typeLabel = type === 'headline' ? 'Headline' : 'Description';
 
   var sorted = data.slice().sort(function(a, b) {
     var va, vb;
