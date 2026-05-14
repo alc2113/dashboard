@@ -205,6 +205,14 @@ body{
 .chart-wrap{position:relative;height:320px;}
 .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
 
+/* ===== EMPTY STATE ===== */
+.empty-state{
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  padding:48px 24px;margin-bottom:16px;text-align:center;color:var(--text-muted);
+}
+.empty-state-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.empty-state-body{font-size:13px;line-height:1.5;}
+
 /* ===== TOGGLE BUTTONS ===== */
 .toggle-group{display:flex;gap:0;margin-bottom:16px;}
 .toggle-btn{
@@ -379,6 +387,7 @@ tr:hover td{background:#fafaf8;}
     <button class="tab-btn" data-tab="campaigns">Campaigns</button>
     <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
     <button class="tab-btn" data-tab="keywords">Keywords</button>
+    <button class="tab-btn" data-tab="ads">By Ad</button>
     <button class="tab-btn" data-tab="assets">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
@@ -522,6 +531,7 @@ tr:hover td{background:#fafaf8;}
         <select id="breakdownDim">
           <optgroup label="Both Platforms">
             <option value="platform">Platform</option>
+            <option value="placement">Placement / Network</option>
             <option value="campaign">Campaign</option>
             <option value="lp">Landing Page</option>
             <option value="adset">Ad Set / Ad Group</option>
@@ -545,6 +555,7 @@ tr:hover td{background:#fafaf8;}
           <option value="">None</option>
           <optgroup label="Both Platforms">
             <option value="platform">Platform</option>
+            <option value="placement">Placement / Network</option>
             <option value="campaign">Campaign</option>
             <option value="lp">Landing Page</option>
             <option value="adset">Ad Set / Ad Group</option>
@@ -563,6 +574,14 @@ tr:hover td{background:#fafaf8;}
           </optgroup>
         </select>
       </label>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Calls Booked Over Time by <span id="trendDimLabel">Dimension</span></div>
+      <div class="chart-wrap"><canvas id="chartBreakTrendCalls"></canvas></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Cost per Call Over Time by <span id="trendDimLabel2">Dimension</span></div>
+      <div class="chart-wrap"><canvas id="chartBreakTrendCPL"></canvas></div>
     </div>
     <div class="chart-row">
       <div class="chart-container">
@@ -606,6 +625,11 @@ tr:hover td{background:#fafaf8;}
 
   <!-- KEYWORDS TAB -->
   <div id="tab-keywords" class="tab-content">
+    <div class="empty-state" id="keywordsEmpty" style="display:none;">
+      <div class="empty-state-title">No keyword data for Meta</div>
+      <div class="empty-state-body">Search keywords are a Google Ads concept &mdash; Meta Ads doesn&rsquo;t target by keyword. Switch the platform filter to <strong>All</strong> or <strong>Google</strong> to see this view.</div>
+    </div>
+    <div id="keywordsContent">
     <div class="leader-controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
       <label>Group by:
         <select id="keywordGroup">
@@ -648,10 +672,69 @@ tr:hover td{background:#fafaf8;}
         <tbody id="keywordBody"></tbody>
       </table>
     </div>
+    </div>
+  </div>
+
+  <!-- BY AD TAB -->
+  <div id="tab-ads" class="tab-content">
+    <div class="leader-controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+      <label>Group by:
+        <select id="adGroup">
+          <option value="adName">Ad Name</option>
+          <option value="campaign">Campaign</option>
+          <option value="adset">Ad Set / Ad Group</option>
+          <option value="creative_type">Creative Type</option>
+          <option value="creative_theme">Creative Theme</option>
+          <option value="color">Color</option>
+          <option value="lp">Landing Page</option>
+          <option value="platform">Platform</option>
+        </select>
+      </label>
+      <label>Cross-cut:
+        <select id="adGroup2">
+          <option value="">None</option>
+          <option value="campaign">Campaign</option>
+          <option value="adset">Ad Set / Ad Group</option>
+          <option value="creative_type">Creative Type</option>
+          <option value="creative_theme">Creative Theme</option>
+          <option value="color">Color</option>
+          <option value="lp">Landing Page</option>
+          <option value="platform">Platform</option>
+          <option value="funnel">Funnel</option>
+        </select>
+      </label>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Calls Booked by Ad</div>
+        <div class="chart-wrap"><canvas id="chartAdCalls"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Cost per Call by Ad</div>
+        <div class="chart-wrap"><canvas id="chartAdCPL"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Spend by Ad</div>
+        <div class="chart-wrap"><canvas id="chartAdSpend"></canvas></div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="adsTable">
+        <thead><tr id="adsHead"></tr></thead>
+        <tbody id="adsBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- ASSETS TAB -->
   <div id="tab-assets" class="tab-content">
+    <div class="empty-state" id="assetsEmpty" style="display:none;">
+      <div class="empty-state-title">No headline / description data for Meta</div>
+      <div class="empty-state-body">Headlines and descriptions are Google Responsive Search Ad components &mdash; Meta ads use creative + primary text instead. Switch the platform filter to <strong>All</strong> or <strong>Google</strong> to see this view.</div>
+    </div>
+    <div id="assetsContent">
     <div class="leader-controls" style="display:flex;gap:12px;align-items:center;">
       <label>View:
         <select id="assetType">
@@ -681,6 +764,7 @@ tr:hover td{background:#fafaf8;}
         <thead><tr id="assetHead"></tr></thead>
         <tbody id="assetBody"></tbody>
       </table>
+    </div>
     </div>
   </div>
 
@@ -732,12 +816,14 @@ let adDetailData = [];      // normalized rows from Meta Ad Detail + Google Ad D
 let headlineData = [];      // headline asset performance
 let descriptionData = [];   // description asset performance
 let keywordData = [];       // keyword performance
+let placementData = [];     // placement-level rows (Meta publisher+position, Google network)
 let chartInstances = {};
 let currentTab = 'overview';
 let campaignSort = { col: 'spend', asc: false };
 let breakdownSort = { col: 'spend', asc: false };
 let assetSort = { col: 'spend', asc: false };
 let keywordSort = { col: 'spend', asc: false };
+let adsSort = { col: 'spend', asc: false };
 let activeChannel = '';     // '' = all, 'meta', 'google'
 
 // ========================================================================
@@ -939,12 +1025,13 @@ function normalizeMetaAdDetail(r) {
 }
 
 function normalizeGoogleAdDetail(r) {
+  var adGroup = String(r['Ad Group'] || '').trim();
   return {
     date: normalizeDateStr(r['Date']),
     platform: 'google',
     campaign: String(r['Campaign'] || '').trim(),
-    adName: '',
-    adset: String(r['Ad Group'] || '').trim(),
+    adName: adGroup ? adGroup + ' (Google RSA)' : '',
+    adset: adGroup,
     color: '',
     creative_theme: '',
     creative_type: '',
@@ -992,6 +1079,25 @@ function classifyKeywordTheme(kw) {
 }
 
 var MATCH_TYPE_MAP = {'2':'Exact','3':'Phrase','4':'Broad','EXACT':'Exact','PHRASE':'Phrase','BROAD':'Broad'};
+
+function normalizePlacementRow(r) {
+  var plat = String(r['Platform'] || '').trim().toLowerCase();
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: plat === 'google' ? 'google' : 'meta',
+    placement: String(r['Placement'] || '').trim(),
+    campaign: String(r['Campaign'] || '').trim(),
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    frequency: 0
+  };
+}
 
 function normalizeKeywordRow(r) {
   var mt = String(r['Match Type'] || '').trim();
@@ -1661,11 +1767,21 @@ function getFilteredAdDetail() {
   return applyFilters(data, fs);
 }
 
+// For Breakdowns: if either dim uses 'placement', placement data is the only
+// source that carries that column, so swap in placementData. Cross-cuts with
+// non-placement dims will read '(none)' on those columns — acceptable for v1.
+function getBreakdownSource(dim, dim2) {
+  if (dim === 'placement' || dim2 === 'placement') {
+    return applyFilters(placementData, getFilterState());
+  }
+  return getFilteredAdDetail();
+}
+
 function renderDowCharts() {
-  var filtered = getFilteredAdDetail();
   var dim = document.getElementById('breakdownDim').value;
   var dim2El = document.getElementById('breakdownDim2');
   var dim2 = dim2El ? dim2El.value : '';
+  var filtered = getBreakdownSource(dim, dim2);
 
   // Build the same key fn used by renderBreakdowns so the DOW charts mirror
   // the dimension selector above them.
@@ -1798,14 +1914,143 @@ function renderDowCharts() {
   });
 }
 
+function renderBreakdownTrends(filtered, dim, dim2, dimLabel) {
+  var labelEls = [document.getElementById('trendDimLabel'), document.getElementById('trendDimLabel2')];
+  labelEls.forEach(function(el) { if (el) el.textContent = dimLabel; });
+
+  var keyFn;
+  if (dim2) {
+    keyFn = function(r) {
+      var v1 = r[dim] || '(none)';
+      var v2 = r[dim2] || '(none)';
+      return v1 + ' × ' + v2;
+    };
+  } else {
+    keyFn = function(r) { return r[dim] || '(none)'; };
+  }
+
+  var relevant = filtered.filter(function(r) {
+    var v = r[dim];
+    if (!v || v === '(none)') return false;
+    if (dim2) {
+      var v2 = r[dim2];
+      if (!v2 || v2 === '(none)') return false;
+    }
+    return !!r.date;
+  });
+
+  if (relevant.length === 0) {
+    destroyChart('chartBreakTrendCalls');
+    destroyChart('chartBreakTrendCPL');
+    return;
+  }
+
+  // Top 6 buckets by total spend; rest collapsed into 'Other'.
+  var totalsByKey = {};
+  relevant.forEach(function(r) {
+    var k = keyFn(r);
+    if (!totalsByKey[k]) totalsByKey[k] = 0;
+    totalsByKey[k] += r.spend || 0;
+  });
+  var rankedKeys = Object.keys(totalsByKey).sort(function(a, b) { return totalsByKey[b] - totalsByKey[a]; });
+  var topKeys = rankedKeys.slice(0, 6);
+  var hasOther = rankedKeys.length > topKeys.length;
+  var topSet = {};
+  topKeys.forEach(function(k) { topSet[k] = true; });
+
+  // Aggregate spend + calls by (date, bucket).
+  var dateBucket = {};
+  var dateSet = {};
+  relevant.forEach(function(r) {
+    var rawK = keyFn(r);
+    var k = topSet[rawK] ? rawK : 'Other';
+    var d = r.date;
+    dateSet[d] = true;
+    if (!dateBucket[d]) dateBucket[d] = {};
+    if (!dateBucket[d][k]) dateBucket[d][k] = { spend: 0, calls: 0 };
+    dateBucket[d][k].spend += r.spend || 0;
+    dateBucket[d][k].calls += r.callsBooked || 0;
+  });
+
+  var labels = Object.keys(dateSet).sort();
+  var bucketKeys = topKeys.slice();
+  if (hasOther) bucketKeys.push('Other');
+
+  var maxTicks = labels.length > 30 ? 12 : labels.length;
+  var pointRadius = labels.length > 60 ? 0 : 3;
+
+  function truncLabel(k) { return k.length > 30 ? k.substring(0, 27) + '...' : k; }
+
+  var callsDatasets = bucketKeys.map(function(k, i) {
+    var color = k === 'Other' ? '#999999' : COLORS[i % COLORS.length];
+    return {
+      label: truncLabel(k),
+      data: labels.map(function(d) {
+        var cell = dateBucket[d] && dateBucket[d][k];
+        return cell ? cell.calls : 0;
+      }),
+      borderColor: color,
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: pointRadius,
+      fill: false
+    };
+  });
+
+  var cplDatasets = bucketKeys.map(function(k, i) {
+    var color = k === 'Other' ? '#999999' : COLORS[i % COLORS.length];
+    return {
+      label: truncLabel(k),
+      data: labels.map(function(d) {
+        var cell = dateBucket[d] && dateBucket[d][k];
+        if (!cell || cell.calls === 0) return null;
+        return cell.spend / cell.calls;
+      }),
+      borderColor: color,
+      backgroundColor: 'transparent',
+      tension: 0.3,
+      pointRadius: pointRadius,
+      spanGaps: true,
+      fill: false
+    };
+  });
+
+  createChart('chartBreakTrendCalls', {
+    type: 'line',
+    data: { labels: labels, datasets: callsDatasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+
+  createChart('chartBreakTrendCPL', {
+    type: 'line',
+    data: { labels: labels, datasets: cplDatasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(2); } } },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+}
+
 function renderBreakdowns() {
   renderDowCharts();
-  var filtered = getFilteredAdDetail();
   var dim = document.getElementById('breakdownDim').value;
   var dim2 = document.getElementById('breakdownDim2').value;
+  var filtered = getBreakdownSource(dim, dim2);
 
   var dimLabels = {
-    platform: 'Platform', campaign: 'Campaign', lp: 'Landing Page',
+    platform: 'Platform', placement: 'Placement / Network',
+    campaign: 'Campaign', lp: 'Landing Page',
     adset: 'Ad Set / Ad Group', color: 'Color', creative_theme: 'Creative Theme',
     creative_type: 'Creative Type', funnel: 'Funnel', targeting: 'Targeting',
     campaign_type: 'Campaign Type', creative_direction: 'Creative Direction',
@@ -1836,6 +2081,8 @@ function renderBreakdowns() {
     }
     return true;
   });
+
+  renderBreakdownTrends(filtered, dim, dim2, dimLabel);
 
   var grouped = groupBy(relevantData, keyFn);
 
@@ -1939,6 +2186,17 @@ function renderBreakdowns() {
 // TAB: ASSETS (Headlines & Descriptions)
 // ========================================================================
 function renderAssets() {
+  var emptyEl = document.getElementById('assetsEmpty');
+  var contentEl = document.getElementById('assetsContent');
+  if (getFilterState().platform === 'meta') {
+    if (emptyEl) emptyEl.style.display = 'block';
+    if (contentEl) contentEl.style.display = 'none';
+    destroyChart('chartAssetCalls'); destroyChart('chartAssetCPL'); destroyChart('chartAssetSpend');
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (contentEl) contentEl.style.display = '';
+
   var type = document.getElementById('assetType').value;
   var data = type === 'headline' ? headlineData : descriptionData;
   var typeLabel = type === 'headline' ? 'Headline' : 'Description';
@@ -2058,6 +2316,17 @@ function getFilteredKeywords() {
 }
 
 function renderKeywords() {
+  var emptyEl = document.getElementById('keywordsEmpty');
+  var contentEl = document.getElementById('keywordsContent');
+  if (getFilterState().platform === 'meta') {
+    if (emptyEl) emptyEl.style.display = 'block';
+    if (contentEl) contentEl.style.display = 'none';
+    destroyChart('chartKwCalls'); destroyChart('chartKwCPL'); destroyChart('chartKwSpend');
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (contentEl) contentEl.style.display = '';
+
   var filtered = getFilteredKeywords();
   var dim = document.getElementById('keywordGroup').value;
   var dim2 = document.getElementById('keywordGroup2').value;
@@ -2177,6 +2446,146 @@ function renderKeywords() {
       var span = document.createElement('span');
       span.className = 'sort-arrow';
       span.textContent = keywordSort.asc ? '\u25B2' : '\u25BC';
+      th.appendChild(span);
+    }
+  });
+}
+
+// ========================================================================
+// TAB: BY AD (per-ad performance)
+// ========================================================================
+function renderAds() {
+  var filtered = getFilteredAdDetail();
+  var dim = document.getElementById('adGroup').value;
+  var dim2 = document.getElementById('adGroup2').value;
+
+  var dimLabels = {
+    adName: 'Ad Name', campaign: 'Campaign', adset: 'Ad Set / Ad Group',
+    creative_type: 'Creative Type', creative_theme: 'Creative Theme',
+    color: 'Color', lp: 'Landing Page', platform: 'Platform', funnel: 'Funnel'
+  };
+
+  var keyFn;
+  var dimLabel;
+  if (dim2) {
+    keyFn = function(r) { return (r[dim] || '(none)') + ' \u00D7 ' + (r[dim2] || '(none)'); };
+    dimLabel = (dimLabels[dim] || dim) + ' \u00D7 ' + (dimLabels[dim2] || dim2);
+  } else {
+    keyFn = function(r) { return r[dim] || '(none)'; };
+    dimLabel = dimLabels[dim] || dim;
+  }
+
+  // Drop rows with empty primary dim so the table isn't dominated by '(none)'.
+  var relevant = filtered.filter(function(r) {
+    var v = r[dim];
+    if (!v || v === '(none)') return false;
+    if (dim2) {
+      var v2 = r[dim2];
+      if (!v2 || v2 === '(none)') return false;
+    }
+    return true;
+  });
+
+  var grouped = groupBy(relevant, keyFn);
+
+  var chartSorted = grouped.slice().sort(function(a, b) { return b.callsBooked - a.callsBooked; }).slice(0, 15);
+  var chartLabels = chartSorted.map(function(g) {
+    return (g.key || '').length > 40 ? g.key.substring(0, 37) + '...' : g.key;
+  });
+  var chartColors = [];
+  for (var ci = 0; ci < chartSorted.length; ci++) chartColors.push(COLORS[ci % COLORS.length]);
+
+  createChart('chartAdCalls', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'Calls', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  createChart('chartAdCPL', {
+    type: 'bar',
+    data: {
+      labels: chartLabels,
+      datasets: [{ label: 'Cost/Call', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(2); } } } }
+    }
+  });
+
+  var spendSorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; }).slice(0, 15);
+  var spendLabels = spendSorted.map(function(g) {
+    return (g.key || '').length > 40 ? g.key.substring(0, 37) + '...' : g.key;
+  });
+  var spendColors = [];
+  for (var ci = 0; ci < spendSorted.length; ci++) spendColors.push(COLORS[ci % COLORS.length]);
+
+  createChart('chartAdSpend', {
+    type: 'bar',
+    data: {
+      labels: spendLabels,
+      datasets: [{ label: 'Spend', data: spendSorted.map(function(g) { return g.spend; }), backgroundColor: spendColors, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } }
+    }
+  });
+
+  var thead = document.getElementById('adsHead');
+  thead.innerHTML =
+    '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
+    '<th data-col="callsBooked">Calls</th>' +
+    '<th data-col="costPerLead">Cost/Call</th>' +
+    '<th data-col="spend">Spend</th>' +
+    '<th data-col="impressions">Imp</th>' +
+    '<th data-col="clicks">Clicks</th>' +
+    '<th data-col="ctr">CTR</th>' +
+    '<th data-col="cpc">CPC</th>';
+
+  var tableSorted = grouped.slice().sort(function(a, b) {
+    var va, vb;
+    if (adsSort.col === 'key') {
+      va = a.key; vb = b.key;
+      return adsSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    va = a[adsSort.col] || 0; vb = b[adsSort.col] || 0;
+    return adsSort.asc ? va - vb : vb - va;
+  });
+
+  var tbody = document.getElementById('adsBody');
+  tbody.innerHTML = '';
+  tableSorted.forEach(function(g) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 60 ? g.key.substring(0, 57) + '...' : (g.key || '')) + '</td>' +
+      '<td>' + formatNumber(g.callsBooked) + '</td>' +
+      '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+      '<td>' + formatCurrency(g.spend) + '</td>' +
+      '<td>' + formatNumber(g.impressions) + '</td>' +
+      '<td>' + formatNumber(g.clicks) + '</td>' +
+      '<td>' + formatPct(g.ctr) + '</td>' +
+      '<td>' + formatCurrency(g.cpc) + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('#adsHead th').forEach(function(th) {
+    var col = th.dataset.col;
+    var existing = th.querySelector('.sort-arrow');
+    if (existing) existing.remove();
+    if (col === adsSort.col) {
+      var span = document.createElement('span');
+      span.className = 'sort-arrow';
+      span.textContent = adsSort.asc ? '\u25B2' : '\u25BC';
       th.appendChild(span);
     }
   });
@@ -2397,6 +2806,7 @@ function renderCurrentTab() {
     case 'campaigns':   renderCampaigns(); break;
     case 'breakdowns':  renderBreakdowns(); break;
     case 'keywords':    renderKeywords(); break;
+    case 'ads':         renderAds(); break;
     case 'assets':      renderAssets(); break;
     case 'funnel':      renderFunnel(); break;
     case 'pacing':      renderPacing(); break;
@@ -2479,13 +2889,14 @@ function doLogin() {
 // ========================================================================
 async function loadData() {
   try {
-    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows] = await Promise.all([
+    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
       fetchSheetData('Google Ad Detail').catch(function() { return []; }),
       fetchSheetData('Headline Performance').catch(function() { return []; }),
       fetchSheetData('Description Performance').catch(function() { return []; }),
       fetchSheetData('Keywords').catch(function() { return []; }),
+      fetchSheetData('Placement Detail').catch(function() { return []; }),
     ]);
 
     // Normalize campaign breakdown (daily rows with Date + Platform)
@@ -2533,7 +2944,15 @@ async function loadData() {
       if (kr.keyword && kr.spend > 0) keywordData.push(kr);
     }
 
-    console.log('[SOG Dashboard] Keywords:', keywordData.length);
+    // Normalize placement data
+    placementData = [];
+    for (var i = 0; i < placementRows.length; i++) {
+      var pr = normalizePlacementRow(placementRows[i]);
+      if (pr.date && pr.placement && pr.spend > 0) placementData.push(pr);
+    }
+    placementData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+    console.log('[SOG Dashboard] Keywords:', keywordData.length, '| Placements:', placementData.length);
     console.log('[SOG Dashboard] Headlines:', headlineData.length, '| Descriptions:', descriptionData.length);
     console.log('[SOG Dashboard] Platforms:', platforms);
     console.log('[SOG Dashboard] Date range:', campaignData.length > 0 ? campaignData[0].date + ' to ' + campaignData[campaignData.length-1].date : 'no data');
@@ -2704,6 +3123,30 @@ function bindEvents() {
       keywordSort.asc = (col === 'key');
     }
     if (currentTab === 'keywords') renderKeywords();
+  });
+
+  // --- By Ad group change ---
+  document.getElementById('adGroup').addEventListener('change', function() {
+    adsSort = { col: 'spend', asc: false };
+    if (currentTab === 'ads') renderAds();
+  });
+  document.getElementById('adGroup2').addEventListener('change', function() {
+    adsSort = { col: 'spend', asc: false };
+    if (currentTab === 'ads') renderAds();
+  });
+
+  // --- By Ad table sort (delegated) ---
+  document.getElementById('adsHead').addEventListener('click', function(e) {
+    var th = e.target.closest('th');
+    if (!th || !th.dataset.col) return;
+    var col = th.dataset.col;
+    if (adsSort.col === col) {
+      adsSort.asc = !adsSort.asc;
+    } else {
+      adsSort.col = col;
+      adsSort.asc = (col === 'key');
+    }
+    if (currentTab === 'ads') renderAds();
   });
 
   // --- Asset type change ---
