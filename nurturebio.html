@@ -517,6 +517,8 @@ tr:hover td{background:#fafaf8;}
           <th data-col="cpm">CPM</th>
           <th data-col="callsBooked">Purchases</th>
           <th data-col="costPerLead">Cost/Purchase</th>
+          <th data-col="revenue">Revenue</th>
+          <th data-col="roas">ROAS</th>
           <th data-col="frequency">Freq</th>
         </tr></thead>
         <tbody id="campaignBody"></tbody>
@@ -1022,6 +1024,7 @@ function normalizeMetaAdDetail(r) {
     reach: 0,
     clicks: pv(r['Clicks']),
     callsBooked: pv(r['Leads']),
+    revenue: pv(r['Revenue']),
     frequency: 0
   };
 }
@@ -1048,6 +1051,7 @@ function normalizeGoogleAdDetail(r) {
     reach: 0,
     clicks: pv(r['Clicks']),
     callsBooked: pv(r['Leads']),
+    revenue: pv(r['Revenue']),
     frequency: 0
   };
 }
@@ -1136,6 +1140,7 @@ function normalizeCampaignRow(r) {
     cpcRaw: pv(r['CPC']),
     callsBooked: pv(r['Leads']),
     costPerLeadRaw: pv(r['Cost/Lead']),
+    revenue: pv(r['Revenue']),
     frequency: pv(r['Frequency'])
   };
 }
@@ -1146,7 +1151,7 @@ function normalizeCampaignRow(r) {
 function aggregateRows(rows) {
   const t = {
     spend: 0, impressions: 0, reach: 0, clicks: 0,
-    callsBooked: 0, count: rows.length
+    callsBooked: 0, revenue: 0, count: rows.length
   };
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
@@ -1155,11 +1160,13 @@ function aggregateRows(rows) {
     t.reach += r.reach;
     t.clicks += r.clicks;
     t.callsBooked += r.callsBooked;
+    t.revenue += (r.revenue || 0);
   }
   t.ctr = t.impressions > 0 ? t.clicks / t.impressions : 0;
   t.cpc = t.clicks > 0 ? t.spend / t.clicks : 0;
   t.cpm = t.impressions > 0 ? (t.spend / t.impressions) * 1000 : 0;
   t.costPerLead = t.callsBooked > 0 ? t.spend / t.callsBooked : 0;
+  t.roas = t.spend > 0 ? t.revenue / t.spend : 0;
   t.frequency = t.reach > 0 ? t.impressions / t.reach : 0;
   return t;
 }
@@ -1320,6 +1327,8 @@ function renderOverview() {
   combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false), true));
   combEl.appendChild(buildKpiCard('Purchases', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
   combEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
+  combEl.appendChild(buildKpiCard('Revenue', formatCurrency(allAgg.revenue), delta(allAgg.revenue, prev && prev.revenue, false)));
+  combEl.appendChild(buildKpiCard('ROAS', allAgg.roas.toFixed(2) + 'x', delta(allAgg.roas, prev && prev.roas, false)));
   combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false)));
   combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false)));
 
@@ -1329,6 +1338,8 @@ function renderOverview() {
   metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), null));
   metaEl.appendChild(buildKpiCard('Meta Purchases', formatNumber(metaAgg.callsBooked), null));
   metaEl.appendChild(buildKpiCard('Meta Cost/Purchase', formatCurrency(metaAgg.costPerLead), null));
+  metaEl.appendChild(buildKpiCard('Meta Revenue', formatCurrency(metaAgg.revenue), null));
+  metaEl.appendChild(buildKpiCard('Meta ROAS', metaAgg.roas.toFixed(2) + 'x', null));
   metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), null));
   metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), null));
   metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), null));
@@ -1341,6 +1352,8 @@ function renderOverview() {
   googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), null));
   googleEl.appendChild(buildKpiCard('Google Purchases', formatNumber(googleAgg.callsBooked), null));
   googleEl.appendChild(buildKpiCard('Google Cost/Purchase', formatCurrency(googleAgg.costPerLead), null));
+  googleEl.appendChild(buildKpiCard('Google Revenue', formatCurrency(googleAgg.revenue), null));
+  googleEl.appendChild(buildKpiCard('Google ROAS', googleAgg.roas.toFixed(2) + 'x', null));
   googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), null));
   googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), null));
   googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), null));
@@ -1692,13 +1705,14 @@ function renderCampaigns() {
   data.forEach(function(r) {
     const key = r.campaign + '|' + r.platform;
     if (!byKey[key]) {
-      byKey[key] = { campaign: r.campaign, platform: r.platform, spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0 };
+      byKey[key] = { campaign: r.campaign, platform: r.platform, spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0, revenue: 0 };
     }
     byKey[key].spend += r.spend;
     byKey[key].impressions += r.impressions;
     byKey[key].reach += r.reach;
     byKey[key].clicks += r.clicks;
     byKey[key].callsBooked += r.callsBooked;
+    byKey[key].revenue += (r.revenue || 0);
   });
 
   var rows = Object.values(byKey).map(function(r) {
@@ -1706,6 +1720,7 @@ function renderCampaigns() {
     r.cpc = r.clicks > 0 ? r.spend / r.clicks : 0;
     r.cpm = r.impressions > 0 ? (r.spend / r.impressions) * 1000 : 0;
     r.costPerLead = r.callsBooked > 0 ? r.spend / r.callsBooked : 0;
+    r.roas = r.spend > 0 ? r.revenue / r.spend : 0;
     r.frequency = r.reach > 0 ? r.impressions / r.reach : 0;
     return r;
   });
@@ -1744,6 +1759,8 @@ function renderCampaigns() {
       '<td>' + formatCurrency(r.cpm) + '</td>' +
       '<td>' + formatNumber(r.callsBooked) + '</td>' +
       '<td>' + formatCurrency(r.costPerLead) + '</td>' +
+      '<td>' + formatCurrency(r.revenue || 0) + '</td>' +
+      '<td>' + (r.roas || 0).toFixed(2) + 'x</td>' +
       '<td>' + r.frequency.toFixed(2) + '</td>';
     tbody.appendChild(tr);
   });
@@ -2141,6 +2158,8 @@ function renderBreakdowns() {
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
     '<th data-col="callsBooked">Purchases</th>' +
     '<th data-col="costPerLead">Cost/Purchase</th>' +
+    '<th data-col="revenue">Revenue</th>' +
+    '<th data-col="roas">ROAS</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2165,6 +2184,8 @@ function renderBreakdowns() {
       '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 60 ? g.key.substring(0, 57) + '...' : (g.key || '')) + '</td>' +
       '<td>' + formatNumber(g.callsBooked) + '</td>' +
       '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+      '<td>' + formatCurrency(g.revenue || 0) + '</td>' +
+      '<td>' + (g.roas || 0).toFixed(2) + 'x</td>' +
       '<td>' + formatCurrency(g.spend) + '</td>' +
       '<td>' + formatNumber(g.impressions) + '</td>' +
       '<td>' + formatNumber(g.clicks) + '</td>' +
@@ -2568,6 +2589,8 @@ function renderAds() {
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
     '<th data-col="callsBooked">Purchases</th>' +
     '<th data-col="costPerLead">Cost/Purchase</th>' +
+    '<th data-col="revenue">Revenue</th>' +
+    '<th data-col="roas">ROAS</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2592,6 +2615,8 @@ function renderAds() {
       '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 60 ? g.key.substring(0, 57) + '...' : (g.key || '')) + '</td>' +
       '<td>' + formatNumber(g.callsBooked) + '</td>' +
       '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+      '<td>' + formatCurrency(g.revenue || 0) + '</td>' +
+      '<td>' + (g.roas || 0).toFixed(2) + 'x</td>' +
       '<td>' + formatCurrency(g.spend) + '</td>' +
       '<td>' + formatNumber(g.impressions) + '</td>' +
       '<td>' + formatNumber(g.clicks) + '</td>' +
