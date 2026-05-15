@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PJ's Pet Shop — App Install Dashboard</title>
+<title>PJ's Pet Shop — Ads Dashboard (Demo)</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 /* ===== RESET & BASE ===== */
@@ -465,7 +465,7 @@ tr:hover td{background:#fafaf8;}
       <div class="chart-wrap"><canvas id="chartSpend"></canvas></div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">Cost per Install Over Time</div>
+      <div class="chart-title">Cost per Purchase Over Time</div>
       <div class="chart-wrap"><canvas id="chartCostPerCall"></canvas></div>
     </div>
     <div class="chart-row">
@@ -474,7 +474,7 @@ tr:hover td{background:#fafaf8;}
         <div class="chart-wrap"><canvas id="chartCpcCpm"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Installs Over Time</div>
+        <div class="chart-title">Purchases Over Time</div>
         <div class="chart-wrap"><canvas id="chartCallsBooked"></canvas></div>
       </div>
     </div>
@@ -485,7 +485,7 @@ tr:hover td{background:#fafaf8;}
     <div class="leader-controls">
       <label>Metric:
         <select id="leaderMetric">
-          <option value="costPerLead">Cost / Install</option>
+          <option value="costPerLead">Cost / Purchase</option>
           <option value="cpc">CPC</option>
           <option value="cpm">CPM</option>
           <option value="ctr">CTR</option>
@@ -495,7 +495,7 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="leader-cards" id="leaderCards"></div>
     <div class="chart-container">
-      <div class="chart-title">Cost per Install vs Clicks (bubble size = spend)</div>
+      <div class="chart-title">Cost per Purchase vs Clicks (bubble size = spend)</div>
       <div class="chart-wrap"><canvas id="chartScatter"></canvas></div>
     </div>
   </div>
@@ -515,8 +515,10 @@ tr:hover td{background:#fafaf8;}
           <th data-col="ctr">CTR</th>
           <th data-col="cpc">CPC</th>
           <th data-col="cpm">CPM</th>
-          <th data-col="callsBooked">Installs</th>
-          <th data-col="costPerLead">Cost/Install</th>
+          <th data-col="callsBooked">Purchases</th>
+          <th data-col="costPerLead">Cost/Purchase</th>
+          <th data-col="revenue">Revenue</th>
+          <th data-col="roas">ROAS</th>
           <th data-col="frequency">Freq</th>
         </tr></thead>
         <tbody id="campaignBody"></tbody>
@@ -577,21 +579,21 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Installs Over Time by <span id="trendDimLabel">Dimension</span></div>
+        <div class="chart-title">Purchases Over Time by <span id="trendDimLabel">Dimension</span></div>
         <div class="chart-wrap"><canvas id="chartBreakTrendCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Install Over Time by <span id="trendDimLabel2">Dimension</span></div>
+        <div class="chart-title">Cost per Purchase Over Time by <span id="trendDimLabel2">Dimension</span></div>
         <div class="chart-wrap"><canvas id="chartBreakTrendCPL"></canvas></div>
       </div>
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Installs by Dimension</div>
+        <div class="chart-title">Purchases by Dimension</div>
         <div class="chart-wrap"><canvas id="chartBreakCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Install by Dimension</div>
+        <div class="chart-title">Cost per Purchase by Dimension</div>
         <div class="chart-wrap"><canvas id="chartBreakCPL"></canvas></div>
       </div>
     </div>
@@ -603,11 +605,11 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Installs by Day of Week</div>
+        <div class="chart-title">Purchases by Day of Week</div>
         <div class="chart-wrap"><canvas id="chartDowCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Install by Day of Week</div>
+        <div class="chart-title">Cost per Purchase by Day of Week</div>
         <div class="chart-wrap"><canvas id="chartDowCPL"></canvas></div>
       </div>
     </div>
@@ -654,11 +656,11 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Installs by Keywords</div>
+        <div class="chart-title">Purchases by Keywords</div>
         <div class="chart-wrap"><canvas id="chartKwCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Install by Keywords</div>
+        <div class="chart-title">Cost per Purchase by Keywords</div>
         <div class="chart-wrap"><canvas id="chartKwCPL"></canvas></div>
       </div>
     </div>
@@ -708,11 +710,11 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Installs by Ad</div>
+        <div class="chart-title">Purchases by Ad</div>
         <div class="chart-wrap"><canvas id="chartAdCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Install by Ad</div>
+        <div class="chart-title">Cost per Purchase by Ad</div>
         <div class="chart-wrap"><canvas id="chartAdCPL"></canvas></div>
       </div>
     </div>
@@ -747,11 +749,11 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Installs by Asset</div>
+        <div class="chart-title">Purchases by Asset</div>
         <div class="chart-wrap"><canvas id="chartAssetCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Install by Asset</div>
+        <div class="chart-title">Cost per Purchase by Asset</div>
         <div class="chart-wrap"><canvas id="chartAssetCPL"></canvas></div>
       </div>
     </div>
@@ -783,7 +785,7 @@ tr:hover td{background:#fafaf8;}
   <div id="tab-pacing" class="tab-content">
     <div class="kpi-grid" id="pacingKpis" style="margin-bottom:16px;"></div>
     <div class="chart-container">
-      <div class="chart-title">Cumulative Spend &amp; Installs</div>
+      <div class="chart-title">Cumulative Spend &amp; Purchases</div>
       <div class="chart-wrap"><canvas id="chartPacing"></canvas></div>
     </div>
     <div class="chart-container">
@@ -796,7 +798,7 @@ tr:hover td{background:#fafaf8;}
 
 <script>
 /* ================================================================
-   PJ'S PET SHOP — APP INSTALL DASHBOARD (DEMO)
+   PJ'S PET SHOP — ADS DASHBOARD (DEMO)
    Single data source: Campaign Breakdown sheet (daily rows, Date + Platform)
    ================================================================ */
 
@@ -1022,6 +1024,7 @@ function normalizeMetaAdDetail(r) {
     reach: 0,
     clicks: pv(r['Clicks']),
     callsBooked: pv(r['Leads']),
+    revenue: pv(r['Revenue']),
     frequency: 0
   };
 }
@@ -1048,6 +1051,7 @@ function normalizeGoogleAdDetail(r) {
     reach: 0,
     clicks: pv(r['Clicks']),
     callsBooked: pv(r['Leads']),
+    revenue: pv(r['Revenue']),
     frequency: 0
   };
 }
@@ -1066,10 +1070,13 @@ function normalizeAssetRow(r, type) {
 }
 
 function classifyKeywordTheme(kw) {
-  var h = 0;
-  for (var i = 0; i < kw.length; i++) h = ((h << 5) - h + kw.charCodeAt(i)) | 0;
-  var buckets = ['Brand', 'Generic', 'Competitor'];
-  return buckets[Math.abs(h) % buckets.length];
+  var k = ' ' + kw.toLowerCase() + ' ';
+  if (k.indexOf("pj") !== -1 || k.indexOf("pj's") !== -1) return 'Brand';
+  var competitors = ['chewy','petco','petsmart','amazon'];
+  for (var i = 0; i < competitors.length; i++) {
+    if (k.indexOf(competitors[i]) !== -1) return 'Competitor';
+  }
+  return 'Generic';
 }
 
 var MATCH_TYPE_MAP = {'2':'Exact','3':'Phrase','4':'Broad','EXACT':'Exact','PHRASE':'Phrase','BROAD':'Broad'};
@@ -1126,6 +1133,7 @@ function normalizeCampaignRow(r) {
     cpcRaw: pv(r['CPC']),
     callsBooked: pv(r['Leads']),
     costPerLeadRaw: pv(r['Cost/Lead']),
+    revenue: pv(r['Revenue']),
     frequency: pv(r['Frequency'])
   };
 }
@@ -1136,7 +1144,7 @@ function normalizeCampaignRow(r) {
 function aggregateRows(rows) {
   const t = {
     spend: 0, impressions: 0, reach: 0, clicks: 0,
-    callsBooked: 0, count: rows.length
+    callsBooked: 0, revenue: 0, count: rows.length
   };
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
@@ -1145,11 +1153,13 @@ function aggregateRows(rows) {
     t.reach += r.reach;
     t.clicks += r.clicks;
     t.callsBooked += r.callsBooked;
+    t.revenue += (r.revenue || 0);
   }
   t.ctr = t.impressions > 0 ? t.clicks / t.impressions : 0;
   t.cpc = t.clicks > 0 ? t.spend / t.clicks : 0;
   t.cpm = t.impressions > 0 ? (t.spend / t.impressions) * 1000 : 0;
   t.costPerLead = t.callsBooked > 0 ? t.spend / t.callsBooked : 0;
+  t.roas = t.spend > 0 ? t.revenue / t.spend : 0;
   t.frequency = t.reach > 0 ? t.impressions / t.reach : 0;
   return t;
 }
@@ -1308,8 +1318,10 @@ function renderOverview() {
   const combEl = document.getElementById('kpiCombined');
   combEl.innerHTML = '';
   combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false), true));
-  combEl.appendChild(buildKpiCard('Installs', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
-  combEl.appendChild(buildKpiCard('Cost / Install', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
+  combEl.appendChild(buildKpiCard('Purchases', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
+  combEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
+  combEl.appendChild(buildKpiCard('Revenue', formatCurrency(allAgg.revenue), delta(allAgg.revenue, prev && prev.revenue, false)));
+  combEl.appendChild(buildKpiCard('ROAS', allAgg.roas.toFixed(2) + 'x', delta(allAgg.roas, prev && prev.roas, false)));
   combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false)));
   combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false)));
 
@@ -1317,8 +1329,10 @@ function renderOverview() {
   const metaEl = document.getElementById('kpiMeta');
   metaEl.innerHTML = '';
   metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), null));
-  metaEl.appendChild(buildKpiCard('Meta Installs', formatNumber(metaAgg.callsBooked), null));
-  metaEl.appendChild(buildKpiCard('Meta Cost/Install', formatCurrency(metaAgg.costPerLead), null));
+  metaEl.appendChild(buildKpiCard('Meta Purchases', formatNumber(metaAgg.callsBooked), null));
+  metaEl.appendChild(buildKpiCard('Meta Cost/Purchase', formatCurrency(metaAgg.costPerLead), null));
+  metaEl.appendChild(buildKpiCard('Meta Revenue', formatCurrency(metaAgg.revenue), null));
+  metaEl.appendChild(buildKpiCard('Meta ROAS', metaAgg.roas.toFixed(2) + 'x', null));
   metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), null));
   metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), null));
   metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), null));
@@ -1329,8 +1343,10 @@ function renderOverview() {
   const googleEl = document.getElementById('kpiGoogle');
   googleEl.innerHTML = '';
   googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), null));
-  googleEl.appendChild(buildKpiCard('Google Installs', formatNumber(googleAgg.callsBooked), null));
-  googleEl.appendChild(buildKpiCard('Google Cost/Install', formatCurrency(googleAgg.costPerLead), null));
+  googleEl.appendChild(buildKpiCard('Google Purchases', formatNumber(googleAgg.callsBooked), null));
+  googleEl.appendChild(buildKpiCard('Google Cost/Purchase', formatCurrency(googleAgg.costPerLead), null));
+  googleEl.appendChild(buildKpiCard('Google Revenue', formatCurrency(googleAgg.revenue), null));
+  googleEl.appendChild(buildKpiCard('Google ROAS', googleAgg.roas.toFixed(2) + 'x', null));
   googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), null));
   googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), null));
   googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), null));
@@ -1417,14 +1433,14 @@ function renderTrends() {
     }
   });
 
-  // --- Cost per Install Over Time (line) ---
+  // --- Cost per Purchase Over Time (line) ---
   createChart('chartCostPerCall', {
     type: 'line',
     data: {
       labels: labels,
       datasets: [
         {
-          label: 'Combined Cost/Install',
+          label: 'Combined Cost/Purchase',
           data: labels.map(function(k) { return allMap[k] ? allMap[k].costPerLead : 0; }),
           borderColor: '#209D50',
           backgroundColor: 'rgba(32,157,80,0.08)',
@@ -1433,7 +1449,7 @@ function renderTrends() {
           pointRadius: pointRadius
         },
         {
-          label: 'Meta Cost/Install',
+          label: 'Meta Cost/Purchase',
           data: labels.map(function(k) { return metaMap[k] ? metaMap[k].costPerLead : 0; }),
           borderColor: '#1877F2',
           backgroundColor: 'transparent',
@@ -1441,7 +1457,7 @@ function renderTrends() {
           pointRadius: pointRadius
         },
         {
-          label: 'Google Cost/Install',
+          label: 'Google Cost/Purchase',
           data: labels.map(function(k) { return googleMap[k] ? googleMap[k].costPerLead : 0; }),
           borderColor: '#EA4335',
           backgroundColor: 'transparent',
@@ -1508,20 +1524,20 @@ function renderTrends() {
     }
   });
 
-  // --- Installs Over Time (stacked bar) ---
+  // --- Purchases Over Time (stacked bar) ---
   createChart('chartCallsBooked', {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [
         {
-          label: 'Meta Installs',
+          label: 'Meta Purchases',
           data: labels.map(function(k) { return metaMap[k] ? metaMap[k].callsBooked : 0; }),
           backgroundColor: '#1877F2',
           borderRadius: 2
         },
         {
-          label: 'Google Installs',
+          label: 'Google Purchases',
           data: labels.map(function(k) { return googleMap[k] ? googleMap[k].callsBooked : 0; }),
           backgroundColor: '#EA4335',
           borderRadius: 2
@@ -1545,7 +1561,7 @@ function renderTrends() {
 // ========================================================================
 function metricLabel(m) {
   var map = {
-    costPerLead: 'Cost/Install',
+    costPerLead: 'Cost/Purchase',
     cpc: 'CPC',
     cpm: 'CPM',
     ctr: 'CTR'
@@ -1599,7 +1615,7 @@ function renderLeaderboard() {
         '<div class="leader-card-stats">' +
           '<div class="leader-card-stat">' + metricLabel(metric) + ': <span>' + metricDisplay(metric, a[metric]) + '</span></div>' +
           '<div class="leader-card-stat">Spend: <span>' + formatCurrency(a.spend) + '</span></div>' +
-          '<div class="leader-card-stat">Calls: <span>' + formatNumber(a.callsBooked) + '</span></div>' +
+          '<div class="leader-card-stat">Purchases: <span>' + formatNumber(a.callsBooked) + '</span></div>' +
           '<div class="leader-card-stat">Clicks: <span>' + formatNumber(a.clicks) + '</span></div>' +
           '<div class="leader-card-stat">CTR: <span>' + formatPct(a.ctr) + '</span></div>' +
         '</div>';
@@ -1642,7 +1658,7 @@ function renderLeaderboard() {
           callbacks: {
             label: function(ctx) {
               var p = ctx.raw;
-              return p.label + ' | Clicks: ' + p.x.toLocaleString() + ' | Cost/Install: $' + p.y.toFixed(2) + ' | Calls: ' + p.callsBooked;
+              return p.label + ' | Clicks: ' + p.x.toLocaleString() + ' | Cost/Purchase: $' + p.y.toFixed(2) + ' | Purchases: ' + p.callsBooked;
             }
           }
         }
@@ -1653,7 +1669,7 @@ function renderLeaderboard() {
           ticks: { callback: function(v) { return v.toLocaleString(); } }
         },
         y: {
-          title: { display: true, text: 'Cost per Install ($)' },
+          title: { display: true, text: 'Cost per Purchase ($)' },
           beginAtZero: true,
           ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
         }
@@ -1682,13 +1698,14 @@ function renderCampaigns() {
   data.forEach(function(r) {
     const key = r.campaign + '|' + r.platform;
     if (!byKey[key]) {
-      byKey[key] = { campaign: r.campaign, platform: r.platform, spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0 };
+      byKey[key] = { campaign: r.campaign, platform: r.platform, spend: 0, impressions: 0, reach: 0, clicks: 0, callsBooked: 0, revenue: 0 };
     }
     byKey[key].spend += r.spend;
     byKey[key].impressions += r.impressions;
     byKey[key].reach += r.reach;
     byKey[key].clicks += r.clicks;
     byKey[key].callsBooked += r.callsBooked;
+    byKey[key].revenue += (r.revenue || 0);
   });
 
   var rows = Object.values(byKey).map(function(r) {
@@ -1696,6 +1713,7 @@ function renderCampaigns() {
     r.cpc = r.clicks > 0 ? r.spend / r.clicks : 0;
     r.cpm = r.impressions > 0 ? (r.spend / r.impressions) * 1000 : 0;
     r.costPerLead = r.callsBooked > 0 ? r.spend / r.callsBooked : 0;
+    r.roas = r.spend > 0 ? r.revenue / r.spend : 0;
     r.frequency = r.reach > 0 ? r.impressions / r.reach : 0;
     return r;
   });
@@ -1734,6 +1752,8 @@ function renderCampaigns() {
       '<td>' + formatCurrency(r.cpm) + '</td>' +
       '<td>' + formatNumber(r.callsBooked) + '</td>' +
       '<td>' + formatCurrency(r.costPerLead) + '</td>' +
+      '<td>' + formatCurrency(r.revenue || 0) + '</td>' +
+      '<td>' + (r.roas || 0).toFixed(2) + 'x</td>' +
       '<td>' + r.frequency.toFixed(2) + '</td>';
     tbody.appendChild(tr);
   });
@@ -1886,14 +1906,14 @@ function renderDowCharts() {
     };
   };
 
-  // Installs — additive, stacked.
+  // Purchases — additive, stacked.
   createChart('chartDowCalls', {
     type: 'bar',
     data: { labels: DOW_ORDER, datasets: buildDatasets('callsBooked', false) },
     options: stackedOpts(null),
   });
 
-  // Cost per Install — ratio, NOT additive. Group side-by-side instead of stack.
+  // Cost per Purchase — ratio, NOT additive. Group side-by-side instead of stack.
   createChart('chartDowCPL', {
     type: 'bar',
     data: { labels: DOW_ORDER, datasets: buildDatasets(null, true) },
@@ -2091,7 +2111,7 @@ function renderBreakdowns() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Installs', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Purchases', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2104,7 +2124,7 @@ function renderBreakdowns() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Cost per Install', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Cost per Purchase', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2129,8 +2149,10 @@ function renderBreakdowns() {
   var thead = document.getElementById('breakdownHead');
   thead.innerHTML =
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="costPerLead">Cost/Install</th>' +
+    '<th data-col="callsBooked">Purchases</th>' +
+    '<th data-col="costPerLead">Cost/Purchase</th>' +
+    '<th data-col="revenue">Revenue</th>' +
+    '<th data-col="roas">ROAS</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2155,6 +2177,8 @@ function renderBreakdowns() {
       '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 60 ? g.key.substring(0, 57) + '...' : (g.key || '')) + '</td>' +
       '<td>' + formatNumber(g.callsBooked) + '</td>' +
       '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+      '<td>' + formatCurrency(g.revenue || 0) + '</td>' +
+      '<td>' + (g.roas || 0).toFixed(2) + 'x</td>' +
       '<td>' + formatCurrency(g.spend) + '</td>' +
       '<td>' + formatNumber(g.impressions) + '</td>' +
       '<td>' + formatNumber(g.clicks) + '</td>' +
@@ -2235,7 +2259,7 @@ function renderAssets() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Calls', data: chartTop.map(function(r) { return r.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Purchases', data: chartTop.map(function(r) { return r.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2275,8 +2299,8 @@ function renderAssets() {
   var thead = document.getElementById('assetHead');
   thead.innerHTML =
     '<th data-col="text">' + typeLabel + '</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="cpl">Cost/Install</th>' +
+    '<th data-col="callsBooked">Purchases</th>' +
+    '<th data-col="cpl">Cost/Purchase</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2371,7 +2395,7 @@ function renderKeywords() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Calls', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Purchases', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2384,7 +2408,7 @@ function renderKeywords() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Cost/Install', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Cost/Purchase', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2416,8 +2440,8 @@ function renderKeywords() {
   var thead = document.getElementById('keywordHead');
   thead.innerHTML =
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="costPerLead">Cost/Install</th>' +
+    '<th data-col="callsBooked">Purchases</th>' +
+    '<th data-col="costPerLead">Cost/Purchase</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2511,7 +2535,7 @@ function renderAds() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Calls', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Purchases', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2524,7 +2548,7 @@ function renderAds() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Cost/Install', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Cost/Purchase', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2556,8 +2580,10 @@ function renderAds() {
   var thead = document.getElementById('adsHead');
   thead.innerHTML =
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="costPerLead">Cost/Install</th>' +
+    '<th data-col="callsBooked">Purchases</th>' +
+    '<th data-col="costPerLead">Cost/Purchase</th>' +
+    '<th data-col="revenue">Revenue</th>' +
+    '<th data-col="roas">ROAS</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2582,6 +2608,8 @@ function renderAds() {
       '<td title="' + escHtml(g.key || '') + '">' + escHtml((g.key || '').length > 60 ? g.key.substring(0, 57) + '...' : (g.key || '')) + '</td>' +
       '<td>' + formatNumber(g.callsBooked) + '</td>' +
       '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+      '<td>' + formatCurrency(g.revenue || 0) + '</td>' +
+      '<td>' + (g.roas || 0).toFixed(2) + 'x</td>' +
       '<td>' + formatCurrency(g.spend) + '</td>' +
       '<td>' + formatNumber(g.impressions) + '</td>' +
       '<td>' + formatNumber(g.clicks) + '</td>' +
@@ -2613,7 +2641,7 @@ function renderFunnel() {
   var stages = [
     { label: 'Impressions', value: agg.impressions, costPer: agg.impressions > 0 ? agg.spend / agg.impressions : 0 },
     { label: 'Clicks',      value: agg.clicks,      costPer: agg.clicks > 0 ? agg.spend / agg.clicks : 0 },
-    { label: 'Installs', value: agg.callsBooked, costPer: agg.callsBooked > 0 ? agg.spend / agg.callsBooked : 0 }
+    { label: 'Purchases', value: agg.callsBooked, costPer: agg.callsBooked > 0 ? agg.spend / agg.callsBooked : 0 }
   ];
 
   var wrap = document.getElementById('funnelWrap');
@@ -2728,9 +2756,9 @@ function renderPacing() {
   kpisEl.innerHTML = '';
   kpisEl.appendChild(buildKpiCard('Total Spend', formatCurrency(totalSpend), null));
   kpisEl.appendChild(buildKpiCard('Avg Daily Spend', formatCurrency(avgDailySpend), null));
-  kpisEl.appendChild(buildKpiCard('Installs', formatNumber(totalCallsBooked), null));
-  kpisEl.appendChild(buildKpiCard('Avg Daily Installs', avgDailyCallsBooked.toFixed(1), null));
-  kpisEl.appendChild(buildKpiCard('Overall Cost/Install', formatCurrency(overallCostPerCall), null));
+  kpisEl.appendChild(buildKpiCard('Purchases', formatNumber(totalCallsBooked), null));
+  kpisEl.appendChild(buildKpiCard('Avg Daily Purchases', avgDailyCallsBooked.toFixed(1), null));
+  kpisEl.appendChild(buildKpiCard('Overall Cost/Purchase', formatCurrency(overallCostPerCall), null));
   kpisEl.appendChild(buildKpiCard('Days Active', formatNumber(dates.length), null));
 
   var maxTicks = dates.length > 90 ? 20 : dates.length > 60 ? 25 : 35;
@@ -2751,7 +2779,7 @@ function renderPacing() {
           pointRadius: pointRadius
         },
         {
-          label: 'Cumulative Installs',
+          label: 'Cumulative Purchases',
           data: cumCallsBooked,
           borderColor: '#4A90D9',
           backgroundColor: 'transparent',
@@ -2773,7 +2801,7 @@ function renderPacing() {
         },
         y1: {
           type: 'linear', position: 'right', beginAtZero: true,
-          title: { display: true, text: 'Installs' },
+          title: { display: true, text: 'Purchases' },
           grid: { drawOnChartArea: false },
           ticks: { callback: function(v) { return v.toLocaleString(); } }
         },
@@ -2947,8 +2975,8 @@ async function loadData() {
     // Data diagnostics
     var platforms = {};
     campaignData.forEach(function(r) { platforms[r.platform] = (platforms[r.platform] || 0) + 1; });
-    console.log('[Demo Dashboard] Campaign rows:', campaignData.length);
-    console.log('[Demo Dashboard] Ad detail rows:', adDetailData.length);
+    console.log('[PJ's Pet Shop Dashboard] Campaign rows:', campaignData.length);
+    console.log('[PJ's Pet Shop Dashboard] Ad detail rows:', adDetailData.length);
     // Normalize keyword data
     keywordData = [];
     for (var i = 0; i < kwRows.length; i++) {
@@ -2964,10 +2992,10 @@ async function loadData() {
     }
     placementData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
-    console.log('[Demo Dashboard] Keywords:', keywordData.length, '| Placements:', placementData.length);
-    console.log('[Demo Dashboard] Headlines:', headlineData.length, '| Descriptions:', descriptionData.length);
-    console.log('[Demo Dashboard] Platforms:', platforms);
-    console.log('[Demo Dashboard] Date range:', campaignData.length > 0 ? campaignData[0].date + ' to ' + campaignData[campaignData.length-1].date : 'no data');
+    console.log('[PJ's Pet Shop Dashboard] Keywords:', keywordData.length, '| Placements:', placementData.length);
+    console.log('[PJ's Pet Shop Dashboard] Headlines:', headlineData.length, '| Descriptions:', descriptionData.length);
+    console.log('[PJ's Pet Shop Dashboard] Platforms:', platforms);
+    console.log('[PJ's Pet Shop Dashboard] Date range:', campaignData.length > 0 ? campaignData[0].date + ' to ' + campaignData[campaignData.length-1].date : 'no data');
 
     // Populate filter dropdowns
     populateFilterDropdowns();
