@@ -2975,8 +2975,8 @@ async function loadData() {
     // Data diagnostics
     var platforms = {};
     campaignData.forEach(function(r) { platforms[r.platform] = (platforms[r.platform] || 0) + 1; });
-    console.log('[PJ's Pet Shop Dashboard] Campaign rows:', campaignData.length);
-    console.log('[PJ's Pet Shop Dashboard] Ad detail rows:', adDetailData.length);
+    console.log("[PJ's Pet Shop Dashboard] Campaign rows:", campaignData.length);
+    console.log("[PJ's Pet Shop Dashboard] Ad detail rows:", adDetailData.length);
     // Normalize keyword data
     keywordData = [];
     for (var i = 0; i < kwRows.length; i++) {
@@ -2992,10 +2992,10 @@ async function loadData() {
     }
     placementData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
-    console.log('[PJ's Pet Shop Dashboard] Keywords:', keywordData.length, '| Placements:', placementData.length);
-    console.log('[PJ's Pet Shop Dashboard] Headlines:', headlineData.length, '| Descriptions:', descriptionData.length);
-    console.log('[PJ's Pet Shop Dashboard] Platforms:', platforms);
-    console.log('[PJ's Pet Shop Dashboard] Date range:', campaignData.length > 0 ? campaignData[0].date + ' to ' + campaignData[campaignData.length-1].date : 'no data');
+    console.log("[PJ's Pet Shop Dashboard] Keywords:", keywordData.length, "| Placements:", placementData.length);
+    console.log("[PJ's Pet Shop Dashboard] Headlines:", headlineData.length, "| Descriptions:", descriptionData.length);
+    console.log("[PJ's Pet Shop Dashboard] Platforms:", platforms);
+    console.log("[PJ's Pet Shop Dashboard] Date range:", campaignData.length > 0 ? campaignData[0].date + " to " + campaignData[campaignData.length-1].date : "no data");
 
     // Populate filter dropdowns
     populateFilterDropdowns();
