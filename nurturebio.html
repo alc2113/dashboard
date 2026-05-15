@@ -465,7 +465,7 @@ tr:hover td{background:#fafaf8;}
       <div class="chart-wrap"><canvas id="chartSpend"></canvas></div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">Cost per Call Over Time</div>
+      <div class="chart-title">Cost per Purchase Over Time</div>
       <div class="chart-wrap"><canvas id="chartCostPerCall"></canvas></div>
     </div>
     <div class="chart-row">
@@ -474,7 +474,7 @@ tr:hover td{background:#fafaf8;}
         <div class="chart-wrap"><canvas id="chartCpcCpm"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Calls Booked Over Time</div>
+        <div class="chart-title">Purchases Over Time</div>
         <div class="chart-wrap"><canvas id="chartCallsBooked"></canvas></div>
       </div>
     </div>
@@ -485,7 +485,7 @@ tr:hover td{background:#fafaf8;}
     <div class="leader-controls">
       <label>Metric:
         <select id="leaderMetric">
-          <option value="costPerLead">Cost / Call</option>
+          <option value="costPerLead">Cost / Purchase</option>
           <option value="cpc">CPC</option>
           <option value="cpm">CPM</option>
           <option value="ctr">CTR</option>
@@ -495,7 +495,7 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="leader-cards" id="leaderCards"></div>
     <div class="chart-container">
-      <div class="chart-title">Cost per Call vs Clicks (bubble size = spend)</div>
+      <div class="chart-title">Cost per Purchase vs Clicks (bubble size = spend)</div>
       <div class="chart-wrap"><canvas id="chartScatter"></canvas></div>
     </div>
   </div>
@@ -515,8 +515,8 @@ tr:hover td{background:#fafaf8;}
           <th data-col="ctr">CTR</th>
           <th data-col="cpc">CPC</th>
           <th data-col="cpm">CPM</th>
-          <th data-col="callsBooked">Calls</th>
-          <th data-col="costPerLead">Cost/Call</th>
+          <th data-col="callsBooked">Purchases</th>
+          <th data-col="costPerLead">Cost/Purchase</th>
           <th data-col="frequency">Freq</th>
         </tr></thead>
         <tbody id="campaignBody"></tbody>
@@ -577,21 +577,21 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Calls Booked Over Time by <span id="trendDimLabel">Dimension</span></div>
+        <div class="chart-title">Purchases Over Time by <span id="trendDimLabel">Dimension</span></div>
         <div class="chart-wrap"><canvas id="chartBreakTrendCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Call Over Time by <span id="trendDimLabel2">Dimension</span></div>
+        <div class="chart-title">Cost per Purchase Over Time by <span id="trendDimLabel2">Dimension</span></div>
         <div class="chart-wrap"><canvas id="chartBreakTrendCPL"></canvas></div>
       </div>
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Calls Booked by Dimension</div>
+        <div class="chart-title">Purchases by Dimension</div>
         <div class="chart-wrap"><canvas id="chartBreakCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Call by Dimension</div>
+        <div class="chart-title">Cost per Purchase by Dimension</div>
         <div class="chart-wrap"><canvas id="chartBreakCPL"></canvas></div>
       </div>
     </div>
@@ -603,11 +603,11 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Calls Booked by Day of Week</div>
+        <div class="chart-title">Purchases by Day of Week</div>
         <div class="chart-wrap"><canvas id="chartDowCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Call by Day of Week</div>
+        <div class="chart-title">Cost per Purchase by Day of Week</div>
         <div class="chart-wrap"><canvas id="chartDowCPL"></canvas></div>
       </div>
     </div>
@@ -654,11 +654,11 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Calls Booked by Keywords</div>
+        <div class="chart-title">Purchases by Keywords</div>
         <div class="chart-wrap"><canvas id="chartKwCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Call by Keywords</div>
+        <div class="chart-title">Cost per Purchase by Keywords</div>
         <div class="chart-wrap"><canvas id="chartKwCPL"></canvas></div>
       </div>
     </div>
@@ -708,11 +708,11 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Calls Booked by Ad</div>
+        <div class="chart-title">Purchases by Ad</div>
         <div class="chart-wrap"><canvas id="chartAdCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Call by Ad</div>
+        <div class="chart-title">Cost per Purchase by Ad</div>
         <div class="chart-wrap"><canvas id="chartAdCPL"></canvas></div>
       </div>
     </div>
@@ -747,11 +747,11 @@ tr:hover td{background:#fafaf8;}
     </div>
     <div class="chart-row">
       <div class="chart-container">
-        <div class="chart-title">Calls Booked by Asset</div>
+        <div class="chart-title">Purchases by Asset</div>
         <div class="chart-wrap"><canvas id="chartAssetCalls"></canvas></div>
       </div>
       <div class="chart-container">
-        <div class="chart-title">Cost per Call by Asset</div>
+        <div class="chart-title">Cost per Purchase by Asset</div>
         <div class="chart-wrap"><canvas id="chartAssetCPL"></canvas></div>
       </div>
     </div>
@@ -783,7 +783,7 @@ tr:hover td{background:#fafaf8;}
   <div id="tab-pacing" class="tab-content">
     <div class="kpi-grid" id="pacingKpis" style="margin-bottom:16px;"></div>
     <div class="chart-container">
-      <div class="chart-title">Cumulative Spend &amp; Calls Booked</div>
+      <div class="chart-title">Cumulative Spend &amp; Purchases</div>
       <div class="chart-wrap"><canvas id="chartPacing"></canvas></div>
     </div>
     <div class="chart-container">
@@ -1318,8 +1318,8 @@ function renderOverview() {
   const combEl = document.getElementById('kpiCombined');
   combEl.innerHTML = '';
   combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false), true));
-  combEl.appendChild(buildKpiCard('Calls Booked', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
-  combEl.appendChild(buildKpiCard('Cost / Call', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
+  combEl.appendChild(buildKpiCard('Purchases', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
+  combEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
   combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false)));
   combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false)));
 
@@ -1327,8 +1327,8 @@ function renderOverview() {
   const metaEl = document.getElementById('kpiMeta');
   metaEl.innerHTML = '';
   metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), null));
-  metaEl.appendChild(buildKpiCard('Meta Calls', formatNumber(metaAgg.callsBooked), null));
-  metaEl.appendChild(buildKpiCard('Meta Cost/Call', formatCurrency(metaAgg.costPerLead), null));
+  metaEl.appendChild(buildKpiCard('Meta Purchases', formatNumber(metaAgg.callsBooked), null));
+  metaEl.appendChild(buildKpiCard('Meta Cost/Purchase', formatCurrency(metaAgg.costPerLead), null));
   metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), null));
   metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), null));
   metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), null));
@@ -1339,8 +1339,8 @@ function renderOverview() {
   const googleEl = document.getElementById('kpiGoogle');
   googleEl.innerHTML = '';
   googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), null));
-  googleEl.appendChild(buildKpiCard('Google Calls', formatNumber(googleAgg.callsBooked), null));
-  googleEl.appendChild(buildKpiCard('Google Cost/Call', formatCurrency(googleAgg.costPerLead), null));
+  googleEl.appendChild(buildKpiCard('Google Purchases', formatNumber(googleAgg.callsBooked), null));
+  googleEl.appendChild(buildKpiCard('Google Cost/Purchase', formatCurrency(googleAgg.costPerLead), null));
   googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), null));
   googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), null));
   googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), null));
@@ -1427,14 +1427,14 @@ function renderTrends() {
     }
   });
 
-  // --- Cost per Call Over Time (line) ---
+  // --- Cost per Purchase Over Time (line) ---
   createChart('chartCostPerCall', {
     type: 'line',
     data: {
       labels: labels,
       datasets: [
         {
-          label: 'Combined Cost/Call',
+          label: 'Combined Cost/Purchase',
           data: labels.map(function(k) { return allMap[k] ? allMap[k].costPerLead : 0; }),
           borderColor: '#209D50',
           backgroundColor: 'rgba(32,157,80,0.08)',
@@ -1443,7 +1443,7 @@ function renderTrends() {
           pointRadius: pointRadius
         },
         {
-          label: 'Meta Cost/Call',
+          label: 'Meta Cost/Purchase',
           data: labels.map(function(k) { return metaMap[k] ? metaMap[k].costPerLead : 0; }),
           borderColor: '#1877F2',
           backgroundColor: 'transparent',
@@ -1451,7 +1451,7 @@ function renderTrends() {
           pointRadius: pointRadius
         },
         {
-          label: 'Google Cost/Call',
+          label: 'Google Cost/Purchase',
           data: labels.map(function(k) { return googleMap[k] ? googleMap[k].costPerLead : 0; }),
           borderColor: '#EA4335',
           backgroundColor: 'transparent',
@@ -1518,20 +1518,20 @@ function renderTrends() {
     }
   });
 
-  // --- Calls Booked Over Time (stacked bar) ---
+  // --- Purchases Over Time (stacked bar) ---
   createChart('chartCallsBooked', {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [
         {
-          label: 'Meta Calls',
+          label: 'Meta Purchases',
           data: labels.map(function(k) { return metaMap[k] ? metaMap[k].callsBooked : 0; }),
           backgroundColor: '#1877F2',
           borderRadius: 2
         },
         {
-          label: 'Google Calls',
+          label: 'Google Purchases',
           data: labels.map(function(k) { return googleMap[k] ? googleMap[k].callsBooked : 0; }),
           backgroundColor: '#EA4335',
           borderRadius: 2
@@ -1555,7 +1555,7 @@ function renderTrends() {
 // ========================================================================
 function metricLabel(m) {
   var map = {
-    costPerLead: 'Cost/Call',
+    costPerLead: 'Cost/Purchase',
     cpc: 'CPC',
     cpm: 'CPM',
     ctr: 'CTR'
@@ -1609,7 +1609,7 @@ function renderLeaderboard() {
         '<div class="leader-card-stats">' +
           '<div class="leader-card-stat">' + metricLabel(metric) + ': <span>' + metricDisplay(metric, a[metric]) + '</span></div>' +
           '<div class="leader-card-stat">Spend: <span>' + formatCurrency(a.spend) + '</span></div>' +
-          '<div class="leader-card-stat">Calls: <span>' + formatNumber(a.callsBooked) + '</span></div>' +
+          '<div class="leader-card-stat">Purchases: <span>' + formatNumber(a.callsBooked) + '</span></div>' +
           '<div class="leader-card-stat">Clicks: <span>' + formatNumber(a.clicks) + '</span></div>' +
           '<div class="leader-card-stat">CTR: <span>' + formatPct(a.ctr) + '</span></div>' +
         '</div>';
@@ -1652,7 +1652,7 @@ function renderLeaderboard() {
           callbacks: {
             label: function(ctx) {
               var p = ctx.raw;
-              return p.label + ' | Clicks: ' + p.x.toLocaleString() + ' | Cost/Call: $' + p.y.toFixed(2) + ' | Calls: ' + p.callsBooked;
+              return p.label + ' | Clicks: ' + p.x.toLocaleString() + ' | Cost/Purchase: $' + p.y.toFixed(2) + ' | Purchases: ' + p.callsBooked;
             }
           }
         }
@@ -1663,7 +1663,7 @@ function renderLeaderboard() {
           ticks: { callback: function(v) { return v.toLocaleString(); } }
         },
         y: {
-          title: { display: true, text: 'Cost per Call ($)' },
+          title: { display: true, text: 'Cost per Purchase ($)' },
           beginAtZero: true,
           ticks: { callback: function(v) { return '$' + v.toFixed(2); } }
         }
@@ -1896,14 +1896,14 @@ function renderDowCharts() {
     };
   };
 
-  // Calls Booked — additive, stacked.
+  // Purchases — additive, stacked.
   createChart('chartDowCalls', {
     type: 'bar',
     data: { labels: DOW_ORDER, datasets: buildDatasets('callsBooked', false) },
     options: stackedOpts(null),
   });
 
-  // Cost per Call — ratio, NOT additive. Group side-by-side instead of stack.
+  // Cost per Purchase — ratio, NOT additive. Group side-by-side instead of stack.
   createChart('chartDowCPL', {
     type: 'bar',
     data: { labels: DOW_ORDER, datasets: buildDatasets(null, true) },
@@ -2101,7 +2101,7 @@ function renderBreakdowns() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Calls Booked', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Purchases', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2114,7 +2114,7 @@ function renderBreakdowns() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Cost per Call', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Cost per Purchase', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2139,8 +2139,8 @@ function renderBreakdowns() {
   var thead = document.getElementById('breakdownHead');
   thead.innerHTML =
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="costPerLead">Cost/Call</th>' +
+    '<th data-col="callsBooked">Purchases</th>' +
+    '<th data-col="costPerLead">Cost/Purchase</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2245,7 +2245,7 @@ function renderAssets() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Calls', data: chartTop.map(function(r) { return r.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Purchases', data: chartTop.map(function(r) { return r.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2285,8 +2285,8 @@ function renderAssets() {
   var thead = document.getElementById('assetHead');
   thead.innerHTML =
     '<th data-col="text">' + typeLabel + '</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="cpl">Cost/Call</th>' +
+    '<th data-col="callsBooked">Purchases</th>' +
+    '<th data-col="cpl">Cost/Purchase</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2381,7 +2381,7 @@ function renderKeywords() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Calls', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Purchases', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2394,7 +2394,7 @@ function renderKeywords() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Cost/Call', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Cost/Purchase', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2426,8 +2426,8 @@ function renderKeywords() {
   var thead = document.getElementById('keywordHead');
   thead.innerHTML =
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="costPerLead">Cost/Call</th>' +
+    '<th data-col="callsBooked">Purchases</th>' +
+    '<th data-col="costPerLead">Cost/Purchase</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2521,7 +2521,7 @@ function renderAds() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Calls', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Purchases', data: chartSorted.map(function(g) { return g.callsBooked; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2534,7 +2534,7 @@ function renderAds() {
     type: 'bar',
     data: {
       labels: chartLabels,
-      datasets: [{ label: 'Cost/Call', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
+      datasets: [{ label: 'Cost/Purchase', data: chartSorted.map(function(g) { return g.costPerLead; }), backgroundColor: chartColors, borderRadius: 4 }]
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
@@ -2566,8 +2566,8 @@ function renderAds() {
   var thead = document.getElementById('adsHead');
   thead.innerHTML =
     '<th data-col="key">' + escHtml(dimLabel) + '</th>' +
-    '<th data-col="callsBooked">Calls</th>' +
-    '<th data-col="costPerLead">Cost/Call</th>' +
+    '<th data-col="callsBooked">Purchases</th>' +
+    '<th data-col="costPerLead">Cost/Purchase</th>' +
     '<th data-col="spend">Spend</th>' +
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
@@ -2623,7 +2623,7 @@ function renderFunnel() {
   var stages = [
     { label: 'Impressions', value: agg.impressions, costPer: agg.impressions > 0 ? agg.spend / agg.impressions : 0 },
     { label: 'Clicks',      value: agg.clicks,      costPer: agg.clicks > 0 ? agg.spend / agg.clicks : 0 },
-    { label: 'Calls Booked', value: agg.callsBooked, costPer: agg.callsBooked > 0 ? agg.spend / agg.callsBooked : 0 }
+    { label: 'Purchases', value: agg.callsBooked, costPer: agg.callsBooked > 0 ? agg.spend / agg.callsBooked : 0 }
   ];
 
   var wrap = document.getElementById('funnelWrap');
@@ -2738,9 +2738,9 @@ function renderPacing() {
   kpisEl.innerHTML = '';
   kpisEl.appendChild(buildKpiCard('Total Spend', formatCurrency(totalSpend), null));
   kpisEl.appendChild(buildKpiCard('Avg Daily Spend', formatCurrency(avgDailySpend), null));
-  kpisEl.appendChild(buildKpiCard('Calls Booked', formatNumber(totalCallsBooked), null));
-  kpisEl.appendChild(buildKpiCard('Avg Daily Calls', avgDailyCallsBooked.toFixed(1), null));
-  kpisEl.appendChild(buildKpiCard('Overall Cost/Call', formatCurrency(overallCostPerCall), null));
+  kpisEl.appendChild(buildKpiCard('Purchases', formatNumber(totalCallsBooked), null));
+  kpisEl.appendChild(buildKpiCard('Avg Daily Purchases', avgDailyCallsBooked.toFixed(1), null));
+  kpisEl.appendChild(buildKpiCard('Overall Cost/Purchase', formatCurrency(overallCostPerCall), null));
   kpisEl.appendChild(buildKpiCard('Days Active', formatNumber(dates.length), null));
 
   var maxTicks = dates.length > 90 ? 20 : dates.length > 60 ? 25 : 35;
@@ -2761,7 +2761,7 @@ function renderPacing() {
           pointRadius: pointRadius
         },
         {
-          label: 'Cumulative Calls',
+          label: 'Cumulative Purchases',
           data: cumCallsBooked,
           borderColor: '#4A90D9',
           backgroundColor: 'transparent',
@@ -2783,7 +2783,7 @@ function renderPacing() {
         },
         y1: {
           type: 'linear', position: 'right', beginAtZero: true,
-          title: { display: true, text: 'Calls Booked' },
+          title: { display: true, text: 'Purchases' },
           grid: { drawOnChartArea: false },
           ticks: { callback: function(v) { return v.toLocaleString(); } }
         },
