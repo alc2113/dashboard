@@ -2708,7 +2708,18 @@ function renderFunnel() {
         }
       },
       scales: {
-        x: { beginAtZero: true, ticks: { callback: function(v) { return v.toLocaleString(); } } }
+        x: {
+          type: 'logarithmic',
+          ticks: {
+            callback: function(v) {
+              if (v === 1 || v === 10 || v === 100 || v === 1000 || v === 10000 ||
+                  v === 100000 || v === 1000000 || v === 10000000) {
+                return v.toLocaleString();
+              }
+              return '';
+            }
+          }
+        }
       }
     }
   });
@@ -2810,6 +2821,9 @@ function renderPacing() {
     }
   });
 
+  var dailyTargetValue = avgDailySpend;
+  var dailyTargetLine = dates.map(function() { return dailyTargetValue; });
+
   createChart('chartDailyPacing', {
     type: 'bar',
     data: {
@@ -2819,14 +2833,27 @@ function renderPacing() {
           label: 'Daily Spend',
           data: dailySpend,
           backgroundColor: '#209D50',
-          borderRadius: 2
+          borderRadius: 2,
+          order: 2
+        },
+        {
+          label: 'Daily Target (avg)',
+          type: 'line',
+          data: dailyTargetLine,
+          borderColor: '#E5651A',
+          borderWidth: 2,
+          borderDash: [6, 4],
+          pointRadius: 0,
+          fill: false,
+          tension: 0,
+          order: 1
         }
       ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { position: 'top' } },
       scales: {
         y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } },
         x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
