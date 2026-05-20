@@ -117,6 +117,12 @@ body{
 .tab-content.active{display:block;}
 
 /* ===== KPI CARDS ===== */
+.kpi-section-label{
+  font-size:11px;color:var(--text-muted);text-transform:uppercase;
+  letter-spacing:1.2px;font-weight:600;margin-bottom:8px;
+}
+.kpi-section-label + .kpi-strip{margin-bottom:18px;}
+#kpiYtdLabel{margin-top:4px;}
 .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
 .kpi-card{
   background:var(--card);border:1px solid var(--border);border-radius:10px;
@@ -268,7 +274,10 @@ table.data tbody td.group-start{border-left:2px solid #b8a99c;}
 
   <!-- OVERVIEW -->
   <div id="tab-overview" class="tab-content active">
-    <div class="kpi-strip" id="kpiStrip"></div>
+    <div class="kpi-section-label" id="kpiMtdLabel">Month-to-Date</div>
+    <div class="kpi-strip" id="kpiStripMtd"></div>
+    <div class="kpi-section-label" id="kpiYtdLabel">Year-to-Date</div>
+    <div class="kpi-strip" id="kpiStripYtd"></div>
     <div id="overviewExecSections"></div>
     <div class="section">
       <div class="section-title" id="dailyBlockTitle">Yesterday</div>
@@ -598,17 +607,28 @@ function parsePnlHistory(rows){
 }
 
 function parseMembership(rows){
-  // Row 0 = title 'MEMBERSHIP HISTORY — Wine Club'
-  // Row 1 = blank
-  // Row 2 = header
-  // Row 3+ data
-  if (!rows || rows.length < 4) return { headers:[], data:[] };
-  var header = rows[2] || [];
-  var data = [];
-  for (var i = 3; i < rows.length; i++){
+  // Find the header row by locating the first row whose col-0 is "Month".
+  // The sheet has a variable preamble (title, optional "Source:" subtitle,
+  // blank row) and we used to hardcode rows[2] — which broke when the source
+  // line was added.
+  if (!rows || rows.length < 2) return { headers:[], data:[] };
+  var hdrIdx = -1;
+  for (var i = 0; i < Math.min(rows.length, 12); i++){
     var r = rows[i];
+    if (r && r[0] && String(r[0]).trim().toLowerCase() === 'month'){
+      hdrIdx = i; break;
+    }
+  }
+  if (hdrIdx < 0) return { headers:[], data:[] };
+  var header = rows[hdrIdx] || [];
+  var data = [];
+  // Accept single- or double-digit month suffix; the sheet has one stray
+  // "2021-9" row that the strict /\d{4}-\d{2}/ regex was dropping.
+  var monthRe = /^\d{4}-\d{1,2}$/;
+  for (var k = hdrIdx + 1; k < rows.length; k++){
+    var r = rows[k];
     if (!r || !r[0]) continue;
-    if (!/^\d{4}-\d{2}$/.test(String(r[0]).trim())) continue;
+    if (!monthRe.test(String(r[0]).trim())) continue;
     var padded = r.slice();
     while (padded.length < header.length) padded.push('');
     data.push(padded.slice(0, header.length));
@@ -878,22 +898,39 @@ function renderKpiStrip(){
   var prevRev = prev ? v('Gross Revenue', prev) : NaN;
   var prevNp = prev ? v('Net Profit', prev) : NaN;
 
-  // YTD sums — every month so far in the latest year.
+  // YTD sums — every month so far in the latest year, with an optional
+  // through-month cap so we can compute prior-year-YTD comparable to current
+  // year's elapsed months (e.g., Jan-May 2025 vs Jan-May 2026).
   var latestYear = latest.slice(0, 4);
-  function ytdSum(metric){
+  var latestMonthNum = parseInt(latest.slice(5), 10);
+  function ytdSumYear(metric, year, throughMonthNum){
     if (!hist.byMetric[metric]) return NaN;
     var total = 0, any = false;
     for (var i = 0; i < hist.months.length; i++){
-      if (hist.months[i].startsWith(latestYear)){
-        var c = hist.byMetric[metric][hist.months[i]];
-        if (c && !isNaN(c.num)){ total += c.num; any = true; }
-      }
+      var ym = hist.months[i];
+      if (!ym.startsWith(year)) continue;
+      var mNum = parseInt(ym.slice(5), 10);
+      if (throughMonthNum && mNum > throughMonthNum) continue;
+      var c = hist.byMetric[metric][ym];
+      if (c && !isNaN(c.num)){ total += c.num; any = true; }
     }
     return any ? total : NaN;
   }
-  var ytdRev = ytdSum('Gross Revenue');
-  var ytdNp = ytdSum('Net Profit');
-  var ytdOrders = ytdSum('Total Orders');
+  var ytdRev = ytdSumYear('Gross Revenue', latestYear, latestMonthNum);
+  var ytdNp = ytdSumYear('Net Profit', latestYear, latestMonthNum);
+  var ytdOrders = ytdSumYear('Total Orders', latestYear, latestMonthNum);
+  // Margin denominator is Net Revenue (gross minus discounts) — that's what
+  // the sheet's "Net Margin %" row uses, so we match it here.
+  var ytdNetRev = ytdSumYear('Net Revenue', latestYear, latestMonthNum);
+  var ytdNm = (!isNaN(ytdNetRev) && ytdNetRev !== 0 && !isNaN(ytdNp)) ? (ytdNp / ytdNetRev) : NaN;
+
+  // Prior-year YTD through the same month — for the YoY YTD comparison sub.
+  var prevYear = String(parseInt(latestYear, 10) - 1);
+  var pyRev = ytdSumYear('Gross Revenue', prevYear, latestMonthNum);
+  var pyNp = ytdSumYear('Net Profit', prevYear, latestMonthNum);
+  var pyOrders = ytdSumYear('Total Orders', prevYear, latestMonthNum);
+  var pyNetRev = ytdSumYear('Net Revenue', prevYear, latestMonthNum);
+  var pyNm = (!isNaN(pyNetRev) && pyNetRev !== 0 && !isNaN(pyNp)) ? (pyNp / pyNetRev) : NaN;
 
   // Active members = Current + Pending. The Active row in Wine Club Tracker
   // lives below a blank-row gap (after the Total row was removed), and
@@ -910,10 +947,37 @@ function renderKpiStrip(){
     if (cur) active = cur[3] || '—';
   }
 
+  // Net member change YTD — sum the Net Change column of Membership History
+  // for every row whose month is in the current year.
+  var memberYtdChange = NaN;
+  var mem = parsed.membership;
+  if (mem && mem.data && mem.data.length){
+    var memHdr = mem.headers.map(function(h){ return String(h); });
+    var memMonthIdx = memHdr.indexOf('Month');
+    var memNetIdx = memHdr.indexOf('Net Change');
+    if (memMonthIdx >= 0 && memNetIdx >= 0){
+      var s = 0, any = false;
+      for (var i = 0; i < mem.data.length; i++){
+        var ym = String(mem.data[i][memMonthIdx] || '');
+        if (!ym.startsWith(latestYear)) continue;
+        var n = toNum(mem.data[i][memNetIdx]);
+        if (!isNaN(n)){ s += n; any = true; }
+      }
+      if (any) memberYtdChange = s;
+    }
+  }
+
   function dtxt(d, suffix){
     if (d === null || d === undefined || isNaN(d)) return '';
     var cls = d >= 0 ? 'pos' : 'neg';
     return '<div class="kpi-sub ' + cls + '">' + fmtPctSigned(d) + ' ' + suffix + '</div>';
+  }
+  // Absolute-number delta sub (for the membership YTD card).
+  function dnum(n, suffix){
+    if (n === null || n === undefined || isNaN(n)) return '';
+    var cls = n >= 0 ? 'pos' : 'neg';
+    var s = (n >= 0 ? '+' : '') + fmtInt(n);
+    return '<div class="kpi-sub ' + cls + '">' + s + ' ' + suffix + '</div>';
   }
 
   var monthLabel = (function(){
@@ -922,31 +986,57 @@ function renderKpiStrip(){
     return dt.toLocaleString('en-US',{month:'short', year:'numeric'});
   })();
 
-  function ytdLine(label, rawVal, formatter){
-    // Check the underlying number, not the formatted string (isNaN("$40,960")
-    // is true because parseFloat fails on the $, which suppressed the line).
-    if (rawVal === null || rawVal === undefined || isNaN(rawVal)) return '';
-    return '<div class="kpi-sub" style="color:var(--text-muted);">' +
-            label + ' ' + formatter(rawVal) + '</div>';
-  }
+  // Section labels above each KPI row include the period for context.
+  var mtdLabelEl = document.getElementById('kpiMtdLabel');
+  if (mtdLabelEl) mtdLabelEl.textContent = 'Month-to-Date — ' + monthLabel;
+  var ytdLabelEl = document.getElementById('kpiYtdLabel');
+  if (ytdLabelEl) ytdLabelEl.textContent = 'Year-to-Date — ' + latestYear;
 
-  var html = '';
-  html += '<div class="kpi-card highlight"><div class="kpi-label">Revenue · ' + monthLabel + '</div>' +
-          '<div class="kpi-value">' + fmtMoney(rev) + '</div>' +
-          dtxt(delta(rev, prevRev), 'vs prev mo') +
-          ytdLine(latestYear + ' YTD:', ytdRev, fmtMoney) + '</div>';
-  html += '<div class="kpi-card highlight"><div class="kpi-label">Net Profit · ' + monthLabel + '</div>' +
-          '<div class="kpi-value">' + fmtMoney(np) + '</div>' +
-          dtxt(delta(np, prevNp), 'vs prev mo') +
-          ytdLine(latestYear + ' YTD:', ytdNp, fmtMoney) + '</div>';
-  html += '<div class="kpi-card"><div class="kpi-label">Net Margin</div>' +
-          '<div class="kpi-value">' + fmtPct(nm) + '</div></div>';
-  html += '<div class="kpi-card"><div class="kpi-label">Orders</div>' +
-          '<div class="kpi-value">' + fmtInt(orders) + '</div>' +
-          ytdLine(latestYear + ' YTD:', ytdOrders, fmtInt) + '</div>';
-  html += '<div class="kpi-card"><div class="kpi-label">Active Members</div>' +
-          '<div class="kpi-value">' + escHtml(active) + '</div></div>';
-  document.getElementById('kpiStrip').innerHTML = html;
+  // ─── MTD row ──────────────────────────────────────────────────
+  var mtdHtml = '';
+  mtdHtml += '<div class="kpi-card highlight"><div class="kpi-label">Revenue · MTD</div>' +
+             '<div class="kpi-value">' + fmtMoney(rev) + '</div>' +
+             dtxt(delta(rev, prevRev), 'vs prev mo') + '</div>';
+  mtdHtml += '<div class="kpi-card highlight"><div class="kpi-label">Net Profit · MTD</div>' +
+             '<div class="kpi-value">' + fmtMoney(np) + '</div>' +
+             dtxt(delta(np, prevNp), 'vs prev mo') + '</div>';
+  mtdHtml += '<div class="kpi-card"><div class="kpi-label">Net Margin · MTD</div>' +
+             '<div class="kpi-value">' + fmtPct(nm) + '</div></div>';
+  mtdHtml += '<div class="kpi-card"><div class="kpi-label">Orders · MTD</div>' +
+             '<div class="kpi-value">' + fmtInt(orders) + '</div></div>';
+  mtdHtml += '<div class="kpi-card"><div class="kpi-label">Active Members</div>' +
+             '<div class="kpi-value">' + escHtml(active) + '</div></div>';
+  document.getElementById('kpiStripMtd').innerHTML = mtdHtml;
+
+  // ─── YTD row (same metrics, year-to-date values) ──────────────
+  // Each card's sub line is a YoY comparison vs the same months of last year.
+  var ytdHtml = '';
+  ytdHtml += '<div class="kpi-card highlight"><div class="kpi-label">Revenue · YTD</div>' +
+             '<div class="kpi-value">' + fmtMoney(ytdRev) + '</div>' +
+             dtxt(delta(ytdRev, pyRev), 'vs ' + prevYear + ' YTD') + '</div>';
+  ytdHtml += '<div class="kpi-card highlight"><div class="kpi-label">Net Profit · YTD</div>' +
+             '<div class="kpi-value">' + fmtMoney(ytdNp) + '</div>' +
+             dtxt(delta(ytdNp, pyNp), 'vs ' + prevYear + ' YTD') + '</div>';
+  // Margin YoY is a percentage-point difference, not a relative %.
+  var nmDeltaPp = (!isNaN(ytdNm) && !isNaN(pyNm)) ? (ytdNm - pyNm) : null;
+  var nmDeltaHtml = '';
+  if (nmDeltaPp !== null){
+    var nmCls = nmDeltaPp >= 0 ? 'pos' : 'neg';
+    var nmStr = (nmDeltaPp >= 0 ? '+' : '') + (nmDeltaPp * 100).toFixed(1) + 'pp';
+    nmDeltaHtml = '<div class="kpi-sub ' + nmCls + '">' + nmStr + ' vs ' + prevYear + ' YTD</div>';
+  }
+  ytdHtml += '<div class="kpi-card"><div class="kpi-label">Net Margin · YTD</div>' +
+             '<div class="kpi-value">' + fmtPct(ytdNm) + '</div>' +
+             nmDeltaHtml + '</div>';
+  ytdHtml += '<div class="kpi-card"><div class="kpi-label">Orders · YTD</div>' +
+             '<div class="kpi-value">' + fmtInt(ytdOrders) + '</div>' +
+             dtxt(delta(ytdOrders, pyOrders), 'vs ' + prevYear + ' YTD') + '</div>';
+  // Membership is a stock metric — repeat the current count and surface the
+  // YTD net change in the sub line.
+  ytdHtml += '<div class="kpi-card"><div class="kpi-label">Active Members</div>' +
+             '<div class="kpi-value">' + escHtml(active) + '</div>' +
+             dnum(memberYtdChange, latestYear + ' YTD') + '</div>';
+  document.getElementById('kpiStripYtd').innerHTML = ytdHtml;
 }
 
 // Classify an Annual-style header for tinting: 2026 YTD + Full Year Projected
@@ -1192,14 +1282,28 @@ function singleBarChart(canvasId, labels, data, color, isMoney, yLabel){
     }
   });
 }
-function singleLineChart(canvasId, labels, data, color, kind, yLabel){
+function singleLineChart(canvasId, labels, data, color, kind, yLabel, yBounds){
   // kind: 'money' | 'pct' | 'int'; yLabel optional Y-axis title.
+  // yBounds: optional { min, max, suggestedMin, suggestedMax, beginAtZero } to
+  // anchor or clip the Y-axis. Used for margin charts where extreme outliers
+  // in low-revenue months would otherwise dominate auto-scaling.
   var fmt = kind === 'money' ? fmtMoney : kind === 'pct' ? fmtPct : fmtInt;
   var tick = kind === 'money'
     ? function(v){ return fmtMoney(v); }
     : kind === 'pct'
       ? function(v){ return (v*100).toFixed(0) + '%'; }
       : function(v){ return v.toLocaleString(); };
+  var yScale = {
+    ticks:{ callback: tick },
+    title: yLabel ? { display: true, text: yLabel, font: { size: 11, weight: '600' } } : { display: false }
+  };
+  if (yBounds){
+    if (yBounds.min !== undefined) yScale.min = yBounds.min;
+    if (yBounds.max !== undefined) yScale.max = yBounds.max;
+    if (yBounds.suggestedMin !== undefined) yScale.suggestedMin = yBounds.suggestedMin;
+    if (yBounds.suggestedMax !== undefined) yScale.suggestedMax = yBounds.suggestedMax;
+    if (yBounds.beginAtZero) yScale.beginAtZero = true;
+  }
   createChart(canvasId, {
     type:'line',
     data:{ labels: labels, datasets:[{
@@ -1211,9 +1315,7 @@ function singleLineChart(canvasId, labels, data, color, kind, yLabel){
       responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ display:false },
                 tooltip:{ callbacks:{ label: function(ctx){ return fmt(ctx.parsed.y); } } } },
-      scales:{ x: xAxisAllLabels(),
-               y:{ ticks:{ callback: tick },
-                   title: yLabel ? { display: true, text: yLabel, font: { size: 11, weight: '600' } } : { display: false } } }
+      scales:{ x: xAxisAllLabels(), y: yScale }
     }
   });
 }
@@ -1239,11 +1341,20 @@ function renderTrendCharts(){
   singleBarChart('chartRevNonClub', labels, vals('Non-Club DTC Revenue'), PALETTE.nonClub, true);
   singleBarChart('chartRevTotal',   labels, vals('Gross Revenue'),        PALETTE.primary, true);
 
-  // Profit + Margin — separate
+  // Profit + Margin — separate.
+  // Margin charts get explicit Y bounds so the chart stays readable:
+  //   - Gross Margin sits in a tight 70-86% band; without an anchor, Chart.js
+  //     zooms into that band and exaggerates tiny moves. Pin to 0-100%.
+  //   - Net Margin in low-revenue non-release months collapses to -1000%+ when
+  //     fixed costs swamp a few thousand in revenue, which squashes the
+  //     typical-range data into a flat line. Clip the visible Y range; the
+  //     tooltip still surfaces the actual value for clipped points.
   singleLineChart('chartGrossProfit',  labels, vals('Gross Profit'),   PALETTE.primary, 'money');
   singleLineChart('chartNetProfit',    labels, vals('Net Profit'),     PALETTE.accent,  'money');
-  singleLineChart('chartGrossMargin',  labels, vals('Gross Margin %'), PALETTE.primary, 'pct');
-  singleLineChart('chartNetMargin',    labels, vals('Net Margin %'),   PALETTE.accent,  'pct');
+  singleLineChart('chartGrossMargin',  labels, vals('Gross Margin %'), PALETTE.primary, 'pct', null,
+                  { min: 0, suggestedMax: 1 });
+  singleLineChart('chartNetMargin',    labels, vals('Net Margin %'),   PALETTE.accent,  'pct', null,
+                  { min: -1.5, max: 1 });
 
   // Orders — 3 segments + total
   singleBarChart('chartOrdersRelease', labels, vals('Club Release Orders'), PALETTE.release, false);
@@ -1430,9 +1541,11 @@ function renderClub(){
   if (m && m.data.length){
     var hdr = m.headers.map(function(h){ return String(h); });
     var monthIdx = hdr.indexOf('Month');
-    var curIdx = hdr.indexOf('Total Current');
-    var c6Idx = hdr.indexOf('Current 6-Btl');
-    var c12Idx = hdr.indexOf('Current 12-Btl');
+    // Sheet renamed "Total Current" → "Total Active" (and 6/12-Btl variants)
+    // when the Bloom export started subtracting On Hold + 365-day Ghosts.
+    var curIdx = hdr.indexOf('Total Active');
+    var c6Idx = hdr.indexOf('Active 6-Btl');
+    var c12Idx = hdr.indexOf('Active 12-Btl');
     var newIdx = hdr.indexOf('New Members');
     var churnIdx = hdr.indexOf('Churned');
     var netIdx = hdr.indexOf('Net Change');
