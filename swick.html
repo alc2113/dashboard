@@ -117,6 +117,12 @@ body{
 .tab-content.active{display:block;}
 
 /* ===== KPI CARDS ===== */
+.kpi-section-label{
+  font-size:11px;color:var(--text-muted);text-transform:uppercase;
+  letter-spacing:1.2px;font-weight:600;margin-bottom:8px;
+}
+.kpi-section-label + .kpi-strip{margin-bottom:18px;}
+#kpiYtdLabel{margin-top:4px;}
 .kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
 .kpi-card{
   background:var(--card);border:1px solid var(--border);border-radius:10px;
@@ -268,7 +274,10 @@ table.data tbody td.group-start{border-left:2px solid #b8a99c;}
 
   <!-- OVERVIEW -->
   <div id="tab-overview" class="tab-content active">
-    <div class="kpi-strip" id="kpiStrip"></div>
+    <div class="kpi-section-label" id="kpiMtdLabel">Month-to-Date</div>
+    <div class="kpi-strip" id="kpiStripMtd"></div>
+    <div class="kpi-section-label" id="kpiYtdLabel">Year-to-Date</div>
+    <div class="kpi-strip" id="kpiStripYtd"></div>
     <div id="overviewExecSections"></div>
     <div class="section">
       <div class="section-title" id="dailyBlockTitle">Yesterday</div>
@@ -889,22 +898,39 @@ function renderKpiStrip(){
   var prevRev = prev ? v('Gross Revenue', prev) : NaN;
   var prevNp = prev ? v('Net Profit', prev) : NaN;
 
-  // YTD sums — every month so far in the latest year.
+  // YTD sums — every month so far in the latest year, with an optional
+  // through-month cap so we can compute prior-year-YTD comparable to current
+  // year's elapsed months (e.g., Jan-May 2025 vs Jan-May 2026).
   var latestYear = latest.slice(0, 4);
-  function ytdSum(metric){
+  var latestMonthNum = parseInt(latest.slice(5), 10);
+  function ytdSumYear(metric, year, throughMonthNum){
     if (!hist.byMetric[metric]) return NaN;
     var total = 0, any = false;
     for (var i = 0; i < hist.months.length; i++){
-      if (hist.months[i].startsWith(latestYear)){
-        var c = hist.byMetric[metric][hist.months[i]];
-        if (c && !isNaN(c.num)){ total += c.num; any = true; }
-      }
+      var ym = hist.months[i];
+      if (!ym.startsWith(year)) continue;
+      var mNum = parseInt(ym.slice(5), 10);
+      if (throughMonthNum && mNum > throughMonthNum) continue;
+      var c = hist.byMetric[metric][ym];
+      if (c && !isNaN(c.num)){ total += c.num; any = true; }
     }
     return any ? total : NaN;
   }
-  var ytdRev = ytdSum('Gross Revenue');
-  var ytdNp = ytdSum('Net Profit');
-  var ytdOrders = ytdSum('Total Orders');
+  var ytdRev = ytdSumYear('Gross Revenue', latestYear, latestMonthNum);
+  var ytdNp = ytdSumYear('Net Profit', latestYear, latestMonthNum);
+  var ytdOrders = ytdSumYear('Total Orders', latestYear, latestMonthNum);
+  // Margin denominator is Net Revenue (gross minus discounts) — that's what
+  // the sheet's "Net Margin %" row uses, so we match it here.
+  var ytdNetRev = ytdSumYear('Net Revenue', latestYear, latestMonthNum);
+  var ytdNm = (!isNaN(ytdNetRev) && ytdNetRev !== 0 && !isNaN(ytdNp)) ? (ytdNp / ytdNetRev) : NaN;
+
+  // Prior-year YTD through the same month — for the YoY YTD comparison sub.
+  var prevYear = String(parseInt(latestYear, 10) - 1);
+  var pyRev = ytdSumYear('Gross Revenue', prevYear, latestMonthNum);
+  var pyNp = ytdSumYear('Net Profit', prevYear, latestMonthNum);
+  var pyOrders = ytdSumYear('Total Orders', prevYear, latestMonthNum);
+  var pyNetRev = ytdSumYear('Net Revenue', prevYear, latestMonthNum);
+  var pyNm = (!isNaN(pyNetRev) && pyNetRev !== 0 && !isNaN(pyNp)) ? (pyNp / pyNetRev) : NaN;
 
   // Active members = Current + Pending. The Active row in Wine Club Tracker
   // lives below a blank-row gap (after the Total row was removed), and
@@ -921,10 +947,37 @@ function renderKpiStrip(){
     if (cur) active = cur[3] || '—';
   }
 
+  // Net member change YTD — sum the Net Change column of Membership History
+  // for every row whose month is in the current year.
+  var memberYtdChange = NaN;
+  var mem = parsed.membership;
+  if (mem && mem.data && mem.data.length){
+    var memHdr = mem.headers.map(function(h){ return String(h); });
+    var memMonthIdx = memHdr.indexOf('Month');
+    var memNetIdx = memHdr.indexOf('Net Change');
+    if (memMonthIdx >= 0 && memNetIdx >= 0){
+      var s = 0, any = false;
+      for (var i = 0; i < mem.data.length; i++){
+        var ym = String(mem.data[i][memMonthIdx] || '');
+        if (!ym.startsWith(latestYear)) continue;
+        var n = toNum(mem.data[i][memNetIdx]);
+        if (!isNaN(n)){ s += n; any = true; }
+      }
+      if (any) memberYtdChange = s;
+    }
+  }
+
   function dtxt(d, suffix){
     if (d === null || d === undefined || isNaN(d)) return '';
     var cls = d >= 0 ? 'pos' : 'neg';
     return '<div class="kpi-sub ' + cls + '">' + fmtPctSigned(d) + ' ' + suffix + '</div>';
+  }
+  // Absolute-number delta sub (for the membership YTD card).
+  function dnum(n, suffix){
+    if (n === null || n === undefined || isNaN(n)) return '';
+    var cls = n >= 0 ? 'pos' : 'neg';
+    var s = (n >= 0 ? '+' : '') + fmtInt(n);
+    return '<div class="kpi-sub ' + cls + '">' + s + ' ' + suffix + '</div>';
   }
 
   var monthLabel = (function(){
@@ -933,31 +986,57 @@ function renderKpiStrip(){
     return dt.toLocaleString('en-US',{month:'short', year:'numeric'});
   })();
 
-  function ytdLine(label, rawVal, formatter){
-    // Check the underlying number, not the formatted string (isNaN("$40,960")
-    // is true because parseFloat fails on the $, which suppressed the line).
-    if (rawVal === null || rawVal === undefined || isNaN(rawVal)) return '';
-    return '<div class="kpi-sub" style="color:var(--text-muted);">' +
-            label + ' ' + formatter(rawVal) + '</div>';
-  }
+  // Section labels above each KPI row include the period for context.
+  var mtdLabelEl = document.getElementById('kpiMtdLabel');
+  if (mtdLabelEl) mtdLabelEl.textContent = 'Month-to-Date — ' + monthLabel;
+  var ytdLabelEl = document.getElementById('kpiYtdLabel');
+  if (ytdLabelEl) ytdLabelEl.textContent = 'Year-to-Date — ' + latestYear;
 
-  var html = '';
-  html += '<div class="kpi-card highlight"><div class="kpi-label">Revenue · ' + monthLabel + '</div>' +
-          '<div class="kpi-value">' + fmtMoney(rev) + '</div>' +
-          dtxt(delta(rev, prevRev), 'vs prev mo') +
-          ytdLine(latestYear + ' YTD:', ytdRev, fmtMoney) + '</div>';
-  html += '<div class="kpi-card highlight"><div class="kpi-label">Net Profit · ' + monthLabel + '</div>' +
-          '<div class="kpi-value">' + fmtMoney(np) + '</div>' +
-          dtxt(delta(np, prevNp), 'vs prev mo') +
-          ytdLine(latestYear + ' YTD:', ytdNp, fmtMoney) + '</div>';
-  html += '<div class="kpi-card"><div class="kpi-label">Net Margin</div>' +
-          '<div class="kpi-value">' + fmtPct(nm) + '</div></div>';
-  html += '<div class="kpi-card"><div class="kpi-label">Orders</div>' +
-          '<div class="kpi-value">' + fmtInt(orders) + '</div>' +
-          ytdLine(latestYear + ' YTD:', ytdOrders, fmtInt) + '</div>';
-  html += '<div class="kpi-card"><div class="kpi-label">Active Members</div>' +
-          '<div class="kpi-value">' + escHtml(active) + '</div></div>';
-  document.getElementById('kpiStrip').innerHTML = html;
+  // ─── MTD row ──────────────────────────────────────────────────
+  var mtdHtml = '';
+  mtdHtml += '<div class="kpi-card highlight"><div class="kpi-label">Revenue · MTD</div>' +
+             '<div class="kpi-value">' + fmtMoney(rev) + '</div>' +
+             dtxt(delta(rev, prevRev), 'vs prev mo') + '</div>';
+  mtdHtml += '<div class="kpi-card highlight"><div class="kpi-label">Net Profit · MTD</div>' +
+             '<div class="kpi-value">' + fmtMoney(np) + '</div>' +
+             dtxt(delta(np, prevNp), 'vs prev mo') + '</div>';
+  mtdHtml += '<div class="kpi-card"><div class="kpi-label">Net Margin · MTD</div>' +
+             '<div class="kpi-value">' + fmtPct(nm) + '</div></div>';
+  mtdHtml += '<div class="kpi-card"><div class="kpi-label">Orders · MTD</div>' +
+             '<div class="kpi-value">' + fmtInt(orders) + '</div></div>';
+  mtdHtml += '<div class="kpi-card"><div class="kpi-label">Active Members</div>' +
+             '<div class="kpi-value">' + escHtml(active) + '</div></div>';
+  document.getElementById('kpiStripMtd').innerHTML = mtdHtml;
+
+  // ─── YTD row (same metrics, year-to-date values) ──────────────
+  // Each card's sub line is a YoY comparison vs the same months of last year.
+  var ytdHtml = '';
+  ytdHtml += '<div class="kpi-card highlight"><div class="kpi-label">Revenue · YTD</div>' +
+             '<div class="kpi-value">' + fmtMoney(ytdRev) + '</div>' +
+             dtxt(delta(ytdRev, pyRev), 'vs ' + prevYear + ' YTD') + '</div>';
+  ytdHtml += '<div class="kpi-card highlight"><div class="kpi-label">Net Profit · YTD</div>' +
+             '<div class="kpi-value">' + fmtMoney(ytdNp) + '</div>' +
+             dtxt(delta(ytdNp, pyNp), 'vs ' + prevYear + ' YTD') + '</div>';
+  // Margin YoY is a percentage-point difference, not a relative %.
+  var nmDeltaPp = (!isNaN(ytdNm) && !isNaN(pyNm)) ? (ytdNm - pyNm) : null;
+  var nmDeltaHtml = '';
+  if (nmDeltaPp !== null){
+    var nmCls = nmDeltaPp >= 0 ? 'pos' : 'neg';
+    var nmStr = (nmDeltaPp >= 0 ? '+' : '') + (nmDeltaPp * 100).toFixed(1) + 'pp';
+    nmDeltaHtml = '<div class="kpi-sub ' + nmCls + '">' + nmStr + ' vs ' + prevYear + ' YTD</div>';
+  }
+  ytdHtml += '<div class="kpi-card"><div class="kpi-label">Net Margin · YTD</div>' +
+             '<div class="kpi-value">' + fmtPct(ytdNm) + '</div>' +
+             nmDeltaHtml + '</div>';
+  ytdHtml += '<div class="kpi-card"><div class="kpi-label">Orders · YTD</div>' +
+             '<div class="kpi-value">' + fmtInt(ytdOrders) + '</div>' +
+             dtxt(delta(ytdOrders, pyOrders), 'vs ' + prevYear + ' YTD') + '</div>';
+  // Membership is a stock metric — repeat the current count and surface the
+  // YTD net change in the sub line.
+  ytdHtml += '<div class="kpi-card"><div class="kpi-label">Active Members</div>' +
+             '<div class="kpi-value">' + escHtml(active) + '</div>' +
+             dnum(memberYtdChange, latestYear + ' YTD') + '</div>';
+  document.getElementById('kpiStripYtd').innerHTML = ytdHtml;
 }
 
 // Classify an Annual-style header for tinting: 2026 YTD + Full Year Projected
