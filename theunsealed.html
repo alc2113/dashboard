@@ -557,6 +557,12 @@ tr.clickable:hover td{background:#f0f9f3;}
           <option value="type">Ad Type</option>
           <option value="landingPage">Landing Page</option>
           <option value="campaignTag">Campaign Tag</option>
+          <option value="tag_motivator">Message Motivator (AI)</option>
+          <option value="tag_secondary">Secondary Motivator (AI)</option>
+          <option value="tag_production">Production Style (AI)</option>
+          <option value="tag_subject">Subject (AI)</option>
+          <option value="tag_ratio">Aspect Ratio (AI)</option>
+          <option value="tag_product">Product/Service (AI)</option>
           <option value="platform">Platform</option>
           <option value="placement">Placement</option>
           <option value="campaign">Campaign</option>
@@ -921,7 +927,10 @@ function normalizeRow(r) {
     theme: '',
     type: '',
     landingPage: '',
-    campaignTag: ''
+    campaignTag: '',
+    // AI creative tags (from the product sheet, enriched later)
+    tag_motivator: '', tag_secondary: '', tag_production: '',
+    tag_subject: '', tag_ratio: '', tag_product: ''
   };
 }
 
@@ -941,7 +950,44 @@ function buildTagLookup(adPerfRows) {
   return lookup;
 }
 
-function enrichData(rows, lookup) {
+// AI creative tags live in a separate product sheet (keyed by Ad Name). Best-effort:
+// if it isn't shared/readable yet, the lookup is empty and the AI breakdown dims
+// simply show no data — nothing breaks.
+async function loadAiTagLookup() {
+  var AI_SHEET = '1vtKRPmM5A4WVkTIv4KsO2BSUeWhpVi9XDt3nN5Bkq0o';
+  var url = 'https://docs.google.com/spreadsheets/d/' + AI_SHEET +
+            '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent('Ad Performance');
+  try {
+    var resp = await fetch(url);
+    var text = await resp.text();
+    var json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+    var cols = (json.table.cols || []).map(function(c) { return c.label || ''; });
+    var map = {};
+    (json.table.rows || []).forEach(function(row) {
+      if (!row.c) return;
+      var o = {};
+      cols.forEach(function(label, i) {
+        var cell = row.c[i];
+        o[label] = (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v) : '';
+      });
+      var name = (o['Ad Name'] || '').trim();   // exact trim, matches buildTagLookup join
+      if (!name) return;
+      map[name] = {
+        tag_motivator: o['Message Motivator'] || '', tag_secondary: o['Secondary Motivator'] || '',
+        tag_production: o['Production Style'] || '', tag_subject: o['Subject'] || '',
+        tag_ratio: o['Aspect Ratio'] || '', tag_product: o['Product/Service'] || ''
+      };
+    });
+    console.log('[Unsealed] AI tags loaded:', Object.keys(map).length);
+    return map;
+  } catch (e) {
+    console.warn('[Unsealed] AI tags load failed (breakdowns still work without them):', e);
+    return {};
+  }
+}
+
+function enrichData(rows, lookup, aiLookup) {
+  aiLookup = aiLookup || {};
   return rows.map(function(r) {
     const tags = lookup[r.adName] || {};
     r.color = tags.color || '';
@@ -949,6 +995,13 @@ function enrichData(rows, lookup) {
     r.type = tags.type || '';
     r.landingPage = tags.landingPage || '';
     r.campaignTag = tags.campaignTag || '';
+    const ai = aiLookup[r.adName] || {};
+    r.tag_motivator = ai.tag_motivator || '';
+    r.tag_secondary = ai.tag_secondary || '';
+    r.tag_production = ai.tag_production || '';
+    r.tag_subject = ai.tag_subject || '';
+    r.tag_ratio = ai.tag_ratio || '';
+    r.tag_product = ai.tag_product || '';
     return r;
   });
 }
@@ -1767,6 +1820,12 @@ function renderBreakdowns() {
     type:        function(r) { return r.type || '(none)'; },
     landingPage: function(r) { return r.landingPage || '(none)'; },
     campaignTag: function(r) { return r.campaignTag || '(none)'; },
+    tag_motivator:  function(r) { return r.tag_motivator || '(none)'; },
+    tag_secondary:  function(r) { return r.tag_secondary || '(none)'; },
+    tag_production: function(r) { return r.tag_production || '(none)'; },
+    tag_subject:    function(r) { return r.tag_subject || '(none)'; },
+    tag_ratio:      function(r) { return r.tag_ratio || '(none)'; },
+    tag_product:    function(r) { return r.tag_product || '(none)'; },
     platform:    function(r) { return r.platform || '(none)'; },
     placement:   function(r) { return r.placement || '(none)'; },
     campaign:    function(r) { return r.campaign || '(none)'; },
@@ -1842,7 +1901,10 @@ function renderBreakdowns() {
   var dimLabels = {
     color: 'Color', theme: 'Theme', type: 'Ad Type', landingPage: 'Landing Page',
     campaignTag: 'Campaign Tag', platform: 'Platform', placement: 'Placement',
-    campaign: 'Campaign', adSet: 'Ad Set'
+    campaign: 'Campaign', adSet: 'Ad Set',
+    tag_motivator: 'Message Motivator (AI)', tag_secondary: 'Secondary Motivator (AI)',
+    tag_production: 'Production Style (AI)', tag_subject: 'Subject (AI)',
+    tag_ratio: 'Aspect Ratio (AI)', tag_product: 'Product/Service (AI)'
   };
   var dimLabel = dimLabels[dim] || dim;
 
@@ -2330,8 +2392,11 @@ async function loadData() {
     adPerfData = adPerfRows;
     tagLookup = buildTagLookup(adPerfRows);
 
-    // Enrich raw data with tags
-    enrichedData = enrichData(rawData, tagLookup);
+    // AI creative tags from the separate product sheet (joined by Ad Name)
+    var aiTagLookup = await loadAiTagLookup();
+
+    // Enrich raw data with both manual + AI tags
+    enrichedData = enrichData(rawData, tagLookup, aiTagLookup);
 
     // Normalize SparkLoop data
     sparkLoopData = [];
