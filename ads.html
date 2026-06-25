@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ad Performance Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -14,25 +15,45 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   background:var(--bg); color:var(--text); line-height:1.5; padding:24px;}
 .wrap{max-width:1200px; margin:0 auto;}
-
-/* Header */
 .head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; flex-wrap:wrap; gap:12px;}
 .brand{display:flex; align-items:center; gap:10px;}
 .brand .dot{width:30px; height:30px; border-radius:7px; background:var(--primary);
   display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:15px;}
 .brand .name{font-size:15px; font-weight:700; letter-spacing:2px; color:var(--primary);}
 .title{font-size:22px; font-weight:700;}
-.sub{font-size:13px; color:var(--muted); margin-bottom:22px;}
+.sub{font-size:13px; color:var(--muted); margin-bottom:16px;}
 
-/* KPI row */
-.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:24px;}
+/* Controls */
+.controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--card);
+  border:1px solid var(--border); border-radius:12px; padding:10px 14px; margin-bottom:16px;}
+.controls label{font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px;}
+.controls input[type=date],.controls select{font:inherit; font-size:13px; padding:4px 7px;
+  border:1px solid var(--border); border-radius:7px; background:#fff;}
+.preset{font-size:12.5px; padding:5px 11px; border-radius:20px; border:1px solid var(--border);
+  background:#fff; cursor:pointer;}
+.preset.active{background:var(--primary); color:#fff; border-color:var(--primary);}
+.spacer{flex:1;}
+
+/* Tabs */
+.tabs{display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px;}
+.tab-btn{font-size:13px; padding:8px 16px; border-radius:9px 9px 0 0; border:1px solid transparent;
+  background:transparent; cursor:pointer; color:var(--muted); font-weight:600;}
+.tab-btn.active{background:var(--card); color:var(--text); border-color:var(--border); border-bottom-color:var(--card);}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* KPIs */
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:20px;}
 .kpi{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
 .kpi .label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
 .kpi .val{font-size:26px; font-weight:700; margin-top:4px;}
 
-/* Cards */
-.card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:22px;}
+/* Cards + charts */
+.card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:18px;}
 .card h2{font-size:16px; font-weight:700; margin-bottom:14px;}
+.chart-wrap{position:relative; height:300px;}
+.chart-row{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+@media(max-width:760px){.chart-row{grid-template-columns:1fr;}}
 
 /* Table */
 table{width:100%; border-collapse:collapse; font-size:13.5px;}
@@ -43,43 +64,12 @@ tbody tr:hover{background:var(--header-bg);}
 .thumb{width:42px; height:42px; border-radius:6px; object-fit:cover; background:var(--header-bg); display:block;}
 .adname{white-space:normal; min-width:200px; font-weight:600;}
 .pill{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; background:var(--header-bg); color:var(--muted);}
-.cpa-good{color:var(--good); font-weight:700;}
-.cpa-bad{color:var(--bad); font-weight:700;}
 .ai-pill{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px;
   background:rgba(32,157,80,.12); color:var(--primary-dark); font-weight:600;}
 th.ai,td.ai{background:rgba(32,157,80,.05);}
 .aimark{font-size:10px; font-weight:700; color:var(--primary); background:rgba(32,157,80,.12);
   padding:1px 7px; border-radius:20px; margin-left:6px; vertical-align:middle;}
-/* editable tagging */
-.warn-bar{background:#FFF7E6; border:1px solid #F0C36D; color:#7a5b00; font-size:12.5px;
-  padding:8px 12px; border-radius:8px; margin-bottom:14px;}
-td.edit,.note.edit{cursor:text;}
-td.edit:hover{outline:1px dashed var(--primary); outline-offset:-2px;}
-td.edit::after{content:"✎"; font-size:10px; color:var(--primary); opacity:0; margin-left:5px;}
-td.edit:hover::after,.note.edit:hover::after{opacity:.6;}
-.note.edit:hover{outline:1px dashed var(--primary);}
-td.saved,.note.saved{background:rgba(32,157,80,.14);}
-td.unsaved,.note.unsaved{background:rgba(255,193,7,.22);}
-select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid var(--primary);
-  border-radius:5px; max-width:190px;}
-.modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none;
-  align-items:center; justify-content:center; z-index:50;}
-.modal-bg.show{display:flex;}
-.modal{background:#fff; border-radius:12px; padding:24px; max-width:390px;
-  box-shadow:0 8px 40px rgba(0,0,0,.2);}
-.modal h3{margin-bottom:10px; font-size:16px;}
-.modal p{font-size:13.5px; color:var(--muted); margin-bottom:16px;}
-.modal label{font-size:12px; display:block; margin-bottom:16px;}
-.modal .row{display:flex; gap:10px; justify-content:flex-end;}
-.modal button{padding:8px 16px; border-radius:8px; border:1px solid var(--border);
-  background:#fff; cursor:pointer; font-size:13px;}
-.modal button.primary{background:var(--primary); color:#fff; border-color:var(--primary);}
-
-/* Breakdown grid */
-.bd-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:18px;}
-.bd h3{font-size:13px; font-weight:700; margin-bottom:8px;}
-.bd table{font-size:13px;}
-.bd .untag{color:#aaa; font-style:italic;}
+.good{color:var(--good); font-weight:700;} .bad{color:var(--bad); font-weight:700;}
 .loading,.err{text-align:center; padding:60px 20px; color:var(--muted);}
 .err{color:var(--bad);}
 .note{font-size:12px; color:var(--muted); margin-top:4px;}
@@ -88,11 +78,8 @@ select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid
 <body>
 <div class="wrap">
   <div class="head">
-    <div class="brand">
-      <div class="dot" id="brandDot">C</div>
-      <div class="name" id="brandName">CASSA STRATEGY</div>
-    </div>
-    <div class="sub" id="range"></div>
+    <div class="brand"><div class="dot" id="brandDot">C</div><div class="name" id="brandName">CASSA STRATEGY</div></div>
+    <div class="sub" id="range" style="margin:0;"></div>
   </div>
   <div class="title" id="clientTitle">Ad Performance</div>
   <div class="sub" id="clientSub">Keyed on ad ID, so renames never break it.</div>
@@ -100,12 +87,12 @@ select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid
   <div id="content"><div class="loading">Loading live data…</div></div>
 </div>
 
-<!-- Client registry: ads.html?client=<key> picks one entry -->
 <script src="ads-clients.js"></script>
 <script>
 /* ============================================================
-   Multi-client: everything client-specific comes from
-   ads-clients.js, selected by ?client=<key> (default: first).
+   Flexible multi-client ad dashboard. Reads the daily ad-level
+   tab + the AI tags from one product sheet (per ?client=),
+   joins tags onto daily rows by Ad ID, and date-filters.
    ============================================================ */
 const PARAMS = new URLSearchParams(location.search);
 const CLIENTS = window.AD_CLIENTS || {};
@@ -114,260 +101,244 @@ const CFG = CLIENTS[CLIENT_KEY];
 
 if(!CFG){
   document.getElementById("content").innerHTML =
-    `<div class="err">Unknown client "<b>${CLIENT_KEY||""}</b>".<br>` +
-    `<span class="note">Known clients: ${Object.keys(CLIENTS).join(", ")||"none configured"}. ` +
-    `Pass one as <code>?client=&lt;key&gt;</code>.</span></div>`;
+    `<div class="err">Unknown client "<b>${CLIENT_KEY||""}</b>".<br><span class="note">`+
+    `Known: ${Object.keys(CLIENTS).join(", ")||"none"}. Pass one as <code>?client=&lt;key&gt;</code>.</span></div>`;
   throw new Error("unknown client");
 }
 
-const BRAND = CFG.brand;
-const CLIENT_TITLE = CFG.title;
-const SHEET_ID = CFG.sheetId;
-const TAB = CFG.tab || "Ad Performance";
-const WEBHOOK_URL = CFG.webhookUrl || "";
-const EDIT_OPTIONS = CFG.editOptions || {};
-const DIMENSIONS = CFG.dimensions || [];
-const AI_DIMS = CFG.aiDims || [];
-const IS_ROAS = CFG.resultMetric === "roas";   // ecommerce vs lead-gen
+const BRAND=CFG.brand, SHEET_ID=CFG.sheetId;
+const DAILY_TAB=CFG.dailyTab||"Ad Daily", TAG_TAB=CFG.tagTab||"Tagging";
+const IS_ROAS=CFG.resultMetric==="roas";
+const AI_DIMS=CFG.aiDims||[];
+const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
+const BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);
+const RESULT_LABEL=IS_ROAS?"Revenue":"Leads";
 
-/* ============================================================ */
-document.getElementById("brandName").textContent = BRAND.name;
-document.getElementById("brandDot").textContent = BRAND.initial;
-document.getElementById("clientTitle").textContent = CLIENT_TITLE;
-if(CFG.subtitle) document.getElementById("clientSub").textContent = CFG.subtitle;
-document.documentElement.style.setProperty("--primary", BRAND.color);
-document.getElementById("brandDot").style.background = BRAND.color;
-document.title = CLIENT_TITLE;
+document.getElementById("brandName").textContent=BRAND.name;
+document.getElementById("brandDot").textContent=BRAND.initial;
+document.getElementById("brandDot").style.background=BRAND.color;
+document.getElementById("clientTitle").textContent=CFG.title||"Ad Performance";
+if(CFG.subtitle) document.getElementById("clientSub").textContent=CFG.subtitle;
+document.documentElement.style.setProperty("--primary",BRAND.color);
+document.title=CFG.title||"Ad Performance";
 
-// headers=1 pins the header to row 1 so gviz can't mistake upsert-preserved (string) rows
-// for a multi-row header and drop them.
-const gvizUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(TAB)}`;
-const money = v => "$" + (v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
-const num = v => (v||0).toLocaleString();
+const COLORS=["#209D50","#4A90D9","#FF6B6B","#FFA500","#9D50D9","#50C8D9","#D4A843","#E8527A","#7BC67E","#6B8DE3"];
+const money=v=>"$"+(+v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=v=>Math.round(+v||0).toLocaleString();
+const pv=v=>{ if(v==null||v==="") return 0; if(typeof v==="number") return v; return parseFloat(String(v).replace(/[$,%]/g,""))||0; };
 
-let ROWS = [], COLS = [];
-
-fetch(gvizUrl)
-  .then(r => r.text())
-  .then(t => {
-    const json = JSON.parse(t.substring(t.indexOf("(")+1, t.lastIndexOf(")")));
-    COLS = json.table.cols.map(c => c.label);
-    ROWS = json.table.rows.map(r => {
-      const o = {};
-      (r.c||[]).forEach((cell,i) => o[COLS[i]] = cell ? cell.v : null);
-      return o;
-    }).filter(r => r["Ad ID"]);
-    render();
-  })
-  .catch(e => {
-    document.getElementById("content").innerHTML =
-      `<div class="err">Couldn't load the data.<br><span class="note">`+
-      `If the sheet isn't shared as link-readable yet, the dashboard can't read it. (${e})</span></div>`;
-  });
-
-function agg(rows){
-  let spend=0, leads=0, rev=0;
-  rows.forEach(r => { spend+=+r["Spend"]||0; leads+=+r["Leads"]||0; rev+=+r["Revenue"]||0; });
-  return {spend, leads, rev, cpa: leads? spend/leads : 0, roas: spend? rev/spend : 0};
+// gviz with headers=1 (pins header to row 1 so upsert-frozen string rows aren't dropped).
+function gvizUrl(tab){ return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`; }
+function parseGviz(text){
+  const j=JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}")+1));
+  const cols=(j.table.cols||[]).map(c=>c.label||"");
+  const rows=(j.table.rows||[]).map(r=>{ const o={}; (r.c||[]).forEach((c,i)=>{
+    let v=c?c.v:null;
+    if(typeof v==="string" && v.indexOf("Date(")===0){ const p=v.slice(5,-1).split(","); v=p[0]+"-"+String(+p[1]+1).padStart(2,"0")+"-"+String(+p[2]).padStart(2,"0"); }
+    o[cols[i]]=v; }); return o; });
+  return {cols, rows};
 }
 
-/* Best-first sort for the result metric: ecom by ROAS desc (revenue first),
-   lead-gen by CPA asc (leads first); ties / no-result rows fall back to spend. */
-function rankRows(rows){
-  return [...rows].sort((a,b) => {
-    if(IS_ROAS){
-      const ar=+a["Revenue"]||0, br=+b["Revenue"]||0;
-      if(ar>0 && br>0) return (+b["ROAS"]||0)-(+a["ROAS"]||0);
-      if(ar>0) return -1; if(br>0) return 1;
-      return (+b["Spend"]||0)-(+a["Spend"]||0);
-    }
-    const al=+a["Leads"]||0, bl=+b["Leads"]||0;
-    if(al>0 && bl>0) return (+a["CPA"]||0)-(+b["CPA"]||0);
-    if(al>0) return -1; if(bl>0) return 1;
-    return (+b["Spend"]||0)-(+a["Spend"]||0);
-  });
+let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
+
+Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()), fetch(gvizUrl(TAG_TAB)).then(r=>r.text())])
+ .then(([dailyT, tagT])=>{
+   const daily=parseGviz(dailyT).rows.filter(r=>r["Ad ID"] && r["Date"]);
+   const tagsParsed=parseGviz(tagT);
+   const tagCols=tagsParsed.cols.filter(c=>c!=="Ad ID"&&c!=="Ad Name");
+   const tags={};
+   tagsParsed.rows.forEach(r=>{ const id=String(r["Ad ID"]||"").trim(); if(!id) return;
+     const o={}; tagCols.forEach(c=>o[c]=r[c]||""); tags[id]=o; });
+   // join tags onto daily rows by Ad ID + coerce numerics
+   ROWS=daily.map(r=>{
+     const o=Object.assign({}, r, tags[String(r["Ad ID"]).trim()]||{});
+     o._date=String(o["Date"]).slice(0,10);
+     o._spend=pv(o["Spend"]); o._imp=pv(o["Impressions"]); o._clicks=pv(o["Clicks"]);
+     o._leads=pv(o["Leads"]); o._rev=pv(o["Revenue"]);
+     return o;
+   });
+   const ds=ROWS.map(r=>r._date).filter(Boolean).sort();
+   DMIN=ds[0]||""; DMAX=ds[ds.length-1]||"";
+   state.from=DMIN; state.to=DMAX;
+   buildShell(); render();
+ })
+ .catch(e=>{ document.getElementById("content").innerHTML=
+   `<div class="err">Couldn't load the data.<br><span class="note">If the sheet isn't shared link-readable, the dashboard can't read it. (${e})</span></div>`; });
+
+/* ── Aggregation helpers ─────────────────────────────────────────── */
+function filtered(){ return ROWS.filter(r=>r._date>=state.from && r._date<=state.to); }
+function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0;
+  rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;});
+  return {spend,leads,rev,imp,clicks,cpa:leads?spend/leads:0,roas:spend&&rev?rev/spend:0,ads:new Set(rows.map(r=>r["Ad ID"])).size};
+}
+function groupBy(rows,key){ const g={}; rows.forEach(r=>{ const k=(r[key]||"").toString().trim()||"(none)"; (g[k]=g[k]||[]).push(r); }); return g; }
+
+/* ── Shell (controls + tabs) ─────────────────────────────────────── */
+function buildShell(){
+  const presets=["7d","14d","30d","All"].map(p=>`<button class="preset" data-preset="${p}">${p}</button>`).join("");
+  document.getElementById("content").innerHTML=`
+    <div class="controls">
+      <label>From <input type="date" id="cFrom" value="${state.from}" min="${DMIN}" max="${DMAX}"></label>
+      <label>To <input type="date" id="cTo" value="${state.to}" min="${DMIN}" max="${DMAX}"></label>
+      ${presets}
+      <span class="spacer"></span>
+      <span class="note" id="rowNote"></span>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="overview">Overview</button>
+      <button class="tab-btn" data-tab="trends">Trends</button>
+      <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
+      <button class="tab-btn" data-tab="creative">Creative</button>
+    </div>
+    <div id="tab-overview" class="tab-content active"></div>
+    <div id="tab-trends" class="tab-content"></div>
+    <div id="tab-breakdowns" class="tab-content"></div>
+    <div id="tab-creative" class="tab-content"></div>`;
+
+  document.getElementById("cFrom").addEventListener("change",e=>{state.from=e.target.value; clearPreset(); render();});
+  document.getElementById("cTo").addEventListener("change",e=>{state.to=e.target.value; clearPreset(); render();});
+  document.querySelectorAll(".preset").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset,b)));
+  document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>{
+    document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("active"));
+    document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
+    b.classList.add("active"); document.getElementById("tab-"+b.dataset.tab).classList.add("active");
+    state.tab=b.dataset.tab; render();
+  }));
+}
+function clearPreset(){ document.querySelectorAll(".preset").forEach(b=>b.classList.remove("active")); }
+function shiftDays(d,n){ const x=new Date(d+"T00:00:00"); x.setDate(x.getDate()-n); return x.toISOString().slice(0,10); }
+function applyPreset(p,btn){
+  clearPreset(); if(btn)btn.classList.add("active");
+  if(p==="All"){ state.from=DMIN; state.to=DMAX; }
+  else { const n={"7d":6,"14d":13,"30d":29}[p]; state.to=DMAX; state.from=shiftDays(DMAX,n); if(state.from<DMIN)state.from=DMIN; }
+  document.getElementById("cFrom").value=state.from; document.getElementById("cTo").value=state.to;
+  render();
 }
 
+/* ── Render ──────────────────────────────────────────────────────── */
 function render(){
-  const t = agg(ROWS);
+  const f=filtered();
+  document.getElementById("rowNote").textContent=`${f.length} rows · ${state.from} to ${state.to}`;
+  document.getElementById("range").textContent=`${state.from}  to  ${state.to}`;
+  if(state.tab==="overview") renderOverview(f);
+  else if(state.tab==="trends") renderTrends(f);
+  else if(state.tab==="breakdowns") renderBreakdowns(f);
+  else if(state.tab==="creative") renderCreative(f);
+}
 
-  // KPIs — swap the result pair by metric type.
-  const resultKpis = IS_ROAS
+function kpiHtml(f){
+  const t=agg(f);
+  const resultK=IS_ROAS
     ? `<div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div></div>
        <div class="kpi"><div class="label">Blended ROAS</div><div class="val">${t.roas.toFixed(2)}x</div></div>`
-    : `<div class="kpi"><div class="label">Leads</div><div class="val">${num(Math.round(t.leads))}</div></div>
+    : `<div class="kpi"><div class="label">Leads</div><div class="val">${num(t.leads)}</div></div>
        <div class="kpi"><div class="label">Blended CPA</div><div class="val">${money(t.cpa)}</div></div>`;
-  let kpis = `
-    <div class="kpis">
-      <div class="kpi"><div class="label">Total Spend</div><div class="val">${money(t.spend)}</div></div>
-      ${resultKpis}
-      <div class="kpi"><div class="label">Active Ads</div><div class="val">${ROWS.length}</div></div>
-    </div>`;
+  return `<div class="kpis">
+    <div class="kpi"><div class="label">Total Spend</div><div class="val">${money(t.spend)}</div></div>
+    ${resultK}
+    <div class="kpi"><div class="label">Active Ads</div><div class="val">${t.ads}</div></div></div>`;
+}
 
-  // Ad table — ranked best-first for the metric.
-  const ranked = rankRows(ROWS);
-  // Median of the result metric, for good/bad coloring.
-  const vals = IS_ROAS
-    ? ROWS.filter(r=>+r["Revenue"]>0).map(r=>+r["ROAS"]).sort((a,b)=>a-b)
-    : ROWS.filter(r=>+r["Leads"]>0).map(r=>+r["CPA"]).sort((a,b)=>a-b);
-  const med = vals[Math.floor(vals.length/2)] || 0;
+function makeChart(id,cfg){ if(charts[id])charts[id].destroy(); const el=document.getElementById(id); if(el)charts[id]=new Chart(el,cfg); }
+function dailySeries(rows){
+  const by={}; rows.forEach(r=>{ const d=r._date; const b=by[d]=by[d]||{spend:0,leads:0,rev:0}; b.spend+=r._spend; b.leads+=r._leads; b.rev+=r._rev; });
+  const days=Object.keys(by).sort();
+  return {days, spend:days.map(d=>by[d].spend), result:days.map(d=>IS_ROAS?by[d].rev:by[d].leads)};
+}
 
-  const resultHead = IS_ROAS
-    ? `<th class="num">Revenue</th><th class="num">ROAS</th>`
-    : `<th class="num">Leads</th><th class="num">CPA</th>`;
+function renderOverview(f){
+  const s=dailySeries(f);
+  document.getElementById("tab-overview").innerHTML=kpiHtml(f)+
+    `<div class="card"><h2>Spend & ${RESULT_LABEL} over time</h2><div class="chart-wrap"><canvas id="ovTrend"></canvas></div></div>`;
+  makeChart("ovTrend",{ type:"line",
+    data:{ labels:s.days, datasets:[
+      {label:"Spend",data:s.spend,borderColor:COLORS[0],backgroundColor:"rgba(32,157,80,.1)",yAxisID:"y",tension:.25,fill:true},
+      {label:RESULT_LABEL,data:s.result,borderColor:COLORS[1],yAxisID:"y1",tension:.25}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      scales:{y:{position:"left",ticks:{callback:v=>"$"+v.toLocaleString()}},y1:{position:"right",grid:{drawOnChartArea:false}}}}});
+}
 
-  let tableRows = ranked.map(r => {
-    const thumb = r["Thumbnail"] ? `<img class="thumb" src="${r["Thumbnail"]}" loading="lazy">` : `<div class="thumb"></div>`;
-    const concept = r["Creative Concept"] || r["Campaign"] || "";
-    const aid = r["Ad ID"];
-    const ed = (field) => `data-adid="${aid}" data-field="${field}"`;
-    let resultCells;
-    if(IS_ROAS){
-      const rev=+r["Revenue"]||0, roas=+r["ROAS"]||0;
-      const cls = rev? (roas>=med ? "cpa-good":"cpa-bad") : "";
-      resultCells = `<td class="num">${rev? money(rev) : "—"}</td>
-        <td class="num ${cls}">${rev? roas.toFixed(2)+"x" : "—"}</td>`;
-    } else {
-      const leads=+r["Leads"]||0, cpa=+r["CPA"]||0;
-      const cls = leads? (cpa<=med ? "cpa-good":"cpa-bad") : "";
-      resultCells = `<td class="num">${leads||"—"}</td>
-        <td class="num ${cls}">${leads? money(cpa) : "—"}</td>`;
-    }
-    return `<tr>
-      <td>${thumb}</td>
-      <td class="adname">${r["Ad Name"]||""}<div class="note edit" ${ed("Creative Concept")}>${concept}</div></td>
-      <td><span class="pill">${r["Format"]||"—"}</span></td>
-      <td>${r["Funnel"]||"—"}</td>
-      <td class="ai edit" ${ed("Message Motivator")}><span class="ai-pill">${r["Message Motivator"]||"—"}</span></td>
-      <td class="ai edit" ${ed("Production Style")}>${r["Production Style"]||"—"}</td>
-      <td class="ai edit" ${ed("Product/Service")}>${r["Product/Service"]||"—"}</td>
-      <td class="ai edit" ${ed("Aspect Ratio")}>${r["Aspect Ratio"]||"—"}</td>
-      <td class="num">${money(+r["Spend"]||0)}</td>
-      ${resultCells}
-    </tr>`;
+function renderTrends(f){
+  const s=dailySeries(f);
+  const by={}; f.forEach(r=>{const d=r._date;const b=by[d]=by[d]||{spend:0,leads:0,rev:0};b.spend+=r._spend;b.leads+=r._leads;b.rev+=r._rev;});
+  const days=Object.keys(by).sort();
+  const resultLine=days.map(d=>IS_ROAS?(by[d].spend?by[d].rev/by[d].spend:0):(by[d].leads?by[d].spend/by[d].leads:0));
+  document.getElementById("tab-trends").innerHTML=
+    `<div class="chart-row">
+      <div class="card"><h2>Spend by day</h2><div class="chart-wrap"><canvas id="trSpend"></canvas></div></div>
+      <div class="card"><h2>${RESULT_LABEL} by day</h2><div class="chart-wrap"><canvas id="trResult"></canvas></div></div>
+     </div>
+     <div class="card"><h2>${IS_ROAS?"ROAS":"Cost per lead"} by day</h2><div class="chart-wrap"><canvas id="trEff"></canvas></div></div>`;
+  makeChart("trSpend",{type:"bar",data:{labels:s.days,datasets:[{label:"Spend",data:s.spend,backgroundColor:COLORS[0]}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+  makeChart("trResult",{type:"bar",data:{labels:s.days,datasets:[{label:RESULT_LABEL,data:s.result,backgroundColor:COLORS[1]}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+  makeChart("trEff",{type:"line",data:{labels:days,datasets:[{label:IS_ROAS?"ROAS":"CPL",data:resultLine,borderColor:COLORS[2],tension:.25}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>IS_ROAS?v.toFixed(2)+"x":"$"+v.toFixed(0)}}}}});
+}
+
+let bdDim=BREAKDOWN_DIMS[0];
+function renderBreakdowns(f){
+  const opts=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}${AI_DIMS.includes(d)?" (AI)":""}</option>`).join("");
+  const g=groupBy(f,bdDim);
+  let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows)}));
+  out=out.filter(x=>x.k!=="(none)" || out.length===1);
+  out.sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend));
+  const top=out.slice().sort((a,b)=>b.spend-a.spend).slice(0,12);
+  const resultHead=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">Leads</th><th class="num">CPA</th>`;
+  const body=out.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>`+
+     (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
+             :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("");
+  document.getElementById("tab-breakdowns").innerHTML=
+    `<div class="card"><h2>Breakdown by
+       <select id="bdSel" style="font:inherit;font-size:14px;padding:3px 7px;border:1px solid var(--border);border-radius:7px;">${opts}</select>
+       ${AI_DIMS.includes(bdDim)?'<span class="aimark">✨ AI</span>':''}</h2>
+       <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
+     <div class="card"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${resultHead}</tr></thead><tbody>${body}</tbody></table></div>`;
+  document.getElementById("bdSel").addEventListener("change",e=>{bdDim=e.target.value; renderBreakdowns(filtered());});
+  makeChart("bdChart",{type:"bar",
+    data:{labels:top.map(x=>x.k),datasets:[{label:"Spend",data:top.map(x=>x.spend),backgroundColor:top.map((_,i)=>COLORS[i%COLORS.length])}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+}
+
+let crSort={col:null,asc:true};
+function renderCreative(f){
+  // aggregate filtered daily rows per ad
+  const byAd={};
+  f.forEach(r=>{ const id=r["Ad ID"]; const a=byAd[id]||(byAd[id]={id,name:r["Ad Name"],format:r["Format"],funnel:r["Funnel"],
+    spend:0,leads:0,rev:0,tags:r}); a.spend+=r._spend; a.leads+=r._leads; a.rev+=r._rev; });
+  let ads=Object.values(byAd).map(a=>({...a, cpa:a.leads?a.spend/a.leads:0, roas:a.spend&&a.rev?a.rev/a.spend:0}));
+  const smart=(a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend));
+  const sval=(a,c)=>{ if(c==="spend")return a.spend; if(c==="leads")return a.leads; if(c==="rev")return a.rev;
+    if(c==="cpa")return a.cpa; if(c==="roas")return a.roas; if(c==="name")return (a.name||"").toLowerCase();
+    if(c==="format")return (a.format||"").toLowerCase(); if(c==="funnel")return (a.funnel||"").toLowerCase();
+    return (a.tags[c]||"").toString().toLowerCase(); };
+  ads.sort(crSort.col?((a,b)=>{const va=sval(a,crSort.col),vb=sval(b,crSort.col),s=crSort.asc?1:-1;return va<vb?-s:va>vb?s:0;}):smart);
+  const arr=c=>crSort.col===c?(crSort.asc?" ▲":" ▼"):"";
+  const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
+  const aiCols=AI_DIMS.slice(0,4);
+  const resultHead=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num"):sth("leads","Leads","num")+sth("cpa","CPA","num");
+  const head=`<tr>${sth("name","Ad")}${sth("format","Format")}${sth("funnel","Funnel")}`+
+    aiCols.map(d=>sth(d,d,"ai")).join("")+sth("spend","Spend","num")+resultHead+`</tr>`;
+  const rows=ads.map(a=>{
+    const resultCells=IS_ROAS
+      ? `<td class="num">${money(a.rev)}</td><td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${a.rev?a.roas.toFixed(2)+"x":"—"}</td>`
+      : `<td class="num">${num(a.leads)||"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td>`;
+    return `<tr><td class="adname">${a.name||""}</td><td><span class="pill">${a.format||"—"}</span></td><td>${a.funnel||"—"}</td>`+
+      aiCols.map(d=>`<td class="ai">${d===aiCols[0]?'<span class="ai-pill">'+(a.tags[d]||"—")+'</span>':(a.tags[d]||"—")}</td>`).join("")+
+      `<td class="num">${money(a.spend)}</td>${resultCells}</tr>`;
   }).join("");
-
-  const rankLabel = IS_ROAS ? "ROAS" : "cost per lead";
-  let table = `<div class="card"><h2>Ads — ranked by ${rankLabel}
-      <span class="aimark">✨ Concept, motivator, style, product tagged by Claude</span></h2>
-    <div class="warn-bar">✎ These tags are AI-generated. Click any tag (or the creative read) to edit it.
-      Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL? "" : " (saving not yet configured — see setup)"}.</div>
-    <div style="overflow-x:auto"><table>
-      <thead><tr>
-        <th></th><th>Ad &amp; creative read</th><th>Format</th><th>Funnel</th>
-        <th class="ai">Motivator</th><th class="ai">Production</th>
-        <th class="ai">Product/Service</th><th class="ai">Ratio</th>
-        <th class="num">Spend</th>${resultHead}
-      </tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
-
-  // Dynamic breakdowns — one card per dimension that has data.
-  let cards = "";
-  DIMENSIONS.forEach(dim => {
-    if(!COLS.includes(dim)) return;
-    const groups = {};
-    let anyVal = false;
-    ROWS.forEach(r => {
-      const k = (r[dim]||"").toString().trim();
-      if(k) anyVal = true;
-      const key = k || "(untagged)";
-      (groups[key] = groups[key] || []).push(r);
-    });
-    if(!anyVal) return;  // skip empty manual tags until tagged
-    const out = Object.entries(groups).map(([k,rows]) => ({k, ...agg(rows)}))
-      .sort((a,b) => IS_ROAS
-        ? ((a.rev&&b.rev)? b.roas-a.roas : b.spend-a.spend)
-        : ((a.leads&&b.leads)? a.cpa-b.cpa : b.spend-a.spend));
-    const resultCols = IS_ROAS
-      ? `<th class="num">Revenue</th><th class="num">ROAS</th>`
-      : `<th class="num">Leads</th><th class="num">CPA</th>`;
-    const body = out.map(g => {
-      const cells = IS_ROAS
-        ? `<td class="num">${money(g.rev)}</td><td class="num">${g.rev? g.roas.toFixed(2)+"x":"—"}</td>`
-        : `<td class="num">${Math.round(g.leads)||"—"}</td><td class="num">${g.leads? money(g.cpa):"—"}</td>`;
-      return `<tr>
-        <td class="${g.k==='(untagged)'?'untag':''}">${g.k}</td>
-        <td class="num">${money(g.spend)}</td>
-        ${cells}
-      </tr>`;
-    }).join("");
-    const isAI = AI_DIMS.includes(dim);
-    cards += `<div class="bd"><h3>By ${dim}${isAI?' <span class="aimark">✨ AI</span>':''}</h3><table>
-      <thead><tr><th>${dim}</th><th class="num">Spend</th>${resultCols}</tr></thead>
-      <tbody>${body}</tbody></table></div>`;
-  });
-
-  const breakdowns = `<div class="card"><h2>Breakdowns</h2><div class="bd-grid">${cards}</div></div>`;
-  document.getElementById("content").innerHTML = kpis + breakdowns + table;
+  document.getElementById("tab-creative").innerHTML=kpiHtml(f)+
+    `<div class="card"><h2>Ads — ranked by ${IS_ROAS?"ROAS":"cost per lead"}
+       <span class="aimark">✨ creative tagged by Claude</span></h2>
+       <div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
+  document.querySelectorAll("#tab-creative th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
+    const c=th.dataset.sort;
+    if(crSort.col===c)crSort.asc=!crSort.asc; else {crSort.col=c; crSort.asc=(c==="name"||c==="format"||c==="funnel"||c==="cpa"||AI_DIMS.includes(c));}
+    renderCreative(filtered());
+  }));
 }
-
-/* ── Inline tag editing (with override warning) ──────────────────────── */
-let _warned = false;
-function onCellClick(e){
-  const cell = e.target.closest(".edit");
-  if(!cell || cell.querySelector(".cell-edit")) return;
-  if(_warned){ beginEdit(cell); return; }
-  const m = document.getElementById("editWarn");
-  m.classList.add("show");
-  document.getElementById("warnOk").onclick = () => {
-    if(document.getElementById("dontWarn").checked) _warned = true;
-    m.classList.remove("show"); beginEdit(cell);
-  };
-  document.getElementById("warnCancel").onclick = () => m.classList.remove("show");
-}
-function beginEdit(cell){
-  const field = cell.dataset.field;
-  const cur = cell.textContent.trim();
-  const opts = EDIT_OPTIONS[field];
-  let input;
-  if(opts){
-    input = document.createElement("select"); input.className = "cell-edit";
-    opts.forEach(o => { const op=document.createElement("option");
-      op.value=o; op.textContent=o; if(o===cur) op.selected=true; input.appendChild(op); });
-  } else {
-    input = document.createElement("input"); input.className = "cell-edit";
-    input.value = (cur==="—" ? "" : cur); input.size = 30;
-  }
-  cell.innerHTML=""; cell.appendChild(input); input.focus();
-  const commit = () => commitEdit(cell, field, input.value);
-  input.addEventListener("blur", commit, {once:true});
-  input.addEventListener("keydown", ev => {
-    if(ev.key==="Enter"){ ev.preventDefault(); input.blur(); }
-    if(ev.key==="Escape"){ input.removeEventListener("blur", commit); render(); }
-  });
-  if(opts) input.addEventListener("change", () => input.blur());
-}
-function commitEdit(cell, field, value){
-  const adid = cell.dataset.adid;
-  value = (value||"").trim();
-  if(cell.classList.contains("ai") && field==="Message Motivator")
-    cell.innerHTML = `<span class="ai-pill">${value||"—"}</span>`;
-  else cell.textContent = value||"—";
-  const row = ROWS.find(r => String(r["Ad ID"])===String(adid));
-  if(row) row[field] = value;                 // so breakdowns recompute
-  cell.classList.remove("saved"); cell.classList.add("unsaved");
-  saveTag(adid, field, value, cell);
-}
-function saveTag(adid, field, value, cell){
-  if(!WEBHOOK_URL) return;                     // stays "unsaved" until configured
-  fetch(WEBHOOK_URL, {method:"POST", mode:"no-cors",
-    body:new URLSearchParams({ad_id:adid, field:field, value:value})})
-    .then(() => { cell.classList.remove("unsaved"); cell.classList.add("saved"); })
-    .catch(() => {});
-}
-document.getElementById("content").addEventListener("click", onCellClick);
 </script>
-
-<div class="modal-bg" id="editWarn">
-  <div class="modal">
-    <h3>You're editing an AI tag</h3>
-    <p>This replaces the tag Claude generated and saves it to your tagging sheet. The AI
-       won't change it back unless you run a full re-tag.</p>
-    <label><input type="checkbox" id="dontWarn"> Don't warn me again this session</label>
-    <div class="row">
-      <button id="warnCancel">Cancel</button>
-      <button class="primary" id="warnOk">Got it, edit</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
