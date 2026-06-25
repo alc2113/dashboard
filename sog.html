@@ -966,8 +966,11 @@ function todayStr() {
 // SHEET DATA FETCHING
 // ========================================================================
 function sheetUrl(sheetName) {
+  // headers=1 pins the header to exactly row 1. Without it, gviz auto-detects and can treat
+  // leading all-text rows as a multi-row header — which drops the upsert-frozen history rows
+  // (they come back from the sheet as strings, while refreshed rows are typed numbers).
   return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-         '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName);
+         '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(sheetName);
 }
 
 async function fetchSheetData(sheetName) {
@@ -3338,6 +3341,8 @@ document.addEventListener('DOMContentLoaded', function() {
 .cr-mtbl td{padding:3px 4px;border-bottom:1px solid #eee;}
 .cr-mtbl input,.cr-mtbl select{font:inherit;padding:3px 5px;border:1px solid #ccc;border-radius:5px;width:100%;}
 .cr-mtbl .cr-mdel{width:auto;color:#c00;border:1px solid #eccccc;cursor:pointer;background:#fff;border-radius:5px;padding:2px 8px;}
+#tab-creative .cr-tbl th.cr-sort{cursor:pointer;user-select:none;white-space:nowrap;}
+#tab-creative .cr-tbl th.cr-sort:hover{color:var(--primary,#209D50);}
 </style>
 <script>
 (function(){
@@ -3348,6 +3353,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let EDIT_OPTIONS={}, SELECT=[], TEXTD=[], DIMENSIONS=[], AI_DIMS=[], TAX=[];
   const money=v=>"$"+(+v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
   let ROWS=[],COLS=[],warned=false;
+  let crSort={col:null,asc:true};   // null = smart default (leads first, then CPA asc)
   const root=()=>document.getElementById("cr-content");
   const gv=tab=>"https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/gviz/tq?tqx=out:json&headers=1&sheet="+encodeURIComponent(tab);
   const parseGviz=t=>{const j=JSON.parse(t.substring(t.indexOf("(")+1,t.lastIndexOf(")")));const cols=j.table.cols.map(c=>c.label);const rows=j.table.rows.map(r=>{const o={};(r.c||[]).forEach((c,i)=>o[cols[i]]=c?c.v:null);return o;});return {cols:cols,rows:rows};};
@@ -3404,7 +3410,11 @@ document.addEventListener('DOMContentLoaded', function() {
     let ts=0,tl=0; ROWS.forEach(r=>{const e=eff(r);ts+=e.spend;tl+=e.leads;});
     const blended=tl?ts/tl:0, activeAds=mm?ROWS.filter(r=>eff(r).spend>0).length:ROWS.length;
     let kpis='<div class="cr-kpis">'+kpi("Total Spend",money(ts))+kpi("Leads",Math.round(tl))+kpi("Blended CPA",money(blended))+kpi("Active Ads",activeAds)+'</div>';
-    const ranked=[...ROWS].sort((a,b)=>{const ea=eff(a),eb=eff(b);if(ea.leads&&eb.leads)return ea.cpa-eb.cpa;if(ea.leads)return -1;if(eb.leads)return 1;return eb.spend-ea.spend;});
+    const smartCmp=(a,b)=>{const ea=eff(a),eb=eff(b);if(ea.leads&&eb.leads)return ea.cpa-eb.cpa;if(ea.leads)return -1;if(eb.leads)return 1;return eb.spend-ea.spend;};
+    const sval=(r,c)=>{const e=eff(r);if(c==="spend")return e.spend;if(c==="leads")return e.leads;if(c==="cpa")return e.cpa;if(c==="adname")return (r["Ad Name"]||"").toLowerCase();if(c==="format")return (r["Format"]||"").toLowerCase();if(c==="funnel")return (r["Funnel"]||"").toLowerCase();return (r[c]||"").toString().toLowerCase();};
+    const ranked=[...ROWS].sort(crSort.col?((a,b)=>{const va=sval(a,crSort.col),vb=sval(b,crSort.col),s=crSort.asc?1:-1;return va<vb?-s:(va>vb?s:0);}):smartCmp);
+    const arr=c=>crSort.col===c?(crSort.asc?" ▲":" ▼"):"";
+    const sth=(c,label,cls)=>'<th class="cr-sort'+(cls?" "+cls:"")+'" data-sort="'+c+'">'+label+arr(c)+'</th>';
     let rows=ranked.map(r=>{
       const e=eff(r),leads=e.leads,cpa=e.cpa,aid=r["Ad ID"];
       const thumb=r["Thumbnail"]?'<img class="cr-thumb" src="'+r["Thumbnail"]+'" loading="lazy">':'<div class="cr-thumb"></div>';
@@ -3427,7 +3437,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let table='<div class="cr-card"><h3>Ads — ranked by cost per lead<button class="cr-managebtn" id="cr-manage">⚙ Manage tags</button><span class="cr-aimark">✨ tagged by Claude · click a tag to edit, or tick rows to bulk-edit</span>'+rangeNote+'</h3>'+
       '<div class="cr-warn">✎ These tags are AI-generated. Click any tag (or the creative read) to edit, or tick rows and bulk-set a tag. Changes override the AI and save to the tagging sheet'+(WEBHOOK_URL?"":" (saving not yet configured)")+'.</div>'+
       bulk+
-      '<div style="overflow-x:auto"><table class="cr-tbl"><thead><tr><th><input type="checkbox" id="cr-selall"></th><th></th><th>Ad &amp; creative read</th><th>Format</th><th>Funnel</th>'+SELECT.map(d=>'<th>'+d+'</th>').join("")+'<th class="cr-num">Spend</th><th class="cr-num">Leads</th><th class="cr-num">CPA</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+      '<div style="overflow-x:auto"><table class="cr-tbl"><thead><tr><th><input type="checkbox" id="cr-selall"></th><th></th>'+sth("adname","Ad &amp; creative read")+sth("format","Format")+sth("funnel","Funnel")+SELECT.map(d=>sth(d,d)).join("")+sth("spend","Spend","cr-num")+sth("leads","Leads","cr-num")+sth("cpa","CPA","cr-num")+'</tr></thead><tbody>'+rows+'</tbody></table></div></div>';
     // Breakdowns now live in the Breakdowns tab (the AI tags join onto the ad rows
     // there). The Creative tab is the tagging surface only.
     root().innerHTML=kpis+table;
@@ -3446,6 +3456,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if(t.id==="cr-manage"){openManage();return;}
     if(t.id==="cr-bulkapply"){confirmThenEdit(applyBulk);return;}
     if(t.id==="cr-bulkclear"){document.querySelectorAll("#cr-content .cr-chk").forEach(c=>c.checked=false);const sa=document.getElementById("cr-selall");if(sa)sa.checked=false;updateBulk();return;}
+    const sortTh=t.closest("th[data-sort]");
+    if(sortTh){const c=sortTh.dataset.sort;if(crSort.col===c){crSort.asc=!crSort.asc;}else{crSort.col=c;crSort.asc=(c!=="spend"&&c!=="leads");}render();return;}
     const cell=t.closest(".cr-edit");
     if(!cell||cell.querySelector(".cr-cell"))return;
     confirmThenEdit(function(){begin(cell);});

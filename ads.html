@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ad Performance Dashboard</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --primary:#209D50; --primary-dark:#1a8a44;
+  --bg:#E1DFD9; --card:#fff; --border:#C8C5BE; --header-bg:#F5F4F1;
+  --text:#1a1a1a; --muted:#666; --good:#209D50; --bad:#E53935;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--text); line-height:1.5; padding:24px;}
+.wrap{max-width:1200px; margin:0 auto;}
+
+/* Header */
+.head{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; flex-wrap:wrap; gap:12px;}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand .dot{width:30px; height:30px; border-radius:7px; background:var(--primary);
+  display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:15px;}
+.brand .name{font-size:15px; font-weight:700; letter-spacing:2px; color:var(--primary);}
+.title{font-size:22px; font-weight:700;}
+.sub{font-size:13px; color:var(--muted); margin-bottom:22px;}
+
+/* KPI row */
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:24px;}
+.kpi{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
+.kpi .label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
+.kpi .val{font-size:26px; font-weight:700; margin-top:4px;}
+
+/* Cards */
+.card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:22px;}
+.card h2{font-size:16px; font-weight:700; margin-bottom:14px;}
+
+/* Table */
+table{width:100%; border-collapse:collapse; font-size:13.5px;}
+th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap;}
+th{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); cursor:pointer; user-select:none;}
+th.num,td.num{text-align:right;}
+tbody tr:hover{background:var(--header-bg);}
+.thumb{width:42px; height:42px; border-radius:6px; object-fit:cover; background:var(--header-bg); display:block;}
+.adname{white-space:normal; min-width:200px; font-weight:600;}
+.pill{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; background:var(--header-bg); color:var(--muted);}
+.cpa-good{color:var(--good); font-weight:700;}
+.cpa-bad{color:var(--bad); font-weight:700;}
+.ai-pill{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px;
+  background:rgba(32,157,80,.12); color:var(--primary-dark); font-weight:600;}
+th.ai,td.ai{background:rgba(32,157,80,.05);}
+.aimark{font-size:10px; font-weight:700; color:var(--primary); background:rgba(32,157,80,.12);
+  padding:1px 7px; border-radius:20px; margin-left:6px; vertical-align:middle;}
+/* editable tagging */
+.warn-bar{background:#FFF7E6; border:1px solid #F0C36D; color:#7a5b00; font-size:12.5px;
+  padding:8px 12px; border-radius:8px; margin-bottom:14px;}
+td.edit,.note.edit{cursor:text;}
+td.edit:hover{outline:1px dashed var(--primary); outline-offset:-2px;}
+td.edit::after{content:"✎"; font-size:10px; color:var(--primary); opacity:0; margin-left:5px;}
+td.edit:hover::after,.note.edit:hover::after{opacity:.6;}
+.note.edit:hover{outline:1px dashed var(--primary);}
+td.saved,.note.saved{background:rgba(32,157,80,.14);}
+td.unsaved,.note.unsaved{background:rgba(255,193,7,.22);}
+select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid var(--primary);
+  border-radius:5px; max-width:190px;}
+.modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none;
+  align-items:center; justify-content:center; z-index:50;}
+.modal-bg.show{display:flex;}
+.modal{background:#fff; border-radius:12px; padding:24px; max-width:390px;
+  box-shadow:0 8px 40px rgba(0,0,0,.2);}
+.modal h3{margin-bottom:10px; font-size:16px;}
+.modal p{font-size:13.5px; color:var(--muted); margin-bottom:16px;}
+.modal label{font-size:12px; display:block; margin-bottom:16px;}
+.modal .row{display:flex; gap:10px; justify-content:flex-end;}
+.modal button{padding:8px 16px; border-radius:8px; border:1px solid var(--border);
+  background:#fff; cursor:pointer; font-size:13px;}
+.modal button.primary{background:var(--primary); color:#fff; border-color:var(--primary);}
+
+/* Breakdown grid */
+.bd-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(290px,1fr)); gap:18px;}
+.bd h3{font-size:13px; font-weight:700; margin-bottom:8px;}
+.bd table{font-size:13px;}
+.bd .untag{color:#aaa; font-style:italic;}
+.loading,.err{text-align:center; padding:60px 20px; color:var(--muted);}
+.err{color:var(--bad);}
+.note{font-size:12px; color:var(--muted); margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="brand">
+      <div class="dot" id="brandDot">C</div>
+      <div class="name" id="brandName">CASSA STRATEGY</div>
+    </div>
+    <div class="sub" id="range"></div>
+  </div>
+  <div class="title" id="clientTitle">Ad Performance</div>
+  <div class="sub" id="clientSub">Keyed on ad ID, so renames never break it.</div>
+
+  <div id="content"><div class="loading">Loading live data…</div></div>
+</div>
+
+<!-- Client registry: ads.html?client=<key> picks one entry -->
+<script src="ads-clients.js"></script>
+<script>
+/* ============================================================
+   Multi-client: everything client-specific comes from
+   ads-clients.js, selected by ?client=<key> (default: first).
+   ============================================================ */
+const PARAMS = new URLSearchParams(location.search);
+const CLIENTS = window.AD_CLIENTS || {};
+const CLIENT_KEY = PARAMS.get("client") || Object.keys(CLIENTS)[0];
+const CFG = CLIENTS[CLIENT_KEY];
+
+if(!CFG){
+  document.getElementById("content").innerHTML =
+    `<div class="err">Unknown client "<b>${CLIENT_KEY||""}</b>".<br>` +
+    `<span class="note">Known clients: ${Object.keys(CLIENTS).join(", ")||"none configured"}. ` +
+    `Pass one as <code>?client=&lt;key&gt;</code>.</span></div>`;
+  throw new Error("unknown client");
+}
+
+const BRAND = CFG.brand;
+const CLIENT_TITLE = CFG.title;
+const SHEET_ID = CFG.sheetId;
+const TAB = CFG.tab || "Ad Performance";
+const WEBHOOK_URL = CFG.webhookUrl || "";
+const EDIT_OPTIONS = CFG.editOptions || {};
+const DIMENSIONS = CFG.dimensions || [];
+const AI_DIMS = CFG.aiDims || [];
+const IS_ROAS = CFG.resultMetric === "roas";   // ecommerce vs lead-gen
+
+/* ============================================================ */
+document.getElementById("brandName").textContent = BRAND.name;
+document.getElementById("brandDot").textContent = BRAND.initial;
+document.getElementById("clientTitle").textContent = CLIENT_TITLE;
+if(CFG.subtitle) document.getElementById("clientSub").textContent = CFG.subtitle;
+document.documentElement.style.setProperty("--primary", BRAND.color);
+document.getElementById("brandDot").style.background = BRAND.color;
+document.title = CLIENT_TITLE;
+
+// headers=1 pins the header to row 1 so gviz can't mistake upsert-preserved (string) rows
+// for a multi-row header and drop them.
+const gvizUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(TAB)}`;
+const money = v => "$" + (v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const num = v => (v||0).toLocaleString();
+
+let ROWS = [], COLS = [];
+
+fetch(gvizUrl)
+  .then(r => r.text())
+  .then(t => {
+    const json = JSON.parse(t.substring(t.indexOf("(")+1, t.lastIndexOf(")")));
+    COLS = json.table.cols.map(c => c.label);
+    ROWS = json.table.rows.map(r => {
+      const o = {};
+      (r.c||[]).forEach((cell,i) => o[COLS[i]] = cell ? cell.v : null);
+      return o;
+    }).filter(r => r["Ad ID"]);
+    render();
+  })
+  .catch(e => {
+    document.getElementById("content").innerHTML =
+      `<div class="err">Couldn't load the data.<br><span class="note">`+
+      `If the sheet isn't shared as link-readable yet, the dashboard can't read it. (${e})</span></div>`;
+  });
+
+function agg(rows){
+  let spend=0, leads=0, rev=0;
+  rows.forEach(r => { spend+=+r["Spend"]||0; leads+=+r["Leads"]||0; rev+=+r["Revenue"]||0; });
+  return {spend, leads, rev, cpa: leads? spend/leads : 0, roas: spend? rev/spend : 0};
+}
+
+/* Best-first sort for the result metric: ecom by ROAS desc (revenue first),
+   lead-gen by CPA asc (leads first); ties / no-result rows fall back to spend. */
+function rankRows(rows){
+  return [...rows].sort((a,b) => {
+    if(IS_ROAS){
+      const ar=+a["Revenue"]||0, br=+b["Revenue"]||0;
+      if(ar>0 && br>0) return (+b["ROAS"]||0)-(+a["ROAS"]||0);
+      if(ar>0) return -1; if(br>0) return 1;
+      return (+b["Spend"]||0)-(+a["Spend"]||0);
+    }
+    const al=+a["Leads"]||0, bl=+b["Leads"]||0;
+    if(al>0 && bl>0) return (+a["CPA"]||0)-(+b["CPA"]||0);
+    if(al>0) return -1; if(bl>0) return 1;
+    return (+b["Spend"]||0)-(+a["Spend"]||0);
+  });
+}
+
+function render(){
+  const t = agg(ROWS);
+
+  // KPIs — swap the result pair by metric type.
+  const resultKpis = IS_ROAS
+    ? `<div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div></div>
+       <div class="kpi"><div class="label">Blended ROAS</div><div class="val">${t.roas.toFixed(2)}x</div></div>`
+    : `<div class="kpi"><div class="label">Leads</div><div class="val">${num(Math.round(t.leads))}</div></div>
+       <div class="kpi"><div class="label">Blended CPA</div><div class="val">${money(t.cpa)}</div></div>`;
+  let kpis = `
+    <div class="kpis">
+      <div class="kpi"><div class="label">Total Spend</div><div class="val">${money(t.spend)}</div></div>
+      ${resultKpis}
+      <div class="kpi"><div class="label">Active Ads</div><div class="val">${ROWS.length}</div></div>
+    </div>`;
+
+  // Ad table — ranked best-first for the metric.
+  const ranked = rankRows(ROWS);
+  // Median of the result metric, for good/bad coloring.
+  const vals = IS_ROAS
+    ? ROWS.filter(r=>+r["Revenue"]>0).map(r=>+r["ROAS"]).sort((a,b)=>a-b)
+    : ROWS.filter(r=>+r["Leads"]>0).map(r=>+r["CPA"]).sort((a,b)=>a-b);
+  const med = vals[Math.floor(vals.length/2)] || 0;
+
+  const resultHead = IS_ROAS
+    ? `<th class="num">Revenue</th><th class="num">ROAS</th>`
+    : `<th class="num">Leads</th><th class="num">CPA</th>`;
+
+  let tableRows = ranked.map(r => {
+    const thumb = r["Thumbnail"] ? `<img class="thumb" src="${r["Thumbnail"]}" loading="lazy">` : `<div class="thumb"></div>`;
+    const concept = r["Creative Concept"] || r["Campaign"] || "";
+    const aid = r["Ad ID"];
+    const ed = (field) => `data-adid="${aid}" data-field="${field}"`;
+    let resultCells;
+    if(IS_ROAS){
+      const rev=+r["Revenue"]||0, roas=+r["ROAS"]||0;
+      const cls = rev? (roas>=med ? "cpa-good":"cpa-bad") : "";
+      resultCells = `<td class="num">${rev? money(rev) : "—"}</td>
+        <td class="num ${cls}">${rev? roas.toFixed(2)+"x" : "—"}</td>`;
+    } else {
+      const leads=+r["Leads"]||0, cpa=+r["CPA"]||0;
+      const cls = leads? (cpa<=med ? "cpa-good":"cpa-bad") : "";
+      resultCells = `<td class="num">${leads||"—"}</td>
+        <td class="num ${cls}">${leads? money(cpa) : "—"}</td>`;
+    }
+    return `<tr>
+      <td>${thumb}</td>
+      <td class="adname">${r["Ad Name"]||""}<div class="note edit" ${ed("Creative Concept")}>${concept}</div></td>
+      <td><span class="pill">${r["Format"]||"—"}</span></td>
+      <td>${r["Funnel"]||"—"}</td>
+      <td class="ai edit" ${ed("Message Motivator")}><span class="ai-pill">${r["Message Motivator"]||"—"}</span></td>
+      <td class="ai edit" ${ed("Production Style")}>${r["Production Style"]||"—"}</td>
+      <td class="ai edit" ${ed("Product/Service")}>${r["Product/Service"]||"—"}</td>
+      <td class="ai edit" ${ed("Aspect Ratio")}>${r["Aspect Ratio"]||"—"}</td>
+      <td class="num">${money(+r["Spend"]||0)}</td>
+      ${resultCells}
+    </tr>`;
+  }).join("");
+
+  const rankLabel = IS_ROAS ? "ROAS" : "cost per lead";
+  let table = `<div class="card"><h2>Ads — ranked by ${rankLabel}
+      <span class="aimark">✨ Concept, motivator, style, product tagged by Claude</span></h2>
+    <div class="warn-bar">✎ These tags are AI-generated. Click any tag (or the creative read) to edit it.
+      Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL? "" : " (saving not yet configured — see setup)"}.</div>
+    <div style="overflow-x:auto"><table>
+      <thead><tr>
+        <th></th><th>Ad &amp; creative read</th><th>Format</th><th>Funnel</th>
+        <th class="ai">Motivator</th><th class="ai">Production</th>
+        <th class="ai">Product/Service</th><th class="ai">Ratio</th>
+        <th class="num">Spend</th>${resultHead}
+      </tr></thead><tbody>${tableRows}</tbody></table></div></div>`;
+
+  // Dynamic breakdowns — one card per dimension that has data.
+  let cards = "";
+  DIMENSIONS.forEach(dim => {
+    if(!COLS.includes(dim)) return;
+    const groups = {};
+    let anyVal = false;
+    ROWS.forEach(r => {
+      const k = (r[dim]||"").toString().trim();
+      if(k) anyVal = true;
+      const key = k || "(untagged)";
+      (groups[key] = groups[key] || []).push(r);
+    });
+    if(!anyVal) return;  // skip empty manual tags until tagged
+    const out = Object.entries(groups).map(([k,rows]) => ({k, ...agg(rows)}))
+      .sort((a,b) => IS_ROAS
+        ? ((a.rev&&b.rev)? b.roas-a.roas : b.spend-a.spend)
+        : ((a.leads&&b.leads)? a.cpa-b.cpa : b.spend-a.spend));
+    const resultCols = IS_ROAS
+      ? `<th class="num">Revenue</th><th class="num">ROAS</th>`
+      : `<th class="num">Leads</th><th class="num">CPA</th>`;
+    const body = out.map(g => {
+      const cells = IS_ROAS
+        ? `<td class="num">${money(g.rev)}</td><td class="num">${g.rev? g.roas.toFixed(2)+"x":"—"}</td>`
+        : `<td class="num">${Math.round(g.leads)||"—"}</td><td class="num">${g.leads? money(g.cpa):"—"}</td>`;
+      return `<tr>
+        <td class="${g.k==='(untagged)'?'untag':''}">${g.k}</td>
+        <td class="num">${money(g.spend)}</td>
+        ${cells}
+      </tr>`;
+    }).join("");
+    const isAI = AI_DIMS.includes(dim);
+    cards += `<div class="bd"><h3>By ${dim}${isAI?' <span class="aimark">✨ AI</span>':''}</h3><table>
+      <thead><tr><th>${dim}</th><th class="num">Spend</th>${resultCols}</tr></thead>
+      <tbody>${body}</tbody></table></div>`;
+  });
+
+  const breakdowns = `<div class="card"><h2>Breakdowns</h2><div class="bd-grid">${cards}</div></div>`;
+  document.getElementById("content").innerHTML = kpis + breakdowns + table;
+}
+
+/* ── Inline tag editing (with override warning) ──────────────────────── */
+let _warned = false;
+function onCellClick(e){
+  const cell = e.target.closest(".edit");
+  if(!cell || cell.querySelector(".cell-edit")) return;
+  if(_warned){ beginEdit(cell); return; }
+  const m = document.getElementById("editWarn");
+  m.classList.add("show");
+  document.getElementById("warnOk").onclick = () => {
+    if(document.getElementById("dontWarn").checked) _warned = true;
+    m.classList.remove("show"); beginEdit(cell);
+  };
+  document.getElementById("warnCancel").onclick = () => m.classList.remove("show");
+}
+function beginEdit(cell){
+  const field = cell.dataset.field;
+  const cur = cell.textContent.trim();
+  const opts = EDIT_OPTIONS[field];
+  let input;
+  if(opts){
+    input = document.createElement("select"); input.className = "cell-edit";
+    opts.forEach(o => { const op=document.createElement("option");
+      op.value=o; op.textContent=o; if(o===cur) op.selected=true; input.appendChild(op); });
+  } else {
+    input = document.createElement("input"); input.className = "cell-edit";
+    input.value = (cur==="—" ? "" : cur); input.size = 30;
+  }
+  cell.innerHTML=""; cell.appendChild(input); input.focus();
+  const commit = () => commitEdit(cell, field, input.value);
+  input.addEventListener("blur", commit, {once:true});
+  input.addEventListener("keydown", ev => {
+    if(ev.key==="Enter"){ ev.preventDefault(); input.blur(); }
+    if(ev.key==="Escape"){ input.removeEventListener("blur", commit); render(); }
+  });
+  if(opts) input.addEventListener("change", () => input.blur());
+}
+function commitEdit(cell, field, value){
+  const adid = cell.dataset.adid;
+  value = (value||"").trim();
+  if(cell.classList.contains("ai") && field==="Message Motivator")
+    cell.innerHTML = `<span class="ai-pill">${value||"—"}</span>`;
+  else cell.textContent = value||"—";
+  const row = ROWS.find(r => String(r["Ad ID"])===String(adid));
+  if(row) row[field] = value;                 // so breakdowns recompute
+  cell.classList.remove("saved"); cell.classList.add("unsaved");
+  saveTag(adid, field, value, cell);
+}
+function saveTag(adid, field, value, cell){
+  if(!WEBHOOK_URL) return;                     // stays "unsaved" until configured
+  fetch(WEBHOOK_URL, {method:"POST", mode:"no-cors",
+    body:new URLSearchParams({ad_id:adid, field:field, value:value})})
+    .then(() => { cell.classList.remove("unsaved"); cell.classList.add("saved"); })
+    .catch(() => {});
+}
+document.getElementById("content").addEventListener("click", onCellClick);
+</script>
+
+<div class="modal-bg" id="editWarn">
+  <div class="modal">
+    <h3>You're editing an AI tag</h3>
+    <p>This replaces the tag Claude generated and saves it to your tagging sheet. The AI
+       won't change it back unless you run a full re-tag.</p>
+    <label><input type="checkbox" id="dontWarn"> Don't warn me again this session</label>
+    <div class="row">
+      <button id="warnCancel">Cancel</button>
+      <button class="primary" id="warnOk">Got it, edit</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
