@@ -391,6 +391,7 @@ tr:hover td{background:#fafaf8;}
     <button class="tab-btn" data-tab="assets">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
+    <button class="tab-btn" data-tab="creative">Creative</button>
   </div>
 </div>
 
@@ -788,6 +789,10 @@ tr:hover td{background:#fafaf8;}
       <div class="chart-title">Daily Spend vs Daily Target</div>
       <div class="chart-wrap"><canvas id="chartDailyPacing"></canvas></div>
     </div>
+  </div>
+
+  <div id="tab-creative" class="tab-content">
+    <div id="cr-content" class="cr-root">Loading creative data…</div>
   </div>
 
 </div>
@@ -3215,6 +3220,243 @@ document.addEventListener('DOMContentLoaded', function() {
     loadData();
   }
 });
+</script>
+
+<!-- ===== CREATIVE TAB (self-contained: reads the ad-tagging product sheet) ===== -->
+<style>
+#tab-creative .cr-warn{background:#FFF7E6;border:1px solid #F0C36D;color:#7a5b00;font-size:12.5px;padding:8px 12px;border-radius:8px;margin-bottom:14px;}
+#tab-creative .cr-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px;}
+#tab-creative .cr-kpi{background:#fff;border:1px solid var(--border,#C8C5BE);border-radius:12px;padding:14px 16px;}
+#tab-creative .cr-kpi .l{font-size:11px;color:var(--text-muted,#666);text-transform:uppercase;letter-spacing:.5px;}
+#tab-creative .cr-kpi .v{font-size:24px;font-weight:700;margin-top:4px;}
+#tab-creative .cr-card{background:#fff;border:1px solid var(--border,#C8C5BE);border-radius:12px;padding:16px 18px;margin-bottom:20px;}
+#tab-creative .cr-card h3{font-size:15px;font-weight:700;margin-bottom:12px;}
+#tab-creative .cr-aimark{font-size:10px;font-weight:700;color:var(--primary,#209D50);background:rgba(32,157,80,.12);padding:1px 7px;border-radius:20px;margin-left:6px;}
+#tab-creative table.cr-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+#tab-creative table.cr-tbl th,#tab-creative table.cr-tbl td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;}
+#tab-creative table.cr-tbl th{font-size:10.5px;text-transform:uppercase;color:var(--text-muted,#666);}
+#tab-creative .cr-num{text-align:right;}
+#tab-creative .cr-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;background:#eee;display:block;}
+#tab-creative .cr-pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--header-bg,#eef);color:#555;}
+#tab-creative .cr-ai{background:rgba(32,157,80,.05);}
+#tab-creative .cr-aipill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(32,157,80,.12);color:#1a8a44;font-weight:600;}
+#tab-creative .cr-adname{font-weight:600;white-space:normal;min-width:190px;}
+#tab-creative .cr-note{font-size:11px;color:var(--text-muted,#666);white-space:normal;}
+#tab-creative td.cr-edit,#tab-creative .cr-note.cr-edit{cursor:text;}
+#tab-creative td.cr-edit:hover,#tab-creative .cr-note.cr-edit:hover{outline:1px dashed var(--primary,#209D50);outline-offset:-2px;}
+#tab-creative td.cr-unsaved,#tab-creative .cr-unsaved{background:rgba(255,193,7,.22);}
+#tab-creative td.cr-saved,#tab-creative .cr-saved{background:rgba(32,157,80,.14);}
+#tab-creative select.cr-cell,#tab-creative input.cr-cell{font:inherit;padding:2px 4px;border:1px solid var(--primary,#209D50);border-radius:5px;max-width:190px;}
+#tab-creative .cr-bdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+#tab-creative .cr-bd h4{font-size:12.5px;margin-bottom:6px;font-weight:700;}
+#tab-creative .cr-untag{color:#aaa;font-style:italic;}
+.cr-modalbg{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:9999;}
+.cr-modalbg.show{display:flex;}
+.cr-modal{background:#fff;border-radius:12px;padding:24px;max-width:390px;box-shadow:0 8px 40px rgba(0,0,0,.2);}
+.cr-modal h3{margin-bottom:10px;font-size:16px;}
+.cr-modal p{font-size:13.5px;color:#666;margin-bottom:8px;}
+.cr-modal label{font-size:12px;display:block;margin:10px 0;}
+.cr-modal .r{display:flex;gap:10px;justify-content:flex-end;}
+.cr-modal button{padding:8px 16px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:13px;}
+.cr-modal button.p{background:var(--primary,#209D50);color:#fff;border-color:var(--primary,#209D50);}
+#tab-creative .cr-bulk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--header-bg,#F5F4F1);border:1px solid var(--border,#C8C5BE);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px;}
+#tab-creative .cr-bulk select{font:inherit;padding:3px 6px;border:1px solid var(--border,#ccc);border-radius:6px;}
+#tab-creative .cr-bulk button{padding:5px 12px;border-radius:6px;border:1px solid var(--primary,#209D50);background:var(--primary,#209D50);color:#fff;cursor:pointer;font-size:12.5px;}
+#tab-creative .cr-bulk button.sec{background:#fff;color:var(--text-muted,#666);border-color:var(--border,#ccc);}
+#tab-creative .cr-chk,#tab-creative #cr-selall{cursor:pointer;width:15px;height:15px;}
+#tab-creative .cr-managebtn{float:right;font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--border,#ccc);background:#fff;cursor:pointer;}
+.cr-mtbl{width:100%;border-collapse:collapse;font-size:12.5px;margin:8px 0;}
+.cr-mtbl th{text-align:left;font-size:10.5px;text-transform:uppercase;color:#888;padding:2px 4px;}
+.cr-mtbl td{padding:3px 4px;border-bottom:1px solid #eee;}
+.cr-mtbl input,.cr-mtbl select{font:inherit;padding:3px 5px;border:1px solid #ccc;border-radius:5px;width:100%;}
+.cr-mtbl .cr-mdel{width:auto;color:#c00;border:1px solid #eccccc;cursor:pointer;background:#fff;border-radius:5px;padding:2px 8px;}
+</style>
+<script>
+(function(){
+  const SHEET_ID="1gklZFfDPiH-5Rd-91cK6EpRAPJvLf2myedT0TE1Cqng", TAB="Ad Performance", TAX_TAB="Taxonomy";
+  const WEBHOOK_URL="https://script.google.com/macros/s/AKfycbyIcrWD0Ac4RRbRtH4tDJMa7pigPDgS8TuL178KV_yFxFiw_-qz87nMfph_jsB4YzdEHA/exec";  // tag + taxonomy save-back
+  // All taxonomy-driven: dimensions, dropdown values and table columns come from
+  // the sheet's Taxonomy tab, so editing that tab changes the dashboard with no code.
+  let EDIT_OPTIONS={}, SELECT=[], TEXTD=[], DIMENSIONS=[], AI_DIMS=[], TAX=[];
+  const money=v=>"$"+(+v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  let ROWS=[],COLS=[],warned=false;
+  const root=()=>document.getElementById("cr-content");
+  const gv=tab=>"https://docs.google.com/spreadsheets/d/"+SHEET_ID+"/gviz/tq?tqx=out:json&headers=1&sheet="+encodeURIComponent(tab);
+  const parseGviz=t=>{const j=JSON.parse(t.substring(t.indexOf("(")+1,t.lastIndexOf(")")));const cols=j.table.cols.map(c=>c.label);const rows=j.table.rows.map(r=>{const o={};(r.c||[]).forEach((c,i)=>o[cols[i]]=c?c.v:null);return o;});return {cols:cols,rows:rows};};
+
+  function loadAll(){
+    Promise.all([fetch(gv(TAB)+"&t="+Date.now()).then(r=>r.text()), fetch(gv(TAX_TAB)+"&t="+Date.now()).then(r=>r.text())])
+    .then(([dataT,taxT])=>{
+      const d=parseGviz(dataT); COLS=d.cols; ROWS=d.rows.filter(r=>r["Ad ID"]);
+      const tx=parseGviz(taxT).rows.filter(r=>r["Dimension"]);
+      TAX=tx.map(t=>({dim:(t["Dimension"]||"").toString().trim(),
+        type:(((t["Type"]||"select")+"").trim().toLowerCase()||"select"),
+        values:((t["Values"]||"")+"").trim(), hint:((t["Hint"]||"")+"").trim()})).filter(t=>t.dim);
+      SELECT=[];TEXTD=[];EDIT_OPTIONS={};
+      TAX.forEach(t=>{ if(t.type==="text"){TEXTD.push(t.dim);}
+        else{SELECT.push(t.dim);EDIT_OPTIONS[t.dim]=t.values.split(",").map(s=>s.trim()).filter(Boolean);} });
+      DIMENSIONS=["Format","Audience","Funnel"].concat(SELECT);
+      AI_DIMS=SELECT.concat(TEXTD);
+      render();
+    }).catch(e=>{root().innerHTML='<div class="cr-warn">Could not load the creative data ('+e+')</div>';});
+  }
+  loadAll();
+
+  function agg(rows){let s=0,l=0,rev=0;rows.forEach(r=>{s+=+r["Spend"]||0;l+=+r["Leads"]||0;rev+=+r["Revenue"]||0;});return{spend:s,leads:l,rev:rev,cpa:l?s/l:0,roas:s&&rev?rev/s:0};}
+  function kpi(l,v){return '<div class="cr-kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>';}
+
+  function render(){
+    const t=agg(ROWS), hasRoas=ROWS.some(r=>(+r["Revenue"]||0)>0);
+    let kpis='<div class="cr-kpis">'+kpi("Total Spend",money(t.spend))+kpi("Leads",Math.round(t.leads))+kpi("Blended CPA",money(t.cpa))+kpi("Active Ads",ROWS.length)+(hasRoas?kpi("ROAS",t.roas.toFixed(2)+"x"):"")+'</div>';
+    const ranked=[...ROWS].sort((a,b)=>{const al=+a["Leads"]||0,bl=+b["Leads"]||0;if(al&&bl)return (+a["CPA"]||0)-(+b["CPA"]||0);if(al)return -1;if(bl)return 1;return (+b["Spend"]||0)-(+a["Spend"]||0);});
+    let rows=ranked.map(r=>{
+      const leads=+r["Leads"]||0,cpa=+r["CPA"]||0,aid=r["Ad ID"];
+      const thumb=r["Thumbnail"]?'<img class="cr-thumb" src="'+r["Thumbnail"]+'" loading="lazy">':'<div class="cr-thumb"></div>';
+      const ed=f=>'data-adid="'+aid+'" data-field="'+f+'"';
+      const notes=TEXTD.map(d=>'<div class="cr-note cr-edit" '+ed(d)+'>'+(r[d]||('<i style="opacity:.45">'+d+'</i>'))+'</div>').join("");
+      const selcells=SELECT.map(d=>'<td class="cr-ai cr-edit" '+ed(d)+'>'+(SELECT[0]===d?'<span class="cr-aipill">'+(r[d]||"—")+'</span>':(r[d]||"—"))+'</td>').join("");
+      return '<tr><td><input type="checkbox" class="cr-chk" data-adid="'+aid+'"></td><td>'+thumb+'</td>'+
+        '<td class="cr-adname">'+(r["Ad Name"]||"")+notes+'</td>'+
+        '<td><span class="cr-pill">'+(r["Format"]||"—")+'</span></td>'+
+        '<td>'+(r["Funnel"]||"—")+'</td>'+
+        selcells+
+        '<td class="cr-num">'+money(+r["Spend"]||0)+'</td><td class="cr-num">'+(leads||"—")+'</td><td class="cr-num">'+(leads?money(cpa):"—")+'</td></tr>';
+    }).join("");
+    const bf=Object.keys(EDIT_OPTIONS);
+    const bulk='<div class="cr-bulk" id="cr-bulk" style="display:none"><b id="cr-bulkn">0 selected</b> · Set '+
+      '<select id="cr-bulkfield">'+bf.map(f=>'<option>'+f+'</option>').join("")+'</select> to '+
+      '<select id="cr-bulkval">'+EDIT_OPTIONS[bf[0]].map(v=>'<option>'+v+'</option>').join("")+'</select> '+
+      '<button id="cr-bulkapply">Apply to selected</button> <button class="sec" id="cr-bulkclear">Clear</button></div>';
+    let table='<div class="cr-card"><h3>Ads — ranked by cost per lead<button class="cr-managebtn" id="cr-manage">⚙ Manage tags</button><span class="cr-aimark">✨ tagged by Claude · click a tag to edit, or tick rows to bulk-edit</span></h3>'+
+      '<div class="cr-warn">✎ These tags are AI-generated. Click any tag (or the creative read) to edit, or tick rows and bulk-set a tag. Changes override the AI and save to the tagging sheet'+(WEBHOOK_URL?"":" (saving not yet configured)")+'.</div>'+
+      bulk+
+      '<div style="overflow-x:auto"><table class="cr-tbl"><thead><tr><th><input type="checkbox" id="cr-selall"></th><th></th><th>Ad &amp; creative read</th><th>Format</th><th>Funnel</th>'+SELECT.map(d=>'<th>'+d+'</th>').join("")+'<th class="cr-num">Spend</th><th class="cr-num">Leads</th><th class="cr-num">CPA</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
+    let cards="";
+    DIMENSIONS.forEach(dim=>{
+      if(!COLS.includes(dim))return;
+      const g={};let any=false;
+      ROWS.forEach(r=>{const k=(r[dim]||"").toString().trim();if(k)any=true;const key=k||"(untagged)";(g[key]=g[key]||[]).push(r);});
+      if(!any)return;
+      const out=Object.entries(g).map(([k,rs])=>({k:k,...agg(rs)})).sort((a,b)=>(a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend);
+      const body=out.map(x=>'<tr><td class="'+(x.k==="(untagged)"?"cr-untag":"")+'">'+x.k+'</td><td class="cr-num">'+money(x.spend)+'</td><td class="cr-num">'+(Math.round(x.leads)||"—")+'</td><td class="cr-num">'+(x.leads?money(x.cpa):"—")+'</td></tr>').join("");
+      cards+='<div class="cr-bd"><h4>By '+dim+(AI_DIMS.includes(dim)?' <span class="cr-aimark">✨ AI</span>':'')+'</h4><table class="cr-tbl"><thead><tr><th>'+dim+'</th><th class="cr-num">Spend</th><th class="cr-num">Leads</th><th class="cr-num">CPA</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+    });
+    root().innerHTML=kpis+table+'<div class="cr-card"><h3>Breakdowns</h3><div class="cr-bdgrid">'+cards+'</div></div>';
+  }
+
+  function confirmThenEdit(fn){
+    if(warned){fn();return;}
+    const m=document.getElementById("cr-editWarn");m.classList.add("show");
+    document.getElementById("cr-warnOk").onclick=function(){if(document.getElementById("cr-dontwarn").checked)warned=true;m.classList.remove("show");fn();};
+    document.getElementById("cr-warnCancel").onclick=function(){m.classList.remove("show");};
+  }
+  function onClick(e){
+    const t=e.target;
+    if(t.id==="cr-manage"){openManage();return;}
+    if(t.id==="cr-bulkapply"){confirmThenEdit(applyBulk);return;}
+    if(t.id==="cr-bulkclear"){document.querySelectorAll("#cr-content .cr-chk").forEach(c=>c.checked=false);const sa=document.getElementById("cr-selall");if(sa)sa.checked=false;updateBulk();return;}
+    const cell=t.closest(".cr-edit");
+    if(!cell||cell.querySelector(".cr-cell"))return;
+    confirmThenEdit(function(){begin(cell);});
+  }
+  function onChange(e){
+    const t=e.target;
+    if(t.id==="cr-selall"){document.querySelectorAll("#cr-content .cr-chk").forEach(c=>c.checked=t.checked);updateBulk();}
+    else if(t.classList.contains("cr-chk")){updateBulk();}
+    else if(t.id==="cr-bulkfield"){const s=document.getElementById("cr-bulkval");if(s)s.innerHTML=(EDIT_OPTIONS[t.value]||[]).map(v=>'<option>'+v+'</option>').join("");}
+  }
+  function updateBulk(){
+    const n=document.querySelectorAll("#cr-content .cr-chk:checked").length;
+    const bar=document.getElementById("cr-bulk");if(!bar)return;
+    bar.style.display=n?"flex":"none";
+    const lbl=document.getElementById("cr-bulkn");if(lbl)lbl.textContent=n+" selected";
+  }
+  function applyBulk(){
+    const field=document.getElementById("cr-bulkfield").value;
+    const value=document.getElementById("cr-bulkval").value;
+    const ids=[...document.querySelectorAll("#cr-content .cr-chk:checked")].map(c=>c.dataset.adid);
+    if(!ids.length)return;
+    ids.forEach(function(aid){
+      const row=ROWS.find(r=>String(r["Ad ID"])===String(aid));if(row)row[field]=value;
+      if(WEBHOOK_URL)fetch(WEBHOOK_URL,{method:"POST",mode:"no-cors",body:new URLSearchParams({ad_id:aid,field:field,value:value})}).catch(()=>{});
+    });
+    render();
+  }
+  function begin(cell){
+    const field=cell.dataset.field,cur=cell.textContent.trim(),opts=EDIT_OPTIONS[field];let inp;
+    if(opts){inp=document.createElement("select");inp.className="cr-cell";opts.forEach(o=>{const op=document.createElement("option");op.value=o;op.textContent=o;if(o===cur)op.selected=true;inp.appendChild(op);});}
+    else{inp=document.createElement("input");inp.className="cr-cell";inp.value=cur==="—"?"":cur;inp.size=30;}
+    cell.innerHTML="";cell.appendChild(inp);inp.focus();
+    const commit=()=>doCommit(cell,field,inp.value);
+    inp.addEventListener("blur",commit,{once:true});
+    inp.addEventListener("keydown",ev=>{if(ev.key==="Enter"){ev.preventDefault();inp.blur();}if(ev.key==="Escape"){inp.removeEventListener("blur",commit);render();}});
+    if(opts)inp.addEventListener("change",()=>inp.blur());
+  }
+  function doCommit(cell,field,value){
+    const aid=cell.dataset.adid;value=(value||"").trim();
+    if(cell.classList.contains("cr-ai")&&SELECT[0]===field)cell.innerHTML='<span class="cr-aipill">'+(value||"—")+'</span>';
+    else cell.textContent=value||"—";
+    const row=ROWS.find(r=>String(r["Ad ID"])===String(aid));if(row)row[field]=value;
+    cell.classList.remove("cr-saved");cell.classList.add("cr-unsaved");
+    if(!WEBHOOK_URL)return;
+    fetch(WEBHOOK_URL,{method:"POST",mode:"no-cors",body:new URLSearchParams({ad_id:aid,field:field,value:value})}).then(()=>{cell.classList.remove("cr-unsaved");cell.classList.add("cr-saved");}).catch(()=>{});
+  }
+
+  // ── Manage-tags panel (edits the Taxonomy tab via the webhook) ──
+  function saveTax(params){
+    if(!WEBHOOK_URL) return;
+    fetch(WEBHOOK_URL,{method:"POST",mode:"no-cors",body:new URLSearchParams(params)}).catch(()=>{});
+  }
+  function mRow(t){
+    const esc=s=>(s||"").replace(/"/g,"&quot;");
+    const sel='<select class="cr-mtype"><option value="select"'+(t.type!=="text"?" selected":"")+'>select</option>'+
+              '<option value="text"'+(t.type==="text"?" selected":"")+'>text</option></select>';
+    return '<tr><td><input class="cr-mdim" value="'+esc(t.dim)+'"></td><td>'+sel+'</td>'+
+      '<td><input class="cr-mvals" value="'+esc(t.values)+'" placeholder="comma, separated, values"></td>'+
+      '<td><input class="cr-mhint" value="'+esc(t.hint)+'"></td>'+
+      '<td><button class="cr-mdel" title="remove">✕</button></td></tr>';
+  }
+  function openManage(){
+    const m=document.getElementById("cr-manageModal");
+    m.querySelector("#cr-mrows").innerHTML=
+      '<tr><th>Dimension</th><th>Type</th><th>Values</th><th>Hint</th><th></th></tr>'+TAX.map(mRow).join("");
+    m._orig=TAX.map(t=>t.dim);
+    m.querySelector("#cr-mstatus").textContent=WEBHOOK_URL?"":"Saving not on yet — deploy the webhook to enable.";
+    m.classList.add("show");
+  }
+  function onManageClick(e){
+    const t=e.target, m=document.getElementById("cr-manageModal");
+    if(t.id==="cr-maddrow"){m.querySelector("#cr-mrows").insertAdjacentHTML("beforeend",mRow({dim:"",type:"select",values:"",hint:""}));return;}
+    if(t.classList.contains("cr-mdel")){t.closest("tr").remove();return;}
+    if(t.id==="cr-mcancel"){m.classList.remove("show");return;}
+    if(t.id==="cr-msave"){saveManage();}
+  }
+  function saveManage(){
+    const m=document.getElementById("cr-manageModal");
+    const rows=[...m.querySelectorAll("#cr-mrows tr")].slice(1), cur=[];
+    rows.forEach(tr=>{
+      const di=tr.querySelector(".cr-mdim"); if(!di) return;
+      const d=di.value.trim(); if(!d) return;
+      cur.push(d);
+      saveTax({action:"tax_set", dimension:d, type:tr.querySelector(".cr-mtype").value,
+               values:tr.querySelector(".cr-mvals").value.trim(), hint:tr.querySelector(".cr-mhint").value.trim()});
+    });
+    (m._orig||[]).forEach(od=>{ if(cur.indexOf(od)<0) saveTax({action:"tax_del", dimension:od}); });
+    const st=m.querySelector("#cr-mstatus");
+    if(!WEBHOOK_URL){ st.textContent="Not saved — webhook not deployed yet. Changes were not persisted."; return; }
+    st.textContent="Saved. reloading…";
+    setTimeout(()=>{ m.classList.remove("show"); loadAll(); }, 1600);
+  }
+
+  const tc=document.getElementById("cr-content");if(tc){tc.addEventListener("click",onClick);tc.addEventListener("change",onChange);}
+  const d=document.createElement("div");d.className="cr-modalbg";d.id="cr-editWarn";
+  d.innerHTML=`<div class="cr-modal"><h3>You're editing an AI tag</h3><p>This replaces the tag Claude generated and saves to your tagging sheet. The AI won't change it back unless you run a full re-tag.</p><label><input type="checkbox" id="cr-dontwarn"> Don't warn me again this session</label><div class="r"><button id="cr-warnCancel">Cancel</button><button class="p" id="cr-warnOk">Got it, edit</button></div></div>`;
+  document.body.appendChild(d);
+  const mm=document.createElement("div");mm.className="cr-modalbg";mm.id="cr-manageModal";
+  mm.innerHTML='<div class="cr-modal" style="max-width:720px;max-height:82vh;overflow:auto"><h3>Manage tag dimensions</h3><p>Edit values, switch a dimension between dropdown (select) and free-text, or add/remove dimensions. Saves to the Taxonomy tab. After adding or changing a dimension, re-run the sync so Claude fills it.</p><table class="cr-mtbl" id="cr-mrows"></table><button class="sec" id="cr-maddrow" style="margin-top:6px;border:1px solid #ccc;background:#fff;border-radius:6px;padding:5px 12px;cursor:pointer">+ Add dimension</button><div class="r" style="margin-top:14px"><button id="cr-mcancel">Close</button><button class="p" id="cr-msave">Save changes</button></div><div id="cr-mstatus" style="font-size:12px;color:#666;margin-top:8px"></div></div>';
+  document.body.appendChild(mm);
+  mm.addEventListener("click",onManageClick);
+})();
 </script>
 </body>
 </html>
