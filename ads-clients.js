@@ -26,6 +26,7 @@ window.AD_CLIENTS = {
     webhookUrl: "",
     // "cpa" (lead-gen → Leads/CPA) | "roas" (ecommerce → Revenue/ROAS)
     resultMetric: "cpa",
+    resultLabel: "Leads",       // what the conversion is called (Leads / Purchases / Signups…)
     dimensions: ["Format", "Audience", "Funnel",
                  "Message Motivator", "Secondary Motivator", "Production Style",
                  "Subject", "Aspect Ratio", "Offer", "Product/Service"],
@@ -52,6 +53,7 @@ window.AD_CLIENTS = {
     webhookUrl: "",
     // Subscription: purchases (sub starts) primary, ranked on cost per purchase.
     resultMetric: "cpa",
+    resultLabel: "Purchases",
     dimensions: ["Format", "Audience", "Funnel",
                  "Message Motivator", "Secondary Motivator", "Production Style",
                  "Subject", "Aspect Ratio", "Offer", "Product/Service"],

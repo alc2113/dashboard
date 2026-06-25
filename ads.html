@@ -112,7 +112,8 @@ const IS_ROAS=CFG.resultMetric==="roas";
 const AI_DIMS=CFG.aiDims||[];
 const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
 const BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);
-const RESULT_LABEL=IS_ROAS?"Revenue":"Leads";
+const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Revenue":"Leads");
+const RESULT_ONE=RESULT_LABEL.replace(/s$/,"").toLowerCase();   // "lead" / "purchase"
 
 document.getElementById("brandName").textContent=BRAND.name;
 document.getElementById("brandDot").textContent=BRAND.initial;
@@ -231,7 +232,7 @@ function kpiHtml(f){
   const resultK=IS_ROAS
     ? `<div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div></div>
        <div class="kpi"><div class="label">Blended ROAS</div><div class="val">${t.roas.toFixed(2)}x</div></div>`
-    : `<div class="kpi"><div class="label">Leads</div><div class="val">${num(t.leads)}</div></div>
+    : `<div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div></div>
        <div class="kpi"><div class="label">Blended CPA</div><div class="val">${money(t.cpa)}</div></div>`;
   return `<div class="kpis">
     <div class="kpi"><div class="label">Total Spend</div><div class="val">${money(t.spend)}</div></div>
@@ -269,7 +270,7 @@ function renderTrends(f){
       <div class="card"><h2>Spend by day</h2><div class="chart-wrap"><canvas id="trSpend"></canvas></div></div>
       <div class="card"><h2>${RESULT_LABEL} by day</h2><div class="chart-wrap"><canvas id="trResult"></canvas></div></div>
      </div>
-     <div class="card"><h2>${IS_ROAS?"ROAS":"Cost per lead"} by day</h2><div class="chart-wrap"><canvas id="trEff"></canvas></div></div>`;
+     <div class="card"><h2>${IS_ROAS?"ROAS":"Cost per "+RESULT_ONE} by day</h2><div class="chart-wrap"><canvas id="trEff"></canvas></div></div>`;
   makeChart("trSpend",{type:"bar",data:{labels:s.days,datasets:[{label:"Spend",data:s.spend,backgroundColor:COLORS[0]}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
   makeChart("trResult",{type:"bar",data:{labels:s.days,datasets:[{label:RESULT_LABEL,data:s.result,backgroundColor:COLORS[1]}]},
@@ -286,7 +287,7 @@ function renderBreakdowns(f){
   out=out.filter(x=>x.k!=="(none)" || out.length===1);
   out.sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend));
   const top=out.slice().sort((a,b)=>b.spend-a.spend).slice(0,12);
-  const resultHead=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">Leads</th><th class="num">CPA</th>`;
+  const resultHead=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
   const body=out.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>`+
      (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
              :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("");
@@ -318,7 +319,7 @@ function renderCreative(f){
   const arr=c=>crSort.col===c?(crSort.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
   const aiCols=AI_DIMS.slice(0,4);
-  const resultHead=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num"):sth("leads","Leads","num")+sth("cpa","CPA","num");
+  const resultHead=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
   const head=`<tr>${sth("name","Ad")}${sth("format","Format")}${sth("funnel","Funnel")}`+
     aiCols.map(d=>sth(d,d,"ai")).join("")+sth("spend","Spend","num")+resultHead+`</tr>`;
   const rows=ads.map(a=>{
@@ -330,7 +331,7 @@ function renderCreative(f){
       `<td class="num">${money(a.spend)}</td>${resultCells}</tr>`;
   }).join("");
   document.getElementById("tab-creative").innerHTML=kpiHtml(f)+
-    `<div class="card"><h2>Ads — ranked by ${IS_ROAS?"ROAS":"cost per lead"}
+    `<div class="card"><h2>Ads — ranked by ${IS_ROAS?"ROAS":"cost per "+RESULT_ONE}
        <span class="aimark">✨ creative tagged by Claude</span></h2>
        <div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
   document.querySelectorAll("#tab-creative th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
