@@ -107,7 +107,7 @@ if(!CFG){
 }
 
 const BRAND=CFG.brand, SHEET_ID=CFG.sheetId;
-const DAILY_TAB=CFG.dailyTab||"Ad Daily", TAG_TAB=CFG.tagTab||"Tagging";
+const DAILY_TAB=CFG.dailyTab||"Ad Daily", TAG_TAB=CFG.tagTab||"Tagging", PERF_TAB=CFG.tab||"Ad Performance";
 const IS_ROAS=CFG.resultMetric==="roas";
 const AI_DIMS=CFG.aiDims||[];
 const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
@@ -142,17 +142,25 @@ function parseGviz(text){
 
 let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
 
-Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()), fetch(gvizUrl(TAG_TAB)).then(r=>r.text())])
- .then(([dailyT, tagT])=>{
+Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
+             fetch(gvizUrl(TAG_TAB)).then(r=>r.text()),
+             fetch(gvizUrl(PERF_TAB)).then(r=>r.text()).catch(()=>"")])
+ .then(([dailyT, tagT, perfT])=>{
    const daily=parseGviz(dailyT).rows.filter(r=>r["Ad ID"] && r["Date"]);
    const tagsParsed=parseGviz(tagT);
    const tagCols=tagsParsed.cols.filter(c=>c!=="Ad ID"&&c!=="Ad Name");
    const tags={};
    tagsParsed.rows.forEach(r=>{ const id=String(r["Ad ID"]||"").trim(); if(!id) return;
      const o={}; tagCols.forEach(c=>o[c]=r[c]||""); tags[id]=o; });
-   // join tags onto daily rows by Ad ID + coerce numerics
+   // ad copy (headline + primary text) by Ad ID, from the perf tab
+   const copy={};
+   try{ parseGviz(perfT).rows.forEach(r=>{ const id=String(r["Ad ID"]||"").trim();
+     if(id) copy[id]={headline:r["Headline"]||"", body:r["Primary Text"]||""}; }); }catch(e){}
+   // join tags + copy onto daily rows by Ad ID + coerce numerics
    ROWS=daily.map(r=>{
-     const o=Object.assign({}, r, tags[String(r["Ad ID"]).trim()]||{});
+     const id=String(r["Ad ID"]).trim();
+     const o=Object.assign({}, r, tags[id]||{});
+     const c=copy[id]||{}; o._headline=c.headline||""; o._body=c.body||"";
      o._date=String(o["Date"]).slice(0,10);
      o._spend=pv(o["Spend"]); o._imp=pv(o["Impressions"]); o._clicks=pv(o["Clicks"]);
      o._leads=pv(o["Leads"]); o._rev=pv(o["Revenue"]);
@@ -188,12 +196,24 @@ function buildShell(){
     <div class="tabs">
       <button class="tab-btn active" data-tab="overview">Overview</button>
       <button class="tab-btn" data-tab="trends">Trends</button>
+      <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
+      <button class="tab-btn" data-tab="campaigns">Campaigns</button>
       <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
+      <button class="tab-btn" data-tab="byad">By Ad</button>
+      <button class="tab-btn" data-tab="headlines">Headlines &amp; Copy</button>
+      <button class="tab-btn" data-tab="funnel">Funnel</button>
+      <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
       <button class="tab-btn" data-tab="creative">Creative</button>
     </div>
     <div id="tab-overview" class="tab-content active"></div>
     <div id="tab-trends" class="tab-content"></div>
+    <div id="tab-leaderboard" class="tab-content"></div>
+    <div id="tab-campaigns" class="tab-content"></div>
     <div id="tab-breakdowns" class="tab-content"></div>
+    <div id="tab-byad" class="tab-content"></div>
+    <div id="tab-headlines" class="tab-content"></div>
+    <div id="tab-funnel" class="tab-content"></div>
+    <div id="tab-pacing" class="tab-content"></div>
     <div id="tab-creative" class="tab-content"></div>`;
 
   document.getElementById("cFrom").addEventListener("change",e=>{state.from=e.target.value; clearPreset(); render();});
@@ -223,8 +243,146 @@ function render(){
   document.getElementById("range").textContent=`${state.from}  to  ${state.to}`;
   if(state.tab==="overview") renderOverview(f);
   else if(state.tab==="trends") renderTrends(f);
+  else if(state.tab==="leaderboard") renderLeaderboard(f);
+  else if(state.tab==="campaigns") renderCampaigns(f);
   else if(state.tab==="breakdowns") renderBreakdowns(f);
+  else if(state.tab==="byad") renderByAd(f);
+  else if(state.tab==="headlines") renderHeadlines(f);
+  else if(state.tab==="funnel") renderFunnel(f);
+  else if(state.tab==="pacing") renderPacing(f);
   else if(state.tab==="creative") renderCreative(f);
+}
+
+/* ── Shared: a simple dimension breakdown (table + bar) into a target div ── */
+function aggByDim(rows,dimKey){
+  const g=groupBy(rows,dimKey);
+  let out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)}));
+  out=out.filter(x=>x.k!=="(none)"||out.length===1);
+  out.sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend));
+  return out;
+}
+function dimTable(out){
+  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const body=out.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>`+
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
+            :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("");
+  return `<table><thead><tr><th>Value</th><th class="num">Spend</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
+}
+function dimChart(id,out){
+  const top=out.slice().sort((a,b)=>b.spend-a.spend).slice(0,12);
+  makeChart(id,{type:"bar",data:{labels:top.map(x=>x.k),datasets:[{label:"Spend",data:top.map(x=>x.spend),backgroundColor:top.map((_,i)=>COLORS[i%COLORS.length])}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+}
+function renderCampaigns(f){
+  const out=aggByDim(f,"Campaign");
+  document.getElementById("tab-campaigns").innerHTML=
+    `<div class="card"><h2>By Campaign</h2><div class="chart-wrap" style="height:280px;"><canvas id="campChart"></canvas></div></div>
+     <div class="card">${dimTable(out)}</div>`;
+  dimChart("campChart",out);
+}
+function renderFunnel(f){
+  const out=aggByDim(f,"Funnel");
+  document.getElementById("tab-funnel").innerHTML=
+    `<div class="card"><h2>By Funnel stage</h2><div class="chart-wrap" style="height:260px;"><canvas id="funChart"></canvas></div></div>
+     <div class="card">${dimTable(out)}</div>`;
+  dimChart("funChart",out);
+}
+
+/* ── Per-ad aggregation (shared by Leaderboard / By Ad / Creative) ── */
+function adsAgg(rows){
+  const byAd={};
+  rows.forEach(r=>{ const id=r["Ad ID"]; const a=byAd[id]||(byAd[id]={id,name:r["Ad Name"],campaign:r["Campaign"],
+    format:r["Format"],audience:r["Audience"],funnel:r["Funnel"],headline:r._headline,body:r._body,
+    spend:0,leads:0,rev:0,imp:0,clicks:0,tags:r}); a.spend+=r._spend;a.leads+=r._leads;a.rev+=r._rev;a.imp+=r._imp;a.clicks+=r._clicks; });
+  return Object.values(byAd).map(a=>({...a,cpa:a.leads?a.spend/a.leads:0,roas:a.spend&&a.rev?a.rev/a.spend:0,
+    ctr:a.imp?a.clicks/a.imp*100:0}));
+}
+function bestFirst(ads){ return ads.slice().sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend))); }
+
+let lbMinSpend=0;
+function renderLeaderboard(f){
+  let ads=bestFirst(adsAgg(f).filter(a=>a.spend>=lbMinSpend && (IS_ROAS?a.rev>0:a.leads>0)));
+  const rows=ads.slice(0,25).map((a,i)=>`<tr><td class="num">${i+1}</td><td class="adname">${a.name||""}</td>
+    <td><span class="pill">${a.format||"—"}</span></td><td>${a.funnel||"—"}</td>
+    <td class="num">${money(a.spend)}</td>`+
+    (IS_ROAS?`<td class="num">${money(a.rev)}</td><td class="num good">${a.roas.toFixed(2)}x</td>`
+            :`<td class="num">${num(a.leads)}</td><td class="num good">${money(a.cpa)}</td>`)+`</tr>`).join("");
+  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  document.getElementById("tab-leaderboard").innerHTML=
+    `<div class="card"><h2>Top ads by ${IS_ROAS?"ROAS":"cost per "+RESULT_ONE}
+       <label style="float:right;font-size:12px;color:var(--muted);">Min spend $<input type="number" id="lbMin" value="${lbMinSpend}" style="width:80px;font:inherit;padding:3px 6px;border:1px solid var(--border);border-radius:6px;"></label></h2>
+       <div style="overflow-x:auto"><table><thead><tr><th class="num">#</th><th>Ad</th><th>Format</th><th>Funnel</th><th class="num">Spend</th>${rh}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  const inp=document.getElementById("lbMin");
+  inp.addEventListener("change",e=>{lbMinSpend=+e.target.value||0; renderLeaderboard(filtered());});
+}
+
+let byAdSort={col:null,asc:true};
+function renderByAd(f){
+  let ads=adsAgg(f);
+  const sval=(a,c)=>{const m={name:(a.name||"").toLowerCase(),campaign:(a.campaign||"").toLowerCase(),format:(a.format||"").toLowerCase(),
+    audience:(a.audience||"").toLowerCase(),funnel:(a.funnel||"").toLowerCase(),spend:a.spend,imp:a.imp,clicks:a.clicks,ctr:a.ctr,leads:a.leads,rev:a.rev,cpa:a.cpa,roas:a.roas};return m[c];};
+  if(byAdSort.col){ const c=byAdSort.col,s=byAdSort.asc?1:-1; ads.sort((a,b)=>{const va=sval(a,c),vb=sval(b,c);return va<vb?-s:va>vb?s:0;}); }
+  else ads=bestFirst(ads);
+  const arr=c=>byAdSort.col===c?(byAdSort.asc?" ▲":" ▼"):"";
+  const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
+  const rh=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
+  const head=`<tr>${sth("name","Ad")}${sth("campaign","Campaign")}${sth("format","Format")}${sth("audience","Audience")}${sth("funnel","Funnel")}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${rh}</tr>`;
+  const rows=ads.map(a=>`<tr><td class="adname">${a.name||""}</td><td>${a.campaign||"—"}</td><td><span class="pill">${a.format||"—"}</span></td>
+    <td>${a.audience||"—"}</td><td>${a.funnel||"—"}</td><td class="num">${money(a.spend)}</td><td class="num">${num(a.imp)}</td>
+    <td class="num">${num(a.clicks)}</td><td class="num">${a.ctr.toFixed(2)}%</td>`+
+    (IS_ROAS?`<td class="num">${money(a.rev)}</td><td class="num">${a.rev?a.roas.toFixed(2)+"x":"—"}</td>`
+            :`<td class="num">${num(a.leads)||"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td>`)+`</tr>`).join("");
+  document.getElementById("tab-byad").innerHTML=
+    `<div class="card"><h2>By Ad</h2><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
+  document.querySelectorAll("#tab-byad th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
+    const c=th.dataset.sort; if(byAdSort.col===c)byAdSort.asc=!byAdSort.asc; else {byAdSort.col=c; byAdSort.asc=(c==="name"||c==="campaign"||c==="format"||c==="audience"||c==="funnel"||c==="cpa");}
+    renderByAd(filtered());
+  }));
+}
+
+function renderHeadlines(f){
+  const hasCopy=ROWS.some(r=>r._headline||r._body);
+  if(!hasCopy){ document.getElementById("tab-headlines").innerHTML=
+    `<div class="card"><div class="note">No ad copy yet. Re-run the engine to populate Headline / Primary Text in the product sheet.</div></div>`; return; }
+  function grp(rows,field){ const g={}; rows.forEach(r=>{ const k=(r[field]||"").toString().trim(); if(!k) return; (g[k]=g[k]||[]).push(r); });
+    let out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)}));
+    out.sort((a,b)=>IS_ROAS?b.roas-a.roas:(a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend); return out; }
+  const heads=grp(f,"_headline"), bodies=grp(f,"_body");
+  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const tbl=(out)=>`<table><thead><tr><th>Text</th><th class="num">Spend</th>${rh}</tr></thead><tbody>`+
+    out.map(x=>`<tr><td style="white-space:normal;max-width:520px;">${(x.k||"").slice(0,180)}</td><td class="num">${money(x.spend)}</td>`+
+      (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
+              :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("")+`</tbody></table>`;
+  document.getElementById("tab-headlines").innerHTML=
+    `<div class="card"><h2>By Headline</h2><div style="overflow-x:auto">${tbl(heads)}</div></div>`+
+    `<div class="card"><h2>By Primary Text</h2><div style="overflow-x:auto">${tbl(bodies)}</div></div>`;
+}
+
+function renderPacing(f){
+  // pacing is month-to-date for the current month vs an entered budget
+  const today=DMAX; const ym=today.slice(0,7); const monthStart=ym+"-01";
+  const mtdRows=ROWS.filter(r=>r._date>=monthStart && r._date<=today);
+  const mtd=agg(mtdRows).spend;
+  const dayNum=+today.slice(8,10); const daysInMonth=new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate();
+  const projected=dayNum?mtd/dayNum*daysInMonth:0;
+  const budget=+(localStorage.getItem("adsBudget_"+CLIENT_KEY)||CFG.monthlyBudget||0);
+  const pacePct=budget?projected/budget*100:0;
+  const status=!budget?"—":projected>budget*1.05?"OVER PACE":projected<budget*0.9?"UNDER PACE":"ON TRACK";
+  const statusColor=status==="OVER PACE"?"var(--bad)":status==="UNDER PACE"?"#FFA500":"var(--good)";
+  document.getElementById("tab-pacing").innerHTML=
+    `<div class="card"><h2>Budget Pacing — ${ym}
+      <label style="float:right;font-size:13px;font-weight:400;">Monthly budget $<input type="number" id="pcBudget" value="${budget||""}" placeholder="0" style="width:110px;font:inherit;padding:4px 7px;border:1px solid var(--border);border-radius:6px;"></label></h2>
+      <div class="kpis">
+        <div class="kpi"><div class="label">Spent (MTD)</div><div class="val">${money(mtd)}</div></div>
+        <div class="kpi"><div class="label">Projected EOM</div><div class="val">${money(projected)}</div></div>
+        <div class="kpi"><div class="label">Budget</div><div class="val">${budget?money(budget):"—"}</div></div>
+        <div class="kpi"><div class="label">Status</div><div class="val" style="color:${statusColor};font-size:20px;">${status}</div></div>
+      </div>
+      <div style="background:var(--header-bg);border-radius:9px;height:26px;overflow:hidden;margin-top:6px;">
+        <div style="height:100%;width:${Math.min(pacePct,100)}%;background:${statusColor};"></div></div>
+      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`:"Enter a monthly budget to see pacing."}</div>
+    </div>`;
+  document.getElementById("pcBudget").addEventListener("change",e=>{ localStorage.setItem("adsBudget_"+CLIENT_KEY, e.target.value||""); renderPacing(filtered()); });
 }
 
 function kpiHtml(f){
