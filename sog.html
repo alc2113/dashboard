@@ -2895,6 +2895,7 @@ function renderCurrentTab() {
     case 'assets':      renderAssets(); break;
     case 'funnel':      renderFunnel(); break;
     case 'pacing':      renderPacing(); break;
+    case 'creative':    if (window.crRefresh) window.crRefresh(); break;
   }
   updateHeaderDateRange();
 }
@@ -3372,12 +3373,40 @@ document.addEventListener('DOMContentLoaded', function() {
   function agg(rows){let s=0,l=0,rev=0;rows.forEach(r=>{s+=+r["Spend"]||0;l+=+r["Leads"]||0;rev+=+r["Revenue"]||0;});return{spend:s,leads:l,rev:rev,cpa:l?s/l:0,roas:s&&rev?rev/s:0};}
   function kpi(l,v){return '<div class="cr-kpi"><div class="l">'+l+'</div><div class="v">'+v+'</div></div>';}
 
+  // Date-aware metrics: pull Spend/Leads per ad from the dashboard's filtered ad
+  // data (by Ad Name) so the Creative tab matches the rest of the dashboard and
+  // honors the date filter. Falls back to the product sheet's own metrics when the
+  // main data isn't available yet (e.g., before the dashboard finishes loading).
+  function metricMap(){
+    try{
+      if(typeof getFilteredAdDetail!=="function")return null;
+      const md=getFilteredAdDetail();
+      if(!md||!md.length)return null;
+      const m={};
+      md.forEach(function(r){
+        if(r.platform&&r.platform!=="meta")return;     // product-sheet ads are Meta
+        const k=(r.adName||"").trim().toLowerCase(); if(!k)return;
+        const e=m[k]||(m[k]={spend:0,leads:0});
+        e.spend+=r.spend||0; e.leads+=r.callsBooked||0;
+      });
+      return m;
+    }catch(e){return null;}
+  }
+
   function render(){
-    const t=agg(ROWS), hasRoas=ROWS.some(r=>(+r["Revenue"]||0)>0);
-    let kpis='<div class="cr-kpis">'+kpi("Total Spend",money(t.spend))+kpi("Leads",Math.round(t.leads))+kpi("Blended CPA",money(t.cpa))+kpi("Active Ads",ROWS.length)+(hasRoas?kpi("ROAS",t.roas.toFixed(2)+"x"):"")+'</div>';
-    const ranked=[...ROWS].sort((a,b)=>{const al=+a["Leads"]||0,bl=+b["Leads"]||0;if(al&&bl)return (+a["CPA"]||0)-(+b["CPA"]||0);if(al)return -1;if(bl)return 1;return (+b["Spend"]||0)-(+a["Spend"]||0);});
+    const mm=metricMap();   // null => fall back to product-sheet snapshot metrics
+    const eff=r=>{
+      if(mm){const e=mm[(r["Ad Name"]||"").trim().toLowerCase()]||{spend:0,leads:0};
+        return {spend:e.spend, leads:e.leads, cpa:e.leads?e.spend/e.leads:0};}
+      const sp=+r["Spend"]||0, ld=+r["Leads"]||0;
+      return {spend:sp, leads:ld, cpa:ld?(+r["CPA"]||sp/ld):0};
+    };
+    let ts=0,tl=0; ROWS.forEach(r=>{const e=eff(r);ts+=e.spend;tl+=e.leads;});
+    const blended=tl?ts/tl:0, activeAds=mm?ROWS.filter(r=>eff(r).spend>0).length:ROWS.length;
+    let kpis='<div class="cr-kpis">'+kpi("Total Spend",money(ts))+kpi("Leads",Math.round(tl))+kpi("Blended CPA",money(blended))+kpi("Active Ads",activeAds)+'</div>';
+    const ranked=[...ROWS].sort((a,b)=>{const ea=eff(a),eb=eff(b);if(ea.leads&&eb.leads)return ea.cpa-eb.cpa;if(ea.leads)return -1;if(eb.leads)return 1;return eb.spend-ea.spend;});
     let rows=ranked.map(r=>{
-      const leads=+r["Leads"]||0,cpa=+r["CPA"]||0,aid=r["Ad ID"];
+      const e=eff(r),leads=e.leads,cpa=e.cpa,aid=r["Ad ID"];
       const thumb=r["Thumbnail"]?'<img class="cr-thumb" src="'+r["Thumbnail"]+'" loading="lazy">':'<div class="cr-thumb"></div>';
       const ed=f=>'data-adid="'+aid+'" data-field="'+f+'"';
       const notes=TEXTD.map(d=>'<div class="cr-note cr-edit" '+ed(d)+'>'+(r[d]||('<i style="opacity:.45">'+d+'</i>'))+'</div>').join("");
@@ -3387,14 +3416,15 @@ document.addEventListener('DOMContentLoaded', function() {
         '<td><span class="cr-pill">'+(r["Format"]||"—")+'</span></td>'+
         '<td>'+(r["Funnel"]||"—")+'</td>'+
         selcells+
-        '<td class="cr-num">'+money(+r["Spend"]||0)+'</td><td class="cr-num">'+(leads||"—")+'</td><td class="cr-num">'+(leads?money(cpa):"—")+'</td></tr>';
+        '<td class="cr-num">'+money(e.spend)+'</td><td class="cr-num">'+(leads?Math.round(leads):"—")+'</td><td class="cr-num">'+(leads?money(cpa):"—")+'</td></tr>';
     }).join("");
     const bf=Object.keys(EDIT_OPTIONS);
     const bulk='<div class="cr-bulk" id="cr-bulk" style="display:none"><b id="cr-bulkn">0 selected</b> · Set '+
       '<select id="cr-bulkfield">'+bf.map(f=>'<option>'+f+'</option>').join("")+'</select> to '+
       '<select id="cr-bulkval">'+EDIT_OPTIONS[bf[0]].map(v=>'<option>'+v+'</option>').join("")+'</select> '+
       '<button id="cr-bulkapply">Apply to selected</button> <button class="sec" id="cr-bulkclear">Clear</button></div>';
-    let table='<div class="cr-card"><h3>Ads — ranked by cost per lead<button class="cr-managebtn" id="cr-manage">⚙ Manage tags</button><span class="cr-aimark">✨ tagged by Claude · click a tag to edit, or tick rows to bulk-edit</span></h3>'+
+    const rangeNote=mm?'<span class="cr-aimark" style="background:rgba(0,0,0,.05);color:#666;font-weight:400">spend &amp; leads reflect the date filter</span>':'';
+    let table='<div class="cr-card"><h3>Ads — ranked by cost per lead<button class="cr-managebtn" id="cr-manage">⚙ Manage tags</button><span class="cr-aimark">✨ tagged by Claude · click a tag to edit, or tick rows to bulk-edit</span>'+rangeNote+'</h3>'+
       '<div class="cr-warn">✎ These tags are AI-generated. Click any tag (or the creative read) to edit, or tick rows and bulk-set a tag. Changes override the AI and save to the tagging sheet'+(WEBHOOK_URL?"":" (saving not yet configured)")+'.</div>'+
       bulk+
       '<div style="overflow-x:auto"><table class="cr-tbl"><thead><tr><th><input type="checkbox" id="cr-selall"></th><th></th><th>Ad &amp; creative read</th><th>Format</th><th>Funnel</th>'+SELECT.map(d=>'<th>'+d+'</th>').join("")+'<th class="cr-num">Spend</th><th class="cr-num">Leads</th><th class="cr-num">CPA</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
@@ -3402,6 +3432,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // there). The Creative tab is the tagging surface only.
     root().innerHTML=kpis+table;
   }
+  // Let the main dashboard re-render this tab when the date/platform filter changes.
+  window.crRefresh=function(){ if(ROWS&&ROWS.length) render(); };
 
   function confirmThenEdit(fn){
     if(warned){fn();return;}
