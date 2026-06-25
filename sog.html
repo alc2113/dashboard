@@ -544,6 +544,14 @@ tr:hover td{background:#fafaf8;}
             <option value="funnel">Funnel (Prospecting/Retargeting)</option>
             <option value="targeting">Targeting (Interest/LAL/CA)</option>
           </optgroup>
+          <optgroup label="Meta — Creative Tags (AI)">
+            <option value="tag_motivator">Message Motivator</option>
+            <option value="tag_secondary">Secondary Motivator</option>
+            <option value="tag_production">Production Style</option>
+            <option value="tag_subject">Subject</option>
+            <option value="tag_ratio">Aspect Ratio</option>
+            <option value="tag_product">Product/Service</option>
+          </optgroup>
           <optgroup label="Google">
             <option value="campaign_type">Campaign Type (Search/Display/YouTube)</option>
             <option value="creative_direction">Creative Direction</option>
@@ -566,6 +574,14 @@ tr:hover td{background:#fafaf8;}
             <option value="creative_type">Creative Type</option>
             <option value="funnel">Funnel</option>
             <option value="targeting">Targeting</option>
+          </optgroup>
+          <optgroup label="Meta — Creative Tags (AI)">
+            <option value="tag_motivator">Message Motivator</option>
+            <option value="tag_secondary">Secondary Motivator</option>
+            <option value="tag_production">Production Style</option>
+            <option value="tag_subject">Subject</option>
+            <option value="tag_ratio">Aspect Ratio</option>
+            <option value="tag_product">Product/Service</option>
           </optgroup>
           <optgroup label="Google">
             <option value="campaign_type">Campaign Type</option>
@@ -830,6 +846,7 @@ let assetSort = { col: 'spend', asc: false };
 let keywordSort = { col: 'spend', asc: false };
 let adsSort = { col: 'spend', asc: false };
 let activeChannel = '';     // '' = all, 'meta', 'google'
+let tagsByAdName = {};       // {adNameLower: {tag_*}} from the creative product sheet, joined onto Meta ad rows
 
 // ========================================================================
 // PARSING HELPER
@@ -997,6 +1014,46 @@ async function fetchSheetData(sheetName) {
   } catch (e) {
     clearTimeout(timeout);
     throw e;
+  }
+}
+
+// Creative product sheet (AI-tagged) — separate spreadsheet, keyed by ad_id but
+// carrying Ad Name. We join its tags onto the Meta ad-detail rows by Ad Name so
+// the tagged dimensions become selectable breakdown dimensions. Meta-only; ads
+// not in this sheet stay untagged. Best-effort: failure leaves tags empty.
+async function loadAdTags() {
+  var TAG_SHEET = '1gklZFfDPiH-5Rd-91cK6EpRAPJvLf2myedT0TE1Cqng';
+  var url = 'https://docs.google.com/spreadsheets/d/' + TAG_SHEET +
+            '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent('Ad Performance');
+  try {
+    var resp = await fetch(url);
+    var text = await resp.text();
+    var json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
+    var cols = (json.table.cols || []).map(function(c) { return c.label || ''; });
+    var map = {};
+    (json.table.rows || []).forEach(function(row) {
+      if (!row.c) return;
+      var o = {};
+      cols.forEach(function(label, i) {
+        var cell = row.c[i];
+        o[label] = (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v) : '';
+      });
+      var name = (o['Ad Name'] || '').trim().toLowerCase();
+      if (!name) return;
+      map[name] = {
+        tag_motivator: o['Message Motivator'] || '',
+        tag_secondary: o['Secondary Motivator'] || '',
+        tag_production: o['Production Style'] || '',
+        tag_subject: o['Subject'] || '',
+        tag_ratio: o['Aspect Ratio'] || '',
+        tag_product: o['Product/Service'] || ''
+      };
+    });
+    tagsByAdName = map;
+    console.log('[SOG Dashboard] Ad tags loaded:', Object.keys(map).length);
+  } catch (e) {
+    tagsByAdName = {};
+    console.warn('[SOG Dashboard] Ad tags load failed (breakdowns still work without them):', e);
   }
 }
 
@@ -2061,7 +2118,10 @@ function renderBreakdowns() {
     adset: 'Ad Set / Ad Group', color: 'Color', creative_theme: 'Creative Theme',
     creative_type: 'Creative Type', funnel: 'Funnel', targeting: 'Targeting',
     campaign_type: 'Campaign Type', creative_direction: 'Creative Direction',
-    direction: 'Direction'
+    direction: 'Direction',
+    tag_motivator: 'Message Motivator (AI)', tag_secondary: 'Secondary Motivator (AI)',
+    tag_production: 'Production Style (AI)', tag_subject: 'Subject (AI)',
+    tag_ratio: 'Aspect Ratio (AI)', tag_product: 'Product/Service (AI)'
   };
 
   var keyFn;
@@ -2914,6 +2974,7 @@ function doLogin() {
 // ========================================================================
 async function loadData() {
   try {
+    await loadAdTags();   // build tagsByAdName before normalizing Meta ad rows
     var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
@@ -2935,6 +2996,12 @@ async function loadData() {
     adDetailData = [];
     for (var i = 0; i < metaAdRows.length; i++) {
       var mr = normalizeMetaAdDetail(metaAdRows[i]);
+      var tg = tagsByAdName[(mr.adName || '').trim().toLowerCase()];
+      if (tg) {
+        mr.tag_motivator = tg.tag_motivator; mr.tag_secondary = tg.tag_secondary;
+        mr.tag_production = tg.tag_production; mr.tag_subject = tg.tag_subject;
+        mr.tag_ratio = tg.tag_ratio; mr.tag_product = tg.tag_product;
+      }
       if (mr.date && mr.spend > 0) adDetailData.push(mr);
     }
     for (var i = 0; i < googleAdRows.length; i++) {
@@ -3331,17 +3398,9 @@ document.addEventListener('DOMContentLoaded', function() {
       '<div class="cr-warn">✎ These tags are AI-generated. Click any tag (or the creative read) to edit, or tick rows and bulk-set a tag. Changes override the AI and save to the tagging sheet'+(WEBHOOK_URL?"":" (saving not yet configured)")+'.</div>'+
       bulk+
       '<div style="overflow-x:auto"><table class="cr-tbl"><thead><tr><th><input type="checkbox" id="cr-selall"></th><th></th><th>Ad &amp; creative read</th><th>Format</th><th>Funnel</th>'+SELECT.map(d=>'<th>'+d+'</th>').join("")+'<th class="cr-num">Spend</th><th class="cr-num">Leads</th><th class="cr-num">CPA</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>';
-    let cards="";
-    DIMENSIONS.forEach(dim=>{
-      if(!COLS.includes(dim))return;
-      const g={};let any=false;
-      ROWS.forEach(r=>{const k=(r[dim]||"").toString().trim();if(k)any=true;const key=k||"(untagged)";(g[key]=g[key]||[]).push(r);});
-      if(!any)return;
-      const out=Object.entries(g).map(([k,rs])=>({k:k,...agg(rs)})).sort((a,b)=>(a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend);
-      const body=out.map(x=>'<tr><td class="'+(x.k==="(untagged)"?"cr-untag":"")+'">'+x.k+'</td><td class="cr-num">'+money(x.spend)+'</td><td class="cr-num">'+(Math.round(x.leads)||"—")+'</td><td class="cr-num">'+(x.leads?money(x.cpa):"—")+'</td></tr>').join("");
-      cards+='<div class="cr-bd"><h4>By '+dim+(AI_DIMS.includes(dim)?' <span class="cr-aimark">✨ AI</span>':'')+'</h4><table class="cr-tbl"><thead><tr><th>'+dim+'</th><th class="cr-num">Spend</th><th class="cr-num">Leads</th><th class="cr-num">CPA</th></tr></thead><tbody>'+body+'</tbody></table></div>';
-    });
-    root().innerHTML=kpis+table+'<div class="cr-card"><h3>Breakdowns</h3><div class="cr-bdgrid">'+cards+'</div></div>';
+    // Breakdowns now live in the Breakdowns tab (the AI tags join onto the ad rows
+    // there). The Creative tab is the tagging surface only.
+    root().innerHTML=kpis+table;
   }
 
   function confirmThenEdit(fn){
