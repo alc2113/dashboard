@@ -21,9 +21,9 @@ window.AD_CLIENTS = {
     dailyTab: "Ad Daily",       // daily ad-level rows (date filter / trends / breakdowns)
     tagTab:   "Tagging",        // AI tags by Ad ID (joined onto the daily rows)
     tab:      "Ad Performance", // legacy per-ad rollup (kept for reference)
-    // Paste the Apps Script /exec URL to make tag edits save back to the sheet.
+    // Apps Script /exec that writes tag edits back to the Tagging + Ad Performance tabs.
     // Empty = edits work in the page but show as unsaved (webhook not configured).
-    webhookUrl: "",
+    webhookUrl: "https://script.google.com/macros/s/AKfycbyIcrWD0Ac4RRbRtH4tDJMa7pigPDgS8TuL178KV_yFxFiw_-qz87nMfph_jsB4YzdEHA/exec",
     // "cpa" (lead-gen → Leads/CPA) | "roas" (ecommerce → Revenue/ROAS)
     resultMetric: "cpa",
     resultLabel: "Leads",       // what the conversion is called (Leads / Purchases / Signups…)
