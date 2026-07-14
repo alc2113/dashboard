@@ -195,6 +195,10 @@ body{
 .kpi-delta.good{color:var(--green);}
 .kpi-delta.bad{color:var(--red);}
 .kpi-delta.neutral{color:var(--text-muted);}
+.tbl-delta{display:block;font-size:10.5px;font-weight:600;margin-top:1px;}
+.tbl-delta.good{color:var(--green);}
+.tbl-delta.bad{color:var(--red);}
+.tbl-delta.neutral{color:var(--text-muted);}
 
 /* ===== CHARTS ===== */
 .chart-container{
@@ -451,6 +455,48 @@ tr:hover td{background:#fafaf8;}
     <div class="kpi-section">
       <div class="kpi-section-title">Delivery &amp; Efficiency</div>
       <div class="kpi-grid" id="kpiDelivery"></div>
+    </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Week over Week (All Campaigns)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Week of</th>
+            <th>Spend</th>
+            <th>Imp</th>
+            <th>Reach</th>
+            <th>Clicks</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            <th>CPM</th>
+            <th>Calls</th>
+            <th>Cost/Call</th>
+            <th>Freq</th>
+          </tr></thead>
+          <tbody id="wowBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Month over Month (All Campaigns)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Month</th>
+            <th>Spend</th>
+            <th>Imp</th>
+            <th>Reach</th>
+            <th>Clicks</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            <th>CPM</th>
+            <th>Calls</th>
+            <th>Cost/Call</th>
+            <th>Freq</th>
+          </tr></thead>
+          <tbody id="momBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -1455,6 +1501,53 @@ function renderOverview() {
   delEl.appendChild(buildKpiCard('CPM (All)', formatCurrency(allAgg.cpm), delta(allAgg.cpm, prev && prev.cpm, true)));
   delEl.appendChild(buildKpiCard('Reach', formatNumber(allAgg.reach), delta(allAgg.reach, prev && prev.reach, false)));
   delEl.appendChild(buildKpiCard('Frequency', allAgg.frequency.toFixed(2), delta(allAgg.frequency, prev && prev.frequency, false)));
+
+  renderOverviewPeriodTables(filtered);
+}
+
+// Week-over-week + month-over-month tables on the Overview tab. Rows are
+// periods (all campaigns combined), newest first, with % change vs the
+// previous period on key metrics. Respects the global date/platform filters.
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthKeyLabel(key) {
+  const parts = key.split('-');
+  if (parts.length !== 2) return key;
+  const mi = parseInt(parts[1], 10) - 1;
+  return (MONTH_NAMES[mi] || parts[1]) + ' ' + parts[0];
+}
+
+function renderOverviewPeriodTables(filtered) {
+  function fill(tbodyId, keyFn, labelFn) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    const groups = groupBy(filtered, function(r) { return keyFn(r.date); })
+      .sort(function(a, b) { return b.key.localeCompare(a.key); });
+    tbody.innerHTML = '';
+    groups.forEach(function(g, i) {
+      const p = groups[i + 1];   // previous (older) period; last row has none
+      function d(cur, prevVal, invert) {
+        if (!p) return '';
+        const del = formatDelta(cur, prevVal, invert);
+        return '<span class="tbl-delta ' + del.cls + '">' + del.text + '</span>';
+      }
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + labelFn(g.key) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false) + '</td>' +
+        '<td>' + formatNumber(g.impressions) + '</td>' +
+        '<td>' + formatNumber(g.reach) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false) + '</td>' +
+        '<td>' + formatPct(g.ctr) + d(g.ctr, p && p.ctr, false) + '</td>' +
+        '<td>' + formatCurrency(g.cpc) + '</td>' +
+        '<td>' + formatCurrency(g.cpm) + '</td>' +
+        '<td>' + formatNumber(g.callsBooked) + d(g.callsBooked, p && p.callsBooked, false) + '</td>' +
+        '<td>' + formatCurrency(g.costPerLead) + d(g.costPerLead, p && p.costPerLead, true) + '</td>' +
+        '<td>' + g.frequency.toFixed(2) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+  fill('wowBody', getWeekKey, function(k) { return k; });
+  fill('momBody', getMonthKey, monthKeyLabel);
 }
 
 // ========================================================================
