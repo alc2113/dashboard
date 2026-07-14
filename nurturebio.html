@@ -1395,15 +1395,26 @@ function renderOverview() {
   const googleAgg = aggregateRows(googleRows);
 
   const compare = document.getElementById('compareToggle').checked;
-  let prev = null;
+  let prev = null, prevMeta = null, prevGoogle = null;
   if (compare) {
     const prevRows = getPreviousPeriodData();
-    if (prevRows.length > 0) prev = aggregateRows(prevRows);
+    if (prevRows.length > 0) {
+      prev = aggregateRows(prevRows);
+      const pm = prevRows.filter(function(r) { return r.platform === 'meta'; });
+      const pg = prevRows.filter(function(r) { return r.platform === 'google'; });
+      if (pm.length > 0) prevMeta = aggregateRows(pm);
+      if (pg.length > 0) prevGoogle = aggregateRows(pg);
+    }
   }
 
   function delta(curVal, prevVal, invert) {
     if (!prev || prevVal === undefined) return null;
     return formatDelta(curVal, prevVal, invert);
+  }
+  // Platform-scoped delta: compares against the same platform's previous period.
+  function deltaVs(prevAgg, curVal, invert, key) {
+    if (!prevAgg || prevAgg[key] === undefined) return null;
+    return formatDelta(curVal, prevAgg[key], invert);
   }
 
   // --- Combined ---
@@ -1420,28 +1431,28 @@ function renderOverview() {
   // --- Meta ---
   const metaEl = document.getElementById('kpiMeta');
   metaEl.innerHTML = '';
-  metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), null));
-  metaEl.appendChild(buildKpiCard('Meta Purchases', formatNumber(metaAgg.callsBooked), null));
-  metaEl.appendChild(buildKpiCard('Meta Cost/Purchase', formatCurrency(metaAgg.costPerLead), null));
-  metaEl.appendChild(buildKpiCard('Meta Revenue', formatCurrency(metaAgg.revenue), null));
-  metaEl.appendChild(buildKpiCard('Meta ROAS', metaAgg.roas.toFixed(2) + 'x', null));
-  metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), null));
-  metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), null));
-  metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), null));
-  metaEl.appendChild(buildKpiCard('Meta CPM', formatCurrency(metaAgg.cpm), null));
-  metaEl.appendChild(buildKpiCard('Meta Frequency', metaAgg.frequency.toFixed(2), null));
+  metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), deltaVs(prevMeta, metaAgg.spend, false, 'spend')));
+  metaEl.appendChild(buildKpiCard('Meta Purchases', formatNumber(metaAgg.callsBooked), deltaVs(prevMeta, metaAgg.callsBooked, false, 'callsBooked')));
+  metaEl.appendChild(buildKpiCard('Meta Cost/Purchase', formatCurrency(metaAgg.costPerLead), deltaVs(prevMeta, metaAgg.costPerLead, true, 'costPerLead')));
+  metaEl.appendChild(buildKpiCard('Meta Revenue', formatCurrency(metaAgg.revenue), deltaVs(prevMeta, metaAgg.revenue, false, 'revenue')));
+  metaEl.appendChild(buildKpiCard('Meta ROAS', metaAgg.roas.toFixed(2) + 'x', deltaVs(prevMeta, metaAgg.roas, false, 'roas')));
+  metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), deltaVs(prevMeta, metaAgg.clicks, false, 'clicks')));
+  metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), deltaVs(prevMeta, metaAgg.ctr, false, 'ctr')));
+  metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), deltaVs(prevMeta, metaAgg.cpc, true, 'cpc')));
+  metaEl.appendChild(buildKpiCard('Meta CPM', formatCurrency(metaAgg.cpm), deltaVs(prevMeta, metaAgg.cpm, true, 'cpm')));
+  metaEl.appendChild(buildKpiCard('Meta Frequency', metaAgg.frequency.toFixed(2), deltaVs(prevMeta, metaAgg.frequency, false, 'frequency')));
 
   // --- Google ---
   const googleEl = document.getElementById('kpiGoogle');
   googleEl.innerHTML = '';
-  googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), null));
-  googleEl.appendChild(buildKpiCard('Google Purchases', formatNumber(googleAgg.callsBooked), null));
-  googleEl.appendChild(buildKpiCard('Google Cost/Purchase', formatCurrency(googleAgg.costPerLead), null));
-  googleEl.appendChild(buildKpiCard('Google Revenue', formatCurrency(googleAgg.revenue), null));
-  googleEl.appendChild(buildKpiCard('Google ROAS', googleAgg.roas.toFixed(2) + 'x', null));
-  googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), null));
-  googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), null));
-  googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), null));
+  googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), deltaVs(prevGoogle, googleAgg.spend, false, 'spend')));
+  googleEl.appendChild(buildKpiCard('Google Purchases', formatNumber(googleAgg.callsBooked), deltaVs(prevGoogle, googleAgg.callsBooked, false, 'callsBooked')));
+  googleEl.appendChild(buildKpiCard('Google Cost/Purchase', formatCurrency(googleAgg.costPerLead), deltaVs(prevGoogle, googleAgg.costPerLead, true, 'costPerLead')));
+  googleEl.appendChild(buildKpiCard('Google Revenue', formatCurrency(googleAgg.revenue), deltaVs(prevGoogle, googleAgg.revenue, false, 'revenue')));
+  googleEl.appendChild(buildKpiCard('Google ROAS', googleAgg.roas.toFixed(2) + 'x', deltaVs(prevGoogle, googleAgg.roas, false, 'roas')));
+  googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), deltaVs(prevGoogle, googleAgg.clicks, false, 'clicks')));
+  googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), deltaVs(prevGoogle, googleAgg.ctr, false, 'ctr')));
+  googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), deltaVs(prevGoogle, googleAgg.cpc, true, 'cpc')));
 
   // --- Delivery ---
   const delEl = document.getElementById('kpiDelivery');
