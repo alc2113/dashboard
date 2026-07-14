@@ -181,6 +181,10 @@ body{
 .kpi-delta.good{color:var(--green);}
 .kpi-delta.bad{color:var(--red);}
 .kpi-delta.neutral{color:var(--text-muted);}
+.tbl-delta{display:block;font-size:10.5px;font-weight:600;margin-top:1px;}
+.tbl-delta.good{color:var(--green);}
+.tbl-delta.bad{color:var(--red);}
+.tbl-delta.neutral{color:var(--text-muted);}
 
 /* ===== CHARTS ===== */
 .chart-container{
@@ -1367,22 +1371,28 @@ function renderOverviewPeriodTables(filtered) {
     const groups = groupBy(filtered, function(r) { return keyFn(r.date); })
       .sort(function(a, b) { return b.key.localeCompare(a.key); });
     tbody.innerHTML = '';
-    groups.forEach(function(g) {
+    groups.forEach(function(g, i) {
+      const p = groups[i + 1];   // previous (older) period; last row has none
+      function d(cur, prevVal, invert) {
+        if (!p) return '';
+        const del = formatDelta(cur, prevVal, invert);
+        return '<span class="tbl-delta ' + del.cls + '">' + del.text + '</span>';
+      }
       const tr = document.createElement('tr');
       tr.innerHTML =
         '<td>' + labelFn(g.key) + '</td>' +
-        '<td>' + formatCurrency(g.spend) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false) + '</td>' +
         '<td>' + formatNumber(g.impressions) + '</td>' +
         '<td>' + formatNumber(g.reach) + '</td>' +
-        '<td>' + formatNumber(g.clicks) + '</td>' +
-        '<td>' + formatPct(g.ctr) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false) + '</td>' +
+        '<td>' + formatPct(g.ctr) + d(g.ctr, p && p.ctr, false) + '</td>' +
         '<td>' + formatCurrency(g.cpc) + '</td>' +
         '<td>' + formatCurrency(g.cpm) + '</td>' +
-        '<td>' + formatNumber(g.purchases) + '</td>' +
-        '<td>' + formatCurrency(g.costPerPurchase) + '</td>' +
-        '<td>' + formatCurrency(g.revenue) + '</td>' +
-        '<td>' + formatROAS(g.roas) + '</td>' +
-        '<td>' + formatNumber(g.registrations) + '</td>' +
+        '<td>' + formatNumber(g.purchases) + d(g.purchases, p && p.purchases, false) + '</td>' +
+        '<td>' + formatCurrency(g.costPerPurchase) + d(g.costPerPurchase, p && p.costPerPurchase, true) + '</td>' +
+        '<td>' + formatCurrency(g.revenue) + d(g.revenue, p && p.revenue, false) + '</td>' +
+        '<td>' + formatROAS(g.roas) + d(g.roas, p && p.roas, false) + '</td>' +
+        '<td>' + formatNumber(g.registrations) + d(g.registrations, p && p.registrations, false) + '</td>' +
         '<td>' + g.frequency.toFixed(2) + '</td>';
       tbody.appendChild(tr);
     });

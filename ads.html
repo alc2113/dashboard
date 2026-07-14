@@ -59,6 +59,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 table{width:100%; border-collapse:collapse; font-size:13.5px;}
 th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); white-space:nowrap;}
 th{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--muted); cursor:pointer; user-select:none;}
+.tbl-delta{display:block; font-size:10.5px; font-weight:600; margin-top:1px;}
+.tbl-delta.good{color:var(--good);}
+.tbl-delta.bad{color:var(--bad);}
+.tbl-delta.neutral{color:var(--muted);}
 th.num,td.num{text-align:right;}
 tbody tr:hover{background:var(--header-bg);}
 .thumb{width:42px; height:42px; border-radius:6px; object-fit:cover; background:var(--header-bg); display:block;}
@@ -444,16 +448,25 @@ function fmtDate(x){ return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(
 function weekKey(d){ const x=new Date(d+"T00:00:00"); if(isNaN(x))return d; const day=x.getDay(); x.setDate(x.getDate()-(day===0?6:day-1)); return fmtDate(x); }
 function monthKey(d){ return String(d).slice(0,7); }
 function monthLabel(k){ const p=k.split("-"); return p.length===2?(MONTH_NAMES[+p[1]-1]||p[1])+" "+p[0]:k; }
+// % change vs the previous (older) period; invert flips good/bad for cost metrics.
+function periodDelta(cur,prev,invert){
+  if(prev==null||!isFinite(prev)||prev===0) return "";
+  const pct=(cur-prev)/Math.abs(prev);
+  const cls=Math.abs(pct)<0.001?"neutral":(invert?pct<=0:pct>=0)?"good":"bad";
+  return `<span class="tbl-delta ${cls}">${pct>=0?"+":""}${(pct*100).toFixed(1)}% ${pct>=0?"↑":"↓"}</span>`;
+}
 function periodTable(rows,keyFn,colLabel,labelFn){
   const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
-  const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)})).sort((a,b)=>b.k.localeCompare(a.k));
+  const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs),ctr:0})).sort((a,b)=>b.k.localeCompare(a.k));
+  out.forEach(x=>{ x.ctr=x.imp?x.clicks/x.imp*100:0; });
   const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
-  const body=out.map(x=>{
-    const ctr=x.imp?x.clicks/x.imp*100:0;
-    return `<tr><td>${labelFn?labelFn(x.k):x.k}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td>`+
-      `<td class="num">${num(x.clicks)}</td><td class="num">${ctr.toFixed(2)}%</td>`+
-      (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
-              :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`;
+  const body=out.map((x,i)=>{
+    const p=out[i+1];   // previous (older) period; last row has none
+    const d=(cur,prev,inv)=>p?periodDelta(cur,prev,inv):"";
+    return `<tr><td>${labelFn?labelFn(x.k):x.k}</td><td class="num">${money(x.spend)}${d(x.spend,p&&p.spend,false)}</td><td class="num">${num(x.imp)}</td>`+
+      `<td class="num">${num(x.clicks)}${d(x.clicks,p&&p.clicks,false)}</td><td class="num">${x.ctr.toFixed(2)}%${d(x.ctr,p&&p.ctr,false)}</td>`+
+      (IS_ROAS?`<td class="num">${money(x.rev)}${d(x.rev,p&&p.rev,false)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}${d(x.roas,p&&p.roas,false)}</td>`
+              :`<td class="num">${num(x.leads)||"—"}${d(x.leads,p&&p.leads,false)}</td><td class="num">${x.leads?money(x.cpa):"—"}${x.leads&&p&&p.leads?periodDelta(x.cpa,p.cpa,true):""}</td>`)+`</tr>`;
   }).join("");
   return `<table><thead><tr><th>${colLabel}</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
 }

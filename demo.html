@@ -195,6 +195,10 @@ body{
 .kpi-delta.good{color:var(--green);}
 .kpi-delta.bad{color:var(--red);}
 .kpi-delta.neutral{color:var(--text-muted);}
+.tbl-delta{display:block;font-size:10.5px;font-weight:600;margin-top:1px;}
+.tbl-delta.good{color:var(--green);}
+.tbl-delta.bad{color:var(--red);}
+.tbl-delta.neutral{color:var(--text-muted);}
 
 /* ===== CHARTS ===== */
 .chart-container{
@@ -1464,21 +1468,27 @@ function renderOverviewPeriodTables(filtered) {
     const groups = groupBy(filtered, function(r) { return keyFn(r.date); })
       .sort(function(a, b) { return b.key.localeCompare(a.key); });
     tbody.innerHTML = '';
-    groups.forEach(function(g) {
+    groups.forEach(function(g, i) {
+      const p = groups[i + 1];   // previous (older) period; last row has none
+      function d(cur, prevVal, invert) {
+        if (!p) return '';
+        const del = formatDelta(cur, prevVal, invert);
+        return '<span class="tbl-delta ' + del.cls + '">' + del.text + '</span>';
+      }
       const tr = document.createElement('tr');
       tr.innerHTML =
         '<td>' + labelFn(g.key) + '</td>' +
-        '<td>' + formatCurrency(g.spend) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false) + '</td>' +
         '<td>' + formatNumber(g.impressions) + '</td>' +
         '<td>' + formatNumber(g.reach) + '</td>' +
-        '<td>' + formatNumber(g.clicks) + '</td>' +
-        '<td>' + formatPct(g.ctr) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false) + '</td>' +
+        '<td>' + formatPct(g.ctr) + d(g.ctr, p && p.ctr, false) + '</td>' +
         '<td>' + formatCurrency(g.cpc) + '</td>' +
         '<td>' + formatCurrency(g.cpm) + '</td>' +
-        '<td>' + formatNumber(g.callsBooked) + '</td>' +
-        '<td>' + formatCurrency(g.costPerLead) + '</td>' +
-        '<td>' + formatCurrency(g.revenue || 0) + '</td>' +
-        '<td>' + (g.roas || 0).toFixed(2) + 'x</td>' +
+        '<td>' + formatNumber(g.callsBooked) + d(g.callsBooked, p && p.callsBooked, false) + '</td>' +
+        '<td>' + formatCurrency(g.costPerLead) + d(g.costPerLead, p && p.costPerLead, true) + '</td>' +
+        '<td>' + formatCurrency(g.revenue || 0) + d(g.revenue || 0, p && (p.revenue || 0), false) + '</td>' +
+        '<td>' + (g.roas || 0).toFixed(2) + 'x' + d(g.roas || 0, p && (p.roas || 0), false) + '</td>' +
         '<td>' + g.frequency.toFixed(2) + '</td>';
       tbody.appendChild(tr);
     });
