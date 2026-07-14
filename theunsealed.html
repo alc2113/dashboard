@@ -470,6 +470,54 @@ tr.clickable:hover td{background:#f0f9f3;}
       <div class="kpi-section-title">Engagement</div>
       <div class="kpi-grid" id="kpiEngagement"></div>
     </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Week over Week (All Campaigns)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Week of</th>
+            <th>Spend</th>
+            <th>Imp</th>
+            <th>Reach</th>
+            <th>Clicks</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            <th>CPM</th>
+            <th>Purchases</th>
+            <th>Cost/Purchase</th>
+            <th>Revenue</th>
+            <th>ROAS</th>
+            <th>Registrations</th>
+            <th>Freq</th>
+          </tr></thead>
+          <tbody id="wowBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Month over Month (All Campaigns)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Month</th>
+            <th>Spend</th>
+            <th>Imp</th>
+            <th>Reach</th>
+            <th>Clicks</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            <th>CPM</th>
+            <th>Purchases</th>
+            <th>Cost/Purchase</th>
+            <th>Revenue</th>
+            <th>ROAS</th>
+            <th>Registrations</th>
+            <th>Freq</th>
+          </tr></thead>
+          <tbody id="momBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- TRENDS TAB -->
@@ -1297,6 +1345,50 @@ function renderOverview() {
   engEl.appendChild(buildKpiCard('Reactions', formatNumber(agg.reactions), delta(agg.reactions, prev && prev.reactions, false)));
   engEl.appendChild(buildKpiCard('Comments', formatNumber(agg.comments), delta(agg.comments, prev && prev.comments, false)));
   engEl.appendChild(buildKpiCard('Shares', formatNumber(agg.shares), delta(agg.shares, prev && prev.shares, false)));
+
+  renderOverviewPeriodTables(filtered);
+}
+
+// Week-over-week + month-over-month tables on the Overview tab.
+// Rows are periods (all campaigns combined), newest first. Respects the
+// global date filter.
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthKeyLabel(key) {
+  const parts = key.split('-');
+  if (parts.length !== 2) return key;
+  const mi = parseInt(parts[1], 10) - 1;
+  return (MONTH_NAMES[mi] || parts[1]) + ' ' + parts[0];
+}
+
+function renderOverviewPeriodTables(filtered) {
+  function fill(tbodyId, keyFn, labelFn) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    const groups = groupBy(filtered, function(r) { return keyFn(r.date); })
+      .sort(function(a, b) { return b.key.localeCompare(a.key); });
+    tbody.innerHTML = '';
+    groups.forEach(function(g) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + labelFn(g.key) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + '</td>' +
+        '<td>' + formatNumber(g.impressions) + '</td>' +
+        '<td>' + formatNumber(g.reach) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + '</td>' +
+        '<td>' + formatPct(g.ctr) + '</td>' +
+        '<td>' + formatCurrency(g.cpc) + '</td>' +
+        '<td>' + formatCurrency(g.cpm) + '</td>' +
+        '<td>' + formatNumber(g.purchases) + '</td>' +
+        '<td>' + formatCurrency(g.costPerPurchase) + '</td>' +
+        '<td>' + formatCurrency(g.revenue) + '</td>' +
+        '<td>' + formatROAS(g.roas) + '</td>' +
+        '<td>' + formatNumber(g.registrations) + '</td>' +
+        '<td>' + g.frequency.toFixed(2) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+  fill('wowBody', getWeekKey, function(k) { return k; });
+  fill('momBody', getMonthKey, monthKeyLabel);
 }
 
 // ========================================================================
