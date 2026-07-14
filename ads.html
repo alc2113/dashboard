@@ -158,11 +158,25 @@ function parseGviz(text){
 }
 
 let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
+let BUDGETS={};   // {'YYYY-MM': monthly budget} from the sheet's Budgets tab (optional)
+
+// Most recent Budgets-tab month at or before ym applies (one row carries forward).
+function monthlyBudgetFor(ym){
+  if(BUDGETS[ym]) return BUDGETS[ym];
+  let best=0;
+  Object.keys(BUDGETS).sort().forEach(m=>{ if(m<=ym) best=BUDGETS[m]; });
+  return best;
+}
 
 Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              fetch(gvizUrl(TAG_TAB)).then(r=>r.text()),
-             fetch(gvizUrl(PERF_TAB)).then(r=>r.text()).catch(()=>"")])
- .then(([dailyT, tagT, perfT])=>{
+             fetch(gvizUrl(PERF_TAB)).then(r=>r.text()).catch(()=>""),
+             fetch(gvizUrl("Budgets")).then(r=>r.text()).catch(()=>"")])
+ .then(([dailyT, tagT, perfT, budgetT])=>{
+   try{ parseGviz(budgetT).rows.forEach(r=>{
+     const m=String(r["Month"]||"").slice(0,7);
+     const b=parseFloat(String(r["Budget"]||"").replace(/[$,]/g,""));
+     if(/^\d{4}-\d{2}$/.test(m) && b>0) BUDGETS[m]=b; }); }catch(e){}
    const daily=parseGviz(dailyT).rows.filter(r=>r["Ad ID"] && r["Date"]);
    const tagsParsed=parseGviz(tagT);
    const tagCols=tagsParsed.cols.filter(c=>c!=="Ad ID"&&c!=="Ad Name");
@@ -382,7 +396,9 @@ function renderPacing(f){
   const mtd=agg(mtdRows).spend;
   const dayNum=+today.slice(8,10); const daysInMonth=new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate();
   const projected=dayNum?mtd/dayNum*daysInMonth:0;
-  const budget=+(localStorage.getItem("adsBudget_"+CLIENT_KEY)||CFG.monthlyBudget||0);
+  // Precedence: budget typed into the page > sheet Budgets tab > client config.
+  const sheetBudget=monthlyBudgetFor(ym);
+  const budget=+(localStorage.getItem("adsBudget_"+CLIENT_KEY)||sheetBudget||CFG.monthlyBudget||0);
   const pacePct=budget?projected/budget*100:0;
   const status=!budget?"—":projected>budget*1.05?"OVER PACE":projected<budget*0.9?"UNDER PACE":"ON TRACK";
   const statusColor=status==="OVER PACE"?"var(--bad)":status==="UNDER PACE"?"#FFA500":"var(--good)";
@@ -397,7 +413,7 @@ function renderPacing(f){
       </div>
       <div style="background:var(--header-bg);border-radius:9px;height:26px;overflow:hidden;margin-top:6px;">
         <div style="height:100%;width:${Math.min(pacePct,100)}%;background:${statusColor};"></div></div>
-      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`:"Enter a monthly budget to see pacing."}</div>
+      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`+(localStorage.getItem("adsBudget_"+CLIENT_KEY)?" · manual override (clear the box to use the sheet)":sheetBudget?" · from the sheet's Budgets tab":""):"Enter a monthly budget here, or add a row to the sheet's Budgets tab (Month, Budget)."}</div>
     </div>`;
   document.getElementById("pcBudget").addEventListener("change",e=>{ localStorage.setItem("adsBudget_"+CLIENT_KEY, e.target.value||""); renderPacing(filtered()); });
 }
@@ -422,10 +438,32 @@ function dailySeries(rows){
   return {days, spend:days.map(d=>by[d].spend), result:days.map(d=>IS_ROAS?by[d].rev:by[d].leads)};
 }
 
+/* ── Overview period tables: week-over-week + month-over-month, all campaigns ── */
+const MONTH_NAMES=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(x){ return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
+function weekKey(d){ const x=new Date(d+"T00:00:00"); if(isNaN(x))return d; const day=x.getDay(); x.setDate(x.getDate()-(day===0?6:day-1)); return fmtDate(x); }
+function monthKey(d){ return String(d).slice(0,7); }
+function monthLabel(k){ const p=k.split("-"); return p.length===2?(MONTH_NAMES[+p[1]-1]||p[1])+" "+p[0]:k; }
+function periodTable(rows,keyFn,colLabel,labelFn){
+  const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
+  const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)})).sort((a,b)=>b.k.localeCompare(a.k));
+  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const body=out.map(x=>{
+    const ctr=x.imp?x.clicks/x.imp*100:0;
+    return `<tr><td>${labelFn?labelFn(x.k):x.k}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td>`+
+      `<td class="num">${num(x.clicks)}</td><td class="num">${ctr.toFixed(2)}%</td>`+
+      (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
+              :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`;
+  }).join("");
+  return `<table><thead><tr><th>${colLabel}</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
 function renderOverview(f){
   const s=dailySeries(f);
   document.getElementById("tab-overview").innerHTML=kpiHtml(f)+
-    `<div class="card"><h2>Spend & ${RESULT_LABEL} over time</h2><div class="chart-wrap"><canvas id="ovTrend"></canvas></div></div>`;
+    `<div class="card"><h2>Spend & ${RESULT_LABEL} over time</h2><div class="chart-wrap"><canvas id="ovTrend"></canvas></div></div>
+     <div class="card"><h2>Week over Week — all campaigns</h2><div style="overflow-x:auto">${periodTable(f,weekKey,"Week of")}</div></div>
+     <div class="card"><h2>Month over Month — all campaigns</h2><div style="overflow-x:auto">${periodTable(f,monthKey,"Month",monthLabel)}</div></div>`;
   makeChart("ovTrend",{ type:"line",
     data:{ labels:s.days, datasets:[
       {label:"Spend",data:s.spend,borderColor:COLORS[0],backgroundColor:"rgba(32,157,80,.1)",yAxisID:"y",tension:.25,fill:true},

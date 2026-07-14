@@ -451,6 +451,52 @@ tr:hover td{background:#fafaf8;}
       <div class="kpi-section-title">Delivery &amp; Efficiency</div>
       <div class="kpi-grid" id="kpiDelivery"></div>
     </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Week over Week (All Campaigns)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Week of</th>
+            <th>Spend</th>
+            <th>Imp</th>
+            <th>Reach</th>
+            <th>Clicks</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            <th>CPM</th>
+            <th>Purchases</th>
+            <th>Cost/Purchase</th>
+            <th>Revenue</th>
+            <th>ROAS</th>
+            <th>Freq</th>
+          </tr></thead>
+          <tbody id="wowBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="kpi-section">
+      <div class="kpi-section-title">Month over Month (All Campaigns)</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Month</th>
+            <th>Spend</th>
+            <th>Imp</th>
+            <th>Reach</th>
+            <th>Clicks</th>
+            <th>CTR</th>
+            <th>CPC</th>
+            <th>CPM</th>
+            <th>Purchases</th>
+            <th>Cost/Purchase</th>
+            <th>Revenue</th>
+            <th>ROAS</th>
+            <th>Freq</th>
+          </tr></thead>
+          <tbody id="momBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- TRENDS TAB -->
@@ -997,6 +1043,43 @@ async function fetchSheetData(sheetName) {
   }
 }
 
+// Budgets tab (Month = YYYY-MM, Budget = monthly ad budget). The most recent
+// month at or before the viewed month applies, so one row carries forward
+// until a later row overrides it. Best-effort: no tab = no target lines.
+let budgetsByMonth = {};
+async function loadBudgets() {
+  try {
+    var rows = await fetchSheetData('Budgets');
+    var map = {};
+    rows.forEach(function(r) {
+      var m = String(r['Month'] || '').slice(0, 7);
+      var b = parseFloat(String(r['Budget'] || '').replace(/[$,]/g, ''));
+      if (/^\d{4}-\d{2}$/.test(m) && b > 0) map[m] = b;
+    });
+    budgetsByMonth = map;
+  } catch (e) {
+    budgetsByMonth = {};
+  }
+}
+
+function monthlyBudgetFor(ym) {
+  if (budgetsByMonth[ym]) return budgetsByMonth[ym];
+  var months = Object.keys(budgetsByMonth).sort();
+  var best = 0;
+  for (var i = 0; i < months.length; i++) {
+    if (months[i] <= ym) best = budgetsByMonth[months[i]];
+  }
+  return best;
+}
+
+function dailyTargetFor(dateStr) {
+  var ym = String(dateStr).slice(0, 7);
+  var b = monthlyBudgetFor(ym);
+  if (!b) return 0;
+  var daysInMonth = new Date(parseInt(ym.slice(0, 4), 10), parseInt(ym.slice(5, 7), 10), 0).getDate();
+  return b / daysInMonth;
+}
+
 // ========================================================================
 // DATA NORMALIZATION
 // ========================================================================
@@ -1364,6 +1447,49 @@ function renderOverview() {
   delEl.appendChild(buildKpiCard('CPM (All)', formatCurrency(allAgg.cpm), delta(allAgg.cpm, prev && prev.cpm, true)));
   delEl.appendChild(buildKpiCard('Reach', formatNumber(allAgg.reach), delta(allAgg.reach, prev && prev.reach, false)));
   delEl.appendChild(buildKpiCard('Frequency', allAgg.frequency.toFixed(2), delta(allAgg.frequency, prev && prev.frequency, false)));
+
+  renderOverviewPeriodTables(filtered);
+}
+
+// Week-over-week + month-over-month tables on the Overview tab.
+// Same columns as the Campaigns table, but rows are periods (all campaigns
+// combined), newest first. Respects the global date/platform filters.
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function monthKeyLabel(key) {
+  const parts = key.split('-');
+  if (parts.length !== 2) return key;
+  const mi = parseInt(parts[1], 10) - 1;
+  return (MONTH_NAMES[mi] || parts[1]) + ' ' + parts[0];
+}
+
+function renderOverviewPeriodTables(filtered) {
+  function fill(tbodyId, keyFn, labelFn) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    const groups = groupBy(filtered, function(r) { return keyFn(r.date); })
+      .sort(function(a, b) { return b.key.localeCompare(a.key); });
+    tbody.innerHTML = '';
+    groups.forEach(function(g) {
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + labelFn(g.key) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + '</td>' +
+        '<td>' + formatNumber(g.impressions) + '</td>' +
+        '<td>' + formatNumber(g.reach) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + '</td>' +
+        '<td>' + formatPct(g.ctr) + '</td>' +
+        '<td>' + formatCurrency(g.cpc) + '</td>' +
+        '<td>' + formatCurrency(g.cpm) + '</td>' +
+        '<td>' + formatNumber(g.callsBooked) + '</td>' +
+        '<td>' + formatCurrency(g.costPerLead) + '</td>' +
+        '<td>' + formatCurrency(g.revenue || 0) + '</td>' +
+        '<td>' + (g.roas || 0).toFixed(2) + 'x</td>' +
+        '<td>' + g.frequency.toFixed(2) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+  fill('wowBody', getWeekKey, function(k) { return k; });
+  fill('momBody', getMonthKey, monthKeyLabel);
 }
 
 // ========================================================================
@@ -2751,6 +2877,17 @@ function renderPacing() {
     cumCallsBooked.push(runningCallsBooked);
   });
 
+  // Budget targets from the Budgets tab: flat daily target per month
+  // (month budget / days in that month), accumulated for the pace line.
+  var dailyTarget = dates.map(dailyTargetFor);
+  var cumTarget = [];
+  var runningTarget = 0;
+  dailyTarget.forEach(function(t) {
+    runningTarget += t;
+    cumTarget.push(runningTarget);
+  });
+  var hasTarget = dailyTarget.some(function(t) { return t > 0; });
+
   var totalSpend = runningTotal;
   var totalCallsBooked = runningCallsBooked;
   var avgDailySpend = dates.length > 0 ? totalSpend / dates.length : 0;
@@ -2765,6 +2902,10 @@ function renderPacing() {
   kpisEl.appendChild(buildKpiCard('Avg Daily Purchases', avgDailyCallsBooked.toFixed(1), null));
   kpisEl.appendChild(buildKpiCard('Overall Cost/Purchase', formatCurrency(overallCostPerCall), null));
   kpisEl.appendChild(buildKpiCard('Days Active', formatNumber(dates.length), null));
+  if (hasTarget && dates.length > 0) {
+    var curMonthBudget = monthlyBudgetFor(String(dates[dates.length - 1]).slice(0, 7));
+    if (curMonthBudget) kpisEl.appendChild(buildKpiCard('Monthly Budget', formatCurrency(curMonthBudget), null));
+  }
 
   var maxTicks = dates.length > 90 ? 20 : dates.length > 60 ? 25 : 35;
   var pointRadius = dates.length > 60 ? 0 : 3;
@@ -2792,7 +2933,15 @@ function renderPacing() {
           pointRadius: pointRadius,
           yAxisID: 'y1'
         }
-      ]
+      ].concat(hasTarget ? [{
+        label: 'Target Pace',
+        data: cumTarget,
+        borderColor: '#8A8A8A',
+        backgroundColor: 'transparent',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        tension: 0
+      }] : [])
     },
     options: {
       responsive: true,
@@ -2826,12 +2975,21 @@ function renderPacing() {
           backgroundColor: '#209D50',
           borderRadius: 2
         }
-      ]
+      ].concat(hasTarget ? [{
+        type: 'line',
+        label: 'Daily Target',
+        data: dailyTarget,
+        borderColor: '#555555',
+        backgroundColor: 'transparent',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        stepped: true
+      }] : [])
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: hasTarget, position: 'top' } },
       scales: {
         y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } },
         x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
@@ -2934,6 +3092,7 @@ function doLogin() {
 // ========================================================================
 async function loadData() {
   try {
+    await loadBudgets();
     var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),

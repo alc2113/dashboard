@@ -847,6 +847,7 @@ let keywordSort = { col: 'spend', asc: false };
 let adsSort = { col: 'spend', asc: false };
 let activeChannel = '';     // '' = all, 'meta', 'google'
 let tagsByAdName = {};       // {adNameLower: {tag_*}} from the creative product sheet, joined onto Meta ad rows
+let budgetsByMonth = {};     // {'YYYY-MM': monthly budget} from the Budgets tab
 
 // ========================================================================
 // PARSING HELPER
@@ -1058,6 +1059,44 @@ async function loadAdTags() {
     tagsByAdName = {};
     console.warn('[SOG Dashboard] Ad tags load failed (breakdowns still work without them):', e);
   }
+}
+
+// Budgets tab (Month = YYYY-MM, Budget = monthly ad budget). The most recent
+// month at or before the viewed month applies, so one row carries forward
+// until a later row overrides it. Best-effort: no tab = no target lines.
+async function loadBudgets() {
+  try {
+    var rows = await fetchSheetData('Budgets');
+    var map = {};
+    rows.forEach(function(r) {
+      var m = String(r['Month'] || '').slice(0, 7);
+      var b = parseFloat(String(r['Budget'] || '').replace(/[$,]/g, ''));
+      if (/^\d{4}-\d{2}$/.test(m) && b > 0) map[m] = b;
+    });
+    budgetsByMonth = map;
+    console.log('[SOG Dashboard] Budgets loaded:', Object.keys(map).length, 'month(s)');
+  } catch (e) {
+    budgetsByMonth = {};
+    console.warn('[SOG Dashboard] Budgets tab not readable (target lines hidden):', e);
+  }
+}
+
+function monthlyBudgetFor(ym) {
+  if (budgetsByMonth[ym]) return budgetsByMonth[ym];
+  var months = Object.keys(budgetsByMonth).sort();
+  var best = 0;
+  for (var i = 0; i < months.length; i++) {
+    if (months[i] <= ym) best = budgetsByMonth[months[i]];
+  }
+  return best;
+}
+
+function dailyTargetFor(dateStr) {
+  var ym = String(dateStr).slice(0, 7);
+  var b = monthlyBudgetFor(ym);
+  if (!b) return 0;
+  var daysInMonth = new Date(parseInt(ym.slice(0, 4), 10), parseInt(ym.slice(5, 7), 10), 0).getDate();
+  return b / daysInMonth;
 }
 
 // ========================================================================
@@ -2794,6 +2833,17 @@ function renderPacing() {
     cumCallsBooked.push(runningCallsBooked);
   });
 
+  // Budget targets from the Budgets tab: flat daily target per month
+  // (month budget / days in that month), accumulated for the pace line.
+  var dailyTarget = dates.map(dailyTargetFor);
+  var cumTarget = [];
+  var runningTarget = 0;
+  dailyTarget.forEach(function(t) {
+    runningTarget += t;
+    cumTarget.push(runningTarget);
+  });
+  var hasTarget = dailyTarget.some(function(t) { return t > 0; });
+
   var totalSpend = runningTotal;
   var totalCallsBooked = runningCallsBooked;
   var avgDailySpend = dates.length > 0 ? totalSpend / dates.length : 0;
@@ -2808,6 +2858,10 @@ function renderPacing() {
   kpisEl.appendChild(buildKpiCard('Avg Daily Calls', avgDailyCallsBooked.toFixed(1), null));
   kpisEl.appendChild(buildKpiCard('Overall Cost/Call', formatCurrency(overallCostPerCall), null));
   kpisEl.appendChild(buildKpiCard('Days Active', formatNumber(dates.length), null));
+  if (hasTarget && dates.length > 0) {
+    var curMonthBudget = monthlyBudgetFor(String(dates[dates.length - 1]).slice(0, 7));
+    if (curMonthBudget) kpisEl.appendChild(buildKpiCard('Monthly Budget', formatCurrency(curMonthBudget), null));
+  }
 
   var maxTicks = dates.length > 90 ? 20 : dates.length > 60 ? 25 : 35;
   var pointRadius = dates.length > 60 ? 0 : 3;
@@ -2835,7 +2889,15 @@ function renderPacing() {
           pointRadius: pointRadius,
           yAxisID: 'y1'
         }
-      ]
+      ].concat(hasTarget ? [{
+        label: 'Target Pace',
+        data: cumTarget,
+        borderColor: '#8A8A8A',
+        backgroundColor: 'transparent',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        tension: 0
+      }] : [])
     },
     options: {
       responsive: true,
@@ -2869,12 +2931,21 @@ function renderPacing() {
           backgroundColor: '#209D50',
           borderRadius: 2
         }
-      ]
+      ].concat(hasTarget ? [{
+        type: 'line',
+        label: 'Daily Target',
+        data: dailyTarget,
+        borderColor: '#555555',
+        backgroundColor: 'transparent',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        stepped: true
+      }] : [])
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: { legend: { display: hasTarget, position: 'top' } },
       scales: {
         y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } },
         x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
@@ -2978,7 +3049,7 @@ function doLogin() {
 // ========================================================================
 async function loadData() {
   try {
-    await loadAdTags();   // build tagsByAdName before normalizing Meta ad rows
+    await Promise.all([loadAdTags(), loadBudgets()]);   // tags before normalizing Meta ad rows; budgets for pacing targets
     var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
