@@ -922,11 +922,14 @@ function formatPct(v) {
   return (v * 100).toFixed(2) + '%';
 }
 
-function formatDelta(current, previous, invertColor) {
+function formatDelta(current, previous, invertColor, absFmt) {
   if (!previous || previous === 0) return { text: '\u2014', cls: 'neutral' };
-  const pctChange = (current - previous) / Math.abs(previous);
+  const diff = current - previous;
+  const pctChange = diff / Math.abs(previous);
   const arrow = pctChange >= 0 ? '\u2191' : '\u2193';
-  const text = (pctChange >= 0 ? '+' : '') + (pctChange * 100).toFixed(1) + '% ' + arrow;
+  let text = (pctChange >= 0 ? '+' : '') + (pctChange * 100).toFixed(1) + '% ' + arrow;
+  // absFmt: optional formatter for the absolute change, e.g. "+12.4% \u2191 (+$1,234)"
+  if (absFmt) text += ' (' + (diff >= 0 ? '+' : '\u2212') + absFmt(Math.abs(diff)) + ')';
   let cls;
   if (invertColor) {
     cls = pctChange <= 0 ? 'good' : 'bad';
@@ -1463,54 +1466,54 @@ function renderOverview() {
     }
   }
 
-  function delta(curVal, prevVal, invert) {
+  function delta(curVal, prevVal, invert, absFmt) {
     if (!prev || prevVal === undefined) return null;
-    return formatDelta(curVal, prevVal, invert);
+    return formatDelta(curVal, prevVal, invert, absFmt);
   }
   // Platform-scoped delta: compares against the same platform's previous period.
-  function deltaVs(prevAgg, curVal, invert, key) {
+  function deltaVs(prevAgg, curVal, invert, key, absFmt) {
     if (!prevAgg || prevAgg[key] === undefined) return null;
-    return formatDelta(curVal, prevAgg[key], invert);
+    return formatDelta(curVal, prevAgg[key], invert, absFmt);
   }
 
   // --- Combined ---
   const combEl = document.getElementById('kpiCombined');
   combEl.innerHTML = '';
-  combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false), true));
-  combEl.appendChild(buildKpiCard('Calls Booked', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
-  combEl.appendChild(buildKpiCard('Cost / Call', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
-  combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false)));
-  combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false)));
+  combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false, formatCurrency), true));
+  combEl.appendChild(buildKpiCard('Calls Booked', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false, formatNumber), true));
+  combEl.appendChild(buildKpiCard('Cost / Call', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true, formatCurrency), true));
+  combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false, formatNumber)));
+  combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false, formatNumber)));
 
   // --- Meta ---
   const metaEl = document.getElementById('kpiMeta');
   metaEl.innerHTML = '';
-  metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), deltaVs(prevMeta, metaAgg.spend, false, 'spend')));
-  metaEl.appendChild(buildKpiCard('Meta Calls', formatNumber(metaAgg.callsBooked), deltaVs(prevMeta, metaAgg.callsBooked, false, 'callsBooked')));
-  metaEl.appendChild(buildKpiCard('Meta Cost/Call', formatCurrency(metaAgg.costPerLead), deltaVs(prevMeta, metaAgg.costPerLead, true, 'costPerLead')));
-  metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), deltaVs(prevMeta, metaAgg.clicks, false, 'clicks')));
+  metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), deltaVs(prevMeta, metaAgg.spend, false, 'spend', formatCurrency)));
+  metaEl.appendChild(buildKpiCard('Meta Calls', formatNumber(metaAgg.callsBooked), deltaVs(prevMeta, metaAgg.callsBooked, false, 'callsBooked', formatNumber)));
+  metaEl.appendChild(buildKpiCard('Meta Cost/Call', formatCurrency(metaAgg.costPerLead), deltaVs(prevMeta, metaAgg.costPerLead, true, 'costPerLead', formatCurrency)));
+  metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), deltaVs(prevMeta, metaAgg.clicks, false, 'clicks', formatNumber)));
   metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), deltaVs(prevMeta, metaAgg.ctr, false, 'ctr')));
-  metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), deltaVs(prevMeta, metaAgg.cpc, true, 'cpc')));
-  metaEl.appendChild(buildKpiCard('Meta CPM', formatCurrency(metaAgg.cpm), deltaVs(prevMeta, metaAgg.cpm, true, 'cpm')));
+  metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), deltaVs(prevMeta, metaAgg.cpc, true, 'cpc', formatCurrency)));
+  metaEl.appendChild(buildKpiCard('Meta CPM', formatCurrency(metaAgg.cpm), deltaVs(prevMeta, metaAgg.cpm, true, 'cpm', formatCurrency)));
   metaEl.appendChild(buildKpiCard('Meta Frequency', metaAgg.frequency.toFixed(2), deltaVs(prevMeta, metaAgg.frequency, false, 'frequency')));
 
   // --- Google ---
   const googleEl = document.getElementById('kpiGoogle');
   googleEl.innerHTML = '';
-  googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), deltaVs(prevGoogle, googleAgg.spend, false, 'spend')));
-  googleEl.appendChild(buildKpiCard('Google Calls', formatNumber(googleAgg.callsBooked), deltaVs(prevGoogle, googleAgg.callsBooked, false, 'callsBooked')));
-  googleEl.appendChild(buildKpiCard('Google Cost/Call', formatCurrency(googleAgg.costPerLead), deltaVs(prevGoogle, googleAgg.costPerLead, true, 'costPerLead')));
-  googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), deltaVs(prevGoogle, googleAgg.clicks, false, 'clicks')));
+  googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), deltaVs(prevGoogle, googleAgg.spend, false, 'spend', formatCurrency)));
+  googleEl.appendChild(buildKpiCard('Google Calls', formatNumber(googleAgg.callsBooked), deltaVs(prevGoogle, googleAgg.callsBooked, false, 'callsBooked', formatNumber)));
+  googleEl.appendChild(buildKpiCard('Google Cost/Call', formatCurrency(googleAgg.costPerLead), deltaVs(prevGoogle, googleAgg.costPerLead, true, 'costPerLead', formatCurrency)));
+  googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), deltaVs(prevGoogle, googleAgg.clicks, false, 'clicks', formatNumber)));
   googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), deltaVs(prevGoogle, googleAgg.ctr, false, 'ctr')));
-  googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), deltaVs(prevGoogle, googleAgg.cpc, true, 'cpc')));
+  googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), deltaVs(prevGoogle, googleAgg.cpc, true, 'cpc', formatCurrency)));
 
   // --- Delivery ---
   const delEl = document.getElementById('kpiDelivery');
   delEl.innerHTML = '';
   delEl.appendChild(buildKpiCard('CTR (All)', formatPct(allAgg.ctr), delta(allAgg.ctr, prev && prev.ctr, false)));
-  delEl.appendChild(buildKpiCard('CPC (All)', formatCurrency(allAgg.cpc), delta(allAgg.cpc, prev && prev.cpc, true)));
-  delEl.appendChild(buildKpiCard('CPM (All)', formatCurrency(allAgg.cpm), delta(allAgg.cpm, prev && prev.cpm, true)));
-  delEl.appendChild(buildKpiCard('Reach', formatNumber(allAgg.reach), delta(allAgg.reach, prev && prev.reach, false)));
+  delEl.appendChild(buildKpiCard('CPC (All)', formatCurrency(allAgg.cpc), delta(allAgg.cpc, prev && prev.cpc, true, formatCurrency)));
+  delEl.appendChild(buildKpiCard('CPM (All)', formatCurrency(allAgg.cpm), delta(allAgg.cpm, prev && prev.cpm, true, formatCurrency)));
+  delEl.appendChild(buildKpiCard('Reach', formatNumber(allAgg.reach), delta(allAgg.reach, prev && prev.reach, false, formatNumber)));
   delEl.appendChild(buildKpiCard('Frequency', allAgg.frequency.toFixed(2), delta(allAgg.frequency, prev && prev.frequency, false)));
 
   renderOverviewPeriodTables(filtered);
@@ -1536,23 +1539,23 @@ function renderOverviewPeriodTables(filtered) {
     tbody.innerHTML = '';
     groups.forEach(function(g, i) {
       const p = groups[i + 1];   // previous (older) period; last row has none
-      function d(cur, prevVal, invert) {
+      function d(cur, prevVal, invert, absFmt) {
         if (!p) return '';
-        const del = formatDelta(cur, prevVal, invert);
+        const del = formatDelta(cur, prevVal, invert, absFmt);
         return '<span class="tbl-delta ' + del.cls + '">' + del.text + '</span>';
       }
       const tr = document.createElement('tr');
       tr.innerHTML =
         '<td>' + labelFn(g.key) + '</td>' +
-        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false, formatCurrency) + '</td>' +
         '<td>' + formatNumber(g.impressions) + '</td>' +
         '<td>' + formatNumber(g.reach) + '</td>' +
-        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false, formatNumber) + '</td>' +
         '<td>' + formatPct(g.ctr) + d(g.ctr, p && p.ctr, false) + '</td>' +
         '<td>' + formatCurrency(g.cpc) + '</td>' +
         '<td>' + formatCurrency(g.cpm) + '</td>' +
-        '<td>' + formatNumber(g.callsBooked) + d(g.callsBooked, p && p.callsBooked, false) + '</td>' +
-        '<td>' + formatCurrency(g.costPerLead) + d(g.costPerLead, p && p.costPerLead, true) + '</td>' +
+        '<td>' + formatNumber(g.callsBooked) + d(g.callsBooked, p && p.callsBooked, false, formatNumber) + '</td>' +
+        '<td>' + formatCurrency(g.costPerLead) + d(g.costPerLead, p && p.costPerLead, true, formatCurrency) + '</td>' +
         '<td>' + g.frequency.toFixed(2) + '</td>';
       tbody.appendChild(tr);
     });

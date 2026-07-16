@@ -414,6 +414,7 @@ tr.clickable:hover td{background:#f0f9f3;}
     <button class="tab-btn" data-tab="creative">Creative</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="sparkloop">FB + SparkLoop</button>
+    <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
   </div>
 </div>
 
@@ -699,6 +700,19 @@ tr.clickable:hover td{background:#f0f9f3;}
     </div>
   </div>
 
+  <!-- BUDGET PACING TAB -->
+  <div id="tab-pacing" class="tab-content">
+    <div class="kpi-grid" id="pacingKpis" style="margin-bottom:16px;"></div>
+    <div class="chart-container">
+      <div class="chart-title">Cumulative Spend &amp; Purchases</div>
+      <div class="chart-wrap"><canvas id="chartPacing"></canvas></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Daily Spend vs Daily Target</div>
+      <div class="chart-wrap"><canvas id="chartDailyPacing"></canvas></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ===== AD DETAIL MODAL ===== -->
@@ -800,11 +814,14 @@ function formatROAS(v) {
   return v.toFixed(2) + 'x';
 }
 
-function formatDelta(current, previous, invertColor) {
+function formatDelta(current, previous, invertColor, absFmt) {
   if (!previous || previous === 0) return { text: '\u2014', cls: 'neutral' };
-  const pctChange = (current - previous) / Math.abs(previous);
+  const diff = current - previous;
+  const pctChange = diff / Math.abs(previous);
   const arrow = pctChange >= 0 ? '\u2191' : '\u2193';
-  const text = (pctChange >= 0 ? '+' : '') + (pctChange * 100).toFixed(1) + '% ' + arrow;
+  let text = (pctChange >= 0 ? '+' : '') + (pctChange * 100).toFixed(1) + '% ' + arrow;
+  // absFmt: optional formatter for the absolute change, e.g. "+12.4% \u2191 (+$1,234)"
+  if (absFmt) text += ' (' + (diff >= 0 ? '+' : '\u2212') + absFmt(Math.abs(diff)) + ')';
   let cls;
   if (invertColor) {
     cls = pctChange <= 0 ? 'good' : 'bad';
@@ -1300,55 +1317,55 @@ function renderOverview() {
     if (prevRows.length > 0) prev = aggregateRows(prevRows);
   }
 
-  function delta(curVal, prevVal, invert) {
+  function delta(curVal, prevVal, invert, absFmt) {
     if (!prev || prevVal === undefined) return null;
-    return formatDelta(curVal, prevVal, invert);
+    return formatDelta(curVal, prevVal, invert, absFmt);
   }
 
   // --- Spend & Delivery ---
   const spendEl = document.getElementById('kpiSpend');
   spendEl.innerHTML = '';
-  spendEl.appendChild(buildKpiCard('Total Spend', formatCurrency(agg.spend), delta(agg.spend, prev && prev.spend, false)));
-  spendEl.appendChild(buildKpiCard('Impressions', formatNumber(agg.impressions), delta(agg.impressions, prev && prev.impressions, false)));
-  spendEl.appendChild(buildKpiCard('Reach', formatNumber(agg.reach), delta(agg.reach, prev && prev.reach, false)));
+  spendEl.appendChild(buildKpiCard('Total Spend', formatCurrency(agg.spend), delta(agg.spend, prev && prev.spend, false, formatCurrency)));
+  spendEl.appendChild(buildKpiCard('Impressions', formatNumber(agg.impressions), delta(agg.impressions, prev && prev.impressions, false, formatNumber)));
+  spendEl.appendChild(buildKpiCard('Reach', formatNumber(agg.reach), delta(agg.reach, prev && prev.reach, false, formatNumber)));
   spendEl.appendChild(buildKpiCard('Frequency', agg.frequency.toFixed(2), delta(agg.frequency, prev && prev.frequency, false)));
-  spendEl.appendChild(buildKpiCard('Clicks', formatNumber(agg.clicks), delta(agg.clicks, prev && prev.clicks, false)));
-  spendEl.appendChild(buildKpiCard('Link Clicks', formatNumber(agg.linkClicks), delta(agg.linkClicks, prev && prev.linkClicks, false)));
+  spendEl.appendChild(buildKpiCard('Clicks', formatNumber(agg.clicks), delta(agg.clicks, prev && prev.clicks, false, formatNumber)));
+  spendEl.appendChild(buildKpiCard('Link Clicks', formatNumber(agg.linkClicks), delta(agg.linkClicks, prev && prev.linkClicks, false, formatNumber)));
 
   // --- Efficiency ---
   const effEl = document.getElementById('kpiEfficiency');
   effEl.innerHTML = '';
   effEl.appendChild(buildKpiCard('CTR', formatPct(agg.ctr), delta(agg.ctr, prev && prev.ctr, false)));
-  effEl.appendChild(buildKpiCard('CPC', formatCurrency(agg.cpc), delta(agg.cpc, prev && prev.cpc, true)));
-  effEl.appendChild(buildKpiCard('CPM', formatCurrency(agg.cpm), delta(agg.cpm, prev && prev.cpm, true)));
+  effEl.appendChild(buildKpiCard('CPC', formatCurrency(agg.cpc), delta(agg.cpc, prev && prev.cpc, true, formatCurrency)));
+  effEl.appendChild(buildKpiCard('CPM', formatCurrency(agg.cpm), delta(agg.cpm, prev && prev.cpm, true, formatCurrency)));
   effEl.appendChild(buildKpiCard('ROAS', formatROAS(agg.roas), delta(agg.roas, prev && prev.roas, false)));
-  effEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(agg.costPerPurchase), delta(agg.costPerPurchase, prev && prev.costPerPurchase, true)));
-  effEl.appendChild(buildKpiCard('Cost / Lead', formatCurrency(agg.costPerLead), delta(agg.costPerLead, prev && prev.costPerLead, true)));
+  effEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(agg.costPerPurchase), delta(agg.costPerPurchase, prev && prev.costPerPurchase, true, formatCurrency)));
+  effEl.appendChild(buildKpiCard('Cost / Lead', formatCurrency(agg.costPerLead), delta(agg.costPerLead, prev && prev.costPerLead, true, formatCurrency)));
 
   // --- Conversions ---
   const convEl = document.getElementById('kpiConversions');
   convEl.innerHTML = '';
-  convEl.appendChild(buildKpiCard('Purchases', formatNumber(agg.purchases), delta(agg.purchases, prev && prev.purchases, false)));
-  convEl.appendChild(buildKpiCard('Cost per Purchase', formatCurrency(agg.cpp), delta(agg.cpp, prev && prev.cpp, true)));
-  convEl.appendChild(buildKpiCard('Revenue', formatCurrency(agg.revenue), delta(agg.revenue, prev && prev.revenue, false)));
-  convEl.appendChild(buildKpiCard('Leads', formatNumber(agg.leads), delta(agg.leads, prev && prev.leads, false)));
-  convEl.appendChild(buildKpiCard('Add to Cart', formatNumber(agg.atc), delta(agg.atc, prev && prev.atc, false)));
-  convEl.appendChild(buildKpiCard('ATC Value', formatCurrency(agg.atcValue), delta(agg.atcValue, prev && prev.atcValue, false)));
-  convEl.appendChild(buildKpiCard('Landing Page Views', formatNumber(agg.lpv), delta(agg.lpv, prev && prev.lpv, false)));
-  convEl.appendChild(buildKpiCard('Registrations', formatNumber(agg.registrations), delta(agg.registrations, prev && prev.registrations, false)));
-  convEl.appendChild(buildKpiCard('Content Views', formatNumber(agg.contentViews), delta(agg.contentViews, prev && prev.contentViews, false)));
+  convEl.appendChild(buildKpiCard('Purchases', formatNumber(agg.purchases), delta(agg.purchases, prev && prev.purchases, false, formatNumber)));
+  convEl.appendChild(buildKpiCard('Cost per Purchase', formatCurrency(agg.cpp), delta(agg.cpp, prev && prev.cpp, true, formatCurrency)));
+  convEl.appendChild(buildKpiCard('Revenue', formatCurrency(agg.revenue), delta(agg.revenue, prev && prev.revenue, false, formatCurrency)));
+  convEl.appendChild(buildKpiCard('Leads', formatNumber(agg.leads), delta(agg.leads, prev && prev.leads, false, formatNumber)));
+  convEl.appendChild(buildKpiCard('Add to Cart', formatNumber(agg.atc), delta(agg.atc, prev && prev.atc, false, formatNumber)));
+  convEl.appendChild(buildKpiCard('ATC Value', formatCurrency(agg.atcValue), delta(agg.atcValue, prev && prev.atcValue, false, formatCurrency)));
+  convEl.appendChild(buildKpiCard('Landing Page Views', formatNumber(agg.lpv), delta(agg.lpv, prev && prev.lpv, false, formatNumber)));
+  convEl.appendChild(buildKpiCard('Registrations', formatNumber(agg.registrations), delta(agg.registrations, prev && prev.registrations, false, formatNumber)));
+  convEl.appendChild(buildKpiCard('Content Views', formatNumber(agg.contentViews), delta(agg.contentViews, prev && prev.contentViews, false, formatNumber)));
 
   // --- Engagement ---
   const engEl = document.getElementById('kpiEngagement');
   engEl.innerHTML = '';
-  engEl.appendChild(buildKpiCard('Engagements', formatNumber(agg.engagements), delta(agg.engagements, prev && prev.engagements, false)));
+  engEl.appendChild(buildKpiCard('Engagements', formatNumber(agg.engagements), delta(agg.engagements, prev && prev.engagements, false, formatNumber)));
   engEl.appendChild(buildKpiCard('Engagement Rate', formatPct(agg.engRate), delta(agg.engRate, prev && prev.engRate, false)));
   engEl.appendChild(buildKpiCard('Hook Rate', formatPct(agg.hookRate), delta(agg.hookRate, prev && prev.hookRate, false)));
-  engEl.appendChild(buildKpiCard('ThruPlays', formatNumber(agg.thruPlays), delta(agg.thruPlays, prev && prev.thruPlays, false)));
-  engEl.appendChild(buildKpiCard('3s Video Plays', formatNumber(agg.videoPlays3s), delta(agg.videoPlays3s, prev && prev.videoPlays3s, false)));
-  engEl.appendChild(buildKpiCard('Reactions', formatNumber(agg.reactions), delta(agg.reactions, prev && prev.reactions, false)));
-  engEl.appendChild(buildKpiCard('Comments', formatNumber(agg.comments), delta(agg.comments, prev && prev.comments, false)));
-  engEl.appendChild(buildKpiCard('Shares', formatNumber(agg.shares), delta(agg.shares, prev && prev.shares, false)));
+  engEl.appendChild(buildKpiCard('ThruPlays', formatNumber(agg.thruPlays), delta(agg.thruPlays, prev && prev.thruPlays, false, formatNumber)));
+  engEl.appendChild(buildKpiCard('3s Video Plays', formatNumber(agg.videoPlays3s), delta(agg.videoPlays3s, prev && prev.videoPlays3s, false, formatNumber)));
+  engEl.appendChild(buildKpiCard('Reactions', formatNumber(agg.reactions), delta(agg.reactions, prev && prev.reactions, false, formatNumber)));
+  engEl.appendChild(buildKpiCard('Comments', formatNumber(agg.comments), delta(agg.comments, prev && prev.comments, false, formatNumber)));
+  engEl.appendChild(buildKpiCard('Shares', formatNumber(agg.shares), delta(agg.shares, prev && prev.shares, false, formatNumber)));
 
   renderOverviewPeriodTables(filtered);
 }
@@ -1373,26 +1390,26 @@ function renderOverviewPeriodTables(filtered) {
     tbody.innerHTML = '';
     groups.forEach(function(g, i) {
       const p = groups[i + 1];   // previous (older) period; last row has none
-      function d(cur, prevVal, invert) {
+      function d(cur, prevVal, invert, absFmt) {
         if (!p) return '';
-        const del = formatDelta(cur, prevVal, invert);
+        const del = formatDelta(cur, prevVal, invert, absFmt);
         return '<span class="tbl-delta ' + del.cls + '">' + del.text + '</span>';
       }
       const tr = document.createElement('tr');
       tr.innerHTML =
         '<td>' + labelFn(g.key) + '</td>' +
-        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false, formatCurrency) + '</td>' +
         '<td>' + formatNumber(g.impressions) + '</td>' +
         '<td>' + formatNumber(g.reach) + '</td>' +
-        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false, formatNumber) + '</td>' +
         '<td>' + formatPct(g.ctr) + d(g.ctr, p && p.ctr, false) + '</td>' +
         '<td>' + formatCurrency(g.cpc) + '</td>' +
         '<td>' + formatCurrency(g.cpm) + '</td>' +
-        '<td>' + formatNumber(g.purchases) + d(g.purchases, p && p.purchases, false) + '</td>' +
-        '<td>' + formatCurrency(g.costPerPurchase) + d(g.costPerPurchase, p && p.costPerPurchase, true) + '</td>' +
-        '<td>' + formatCurrency(g.revenue) + d(g.revenue, p && p.revenue, false) + '</td>' +
+        '<td>' + formatNumber(g.purchases) + d(g.purchases, p && p.purchases, false, formatNumber) + '</td>' +
+        '<td>' + formatCurrency(g.costPerPurchase) + d(g.costPerPurchase, p && p.costPerPurchase, true, formatCurrency) + '</td>' +
+        '<td>' + formatCurrency(g.revenue) + d(g.revenue, p && p.revenue, false, formatCurrency) + '</td>' +
         '<td>' + formatROAS(g.roas) + d(g.roas, p && p.roas, false) + '</td>' +
-        '<td>' + formatNumber(g.registrations) + d(g.registrations, p && p.registrations, false) + '</td>' +
+        '<td>' + formatNumber(g.registrations) + d(g.registrations, p && p.registrations, false, formatNumber) + '</td>' +
         '<td>' + g.frequency.toFixed(2) + '</td>';
       tbody.appendChild(tr);
     });
@@ -2374,6 +2391,190 @@ function renderCreative() {
 }
 
 // ========================================================================
+// TAB: BUDGET PACING
+// ========================================================================
+// Budgets tab (Month = YYYY-MM, Budget = monthly ad budget). The most recent
+// month at or before the viewed month applies, so one row carries forward
+// until a later row overrides it. Best-effort: no tab = no target lines.
+let budgetsByMonth = {};
+
+async function loadBudgets() {
+  try {
+    var rows = await fetchSheetData('Budgets');
+    var map = {};
+    rows.forEach(function(r) {
+      var m = String(r['Month'] || '').slice(0, 7);
+      var b = parseFloat(String(r['Budget'] || '').replace(/[$,]/g, ''));
+      if (/^\d{4}-\d{2}$/.test(m) && b > 0) map[m] = b;
+    });
+    budgetsByMonth = map;
+    console.log('[Unsealed Dashboard] Budgets loaded:', Object.keys(map).length, 'month(s)');
+  } catch (e) {
+    budgetsByMonth = {};
+    console.warn('[Unsealed Dashboard] Budgets tab not readable (target lines hidden):', e);
+  }
+}
+
+function monthlyBudgetFor(ym) {
+  if (budgetsByMonth[ym]) return budgetsByMonth[ym];
+  var months = Object.keys(budgetsByMonth).sort();
+  var best = 0;
+  for (var i = 0; i < months.length; i++) {
+    if (months[i] <= ym) best = budgetsByMonth[months[i]];
+  }
+  return best;
+}
+
+function dailyTargetFor(dateStr) {
+  var ym = String(dateStr).slice(0, 7);
+  var b = monthlyBudgetFor(ym);
+  if (!b) return 0;
+  var daysInMonth = new Date(parseInt(ym.slice(0, 4), 10), parseInt(ym.slice(5, 7), 10), 0).getDate();
+  return b / daysInMonth;
+}
+
+function renderPacing() {
+  var filtered = getFilteredData();
+  var sorted = filtered.slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+  var byDate = {};
+  sorted.forEach(function(r) {
+    if (!byDate[r.date]) byDate[r.date] = { spend: 0, purchases: 0 };
+    byDate[r.date].spend += r.spend;
+    byDate[r.date].purchases += r.purchases;
+  });
+
+  var dates = Object.keys(byDate).sort();
+  var dailySpend = dates.map(function(d) { return byDate[d].spend; });
+  var dailyPurchases = dates.map(function(d) { return byDate[d].purchases; });
+
+  var cumSpend = [];
+  var runningTotal = 0;
+  dailySpend.forEach(function(v) { runningTotal += v; cumSpend.push(runningTotal); });
+
+  var cumPurchases = [];
+  var runningPurch = 0;
+  dailyPurchases.forEach(function(v) { runningPurch += v; cumPurchases.push(runningPurch); });
+
+  // Budget targets from the Budgets tab: flat daily target per month
+  // (month budget / days in that month), accumulated for the pace line.
+  var dailyTarget = dates.map(dailyTargetFor);
+  var cumTarget = [];
+  var runningTarget = 0;
+  dailyTarget.forEach(function(t) { runningTarget += t; cumTarget.push(runningTarget); });
+  var hasTarget = dailyTarget.some(function(t) { return t > 0; });
+
+  var totalSpend = runningTotal;
+  var totalPurchases = runningPurch;
+  var avgDailySpend = dates.length > 0 ? totalSpend / dates.length : 0;
+  var avgDailyPurchases = dates.length > 0 ? totalPurchases / dates.length : 0;
+  var overallCPP = totalPurchases > 0 ? totalSpend / totalPurchases : 0;
+
+  var kpisEl = document.getElementById('pacingKpis');
+  kpisEl.innerHTML = '';
+  kpisEl.appendChild(buildKpiCard('Total Spend', formatCurrency(totalSpend), null));
+  kpisEl.appendChild(buildKpiCard('Avg Daily Spend', formatCurrency(avgDailySpend), null));
+  kpisEl.appendChild(buildKpiCard('Purchases', formatNumber(totalPurchases), null));
+  kpisEl.appendChild(buildKpiCard('Avg Daily Purchases', avgDailyPurchases.toFixed(1), null));
+  kpisEl.appendChild(buildKpiCard('Overall Cost/Purchase', formatCurrency(overallCPP), null));
+  kpisEl.appendChild(buildKpiCard('Days Active', formatNumber(dates.length), null));
+  if (hasTarget && dates.length > 0) {
+    var curMonthBudget = monthlyBudgetFor(String(dates[dates.length - 1]).slice(0, 7));
+    if (curMonthBudget) kpisEl.appendChild(buildKpiCard('Monthly Budget', formatCurrency(curMonthBudget), null));
+  }
+
+  var maxTicks = dates.length > 90 ? 20 : dates.length > 60 ? 25 : 35;
+  var pointRadius = dates.length > 60 ? 0 : 3;
+
+  createChart('chartPacing', {
+    type: 'line',
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          label: 'Cumulative Spend',
+          data: cumSpend,
+          borderColor: '#E8527A',
+          backgroundColor: 'rgba(232,82,122,0.08)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: pointRadius
+        },
+        {
+          label: 'Cumulative Purchases',
+          data: cumPurchases,
+          borderColor: '#4A90D9',
+          backgroundColor: 'transparent',
+          tension: 0.3,
+          pointRadius: pointRadius,
+          yAxisID: 'y1'
+        }
+      ].concat(hasTarget ? [{
+        label: 'Target Pace',
+        data: cumTarget,
+        borderColor: '#8A8A8A',
+        backgroundColor: 'transparent',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        tension: 0
+      }] : [])
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: {
+          type: 'linear', position: 'left', beginAtZero: true,
+          title: { display: true, text: 'Spend ($)' },
+          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
+        },
+        y1: {
+          type: 'linear', position: 'right', beginAtZero: true,
+          title: { display: true, text: 'Purchases' },
+          grid: { drawOnChartArea: false },
+          ticks: { callback: function(v) { return v.toLocaleString(); } }
+        },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+
+  createChart('chartDailyPacing', {
+    type: 'bar',
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          label: 'Daily Spend',
+          data: dailySpend,
+          backgroundColor: '#E8527A',
+          borderRadius: 2
+        }
+      ].concat(hasTarget ? [{
+        type: 'line',
+        label: 'Daily Target',
+        data: dailyTarget,
+        borderColor: '#555555',
+        backgroundColor: 'transparent',
+        borderDash: [6, 4],
+        pointRadius: 0,
+        stepped: true
+      }] : [])
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: hasTarget, position: 'top' } },
+      scales: {
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } },
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: maxTicks } }
+      }
+    }
+  });
+}
+
+// ========================================================================
 // RENDER CURRENT TAB
 // ========================================================================
 function renderCurrentTab() {
@@ -2386,6 +2587,7 @@ function renderCurrentTab() {
     case 'creative':    renderCreative(); break;
     case 'funnel':      renderFunnel(); break;
     case 'sparkloop':   renderSparkLoop(); break;
+    case 'pacing':      renderPacing(); break;
   }
   updateHeaderDateRange();
 }
@@ -2509,6 +2711,9 @@ async function loadData() {
 
     // Sort by date
     enrichedData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+    // Budgets tab for pacing targets (best-effort; missing tab is fine)
+    await loadBudgets();
     sparkLoopData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
     // Data diagnostics
