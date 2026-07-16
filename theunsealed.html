@@ -618,6 +618,10 @@ tr.clickable:hover td{background:#f0f9f3;}
           <option value="tag_product">Product/Service (AI)</option>
           <option value="platform">Platform</option>
           <option value="placement">Placement</option>
+          <option value="device">Device</option>
+          <option value="age">Age</option>
+          <option value="gender">Gender</option>
+          <option value="hour">Hour of Day</option>
           <option value="campaign">Campaign</option>
           <option value="adSet">Ad Set</option>
         </select>
@@ -903,16 +907,17 @@ function todayStr() {
 // ========================================================================
 // SHEET DATA FETCHING
 // ========================================================================
-function sheetUrl(sheetName) {
+function sheetUrl(sheetName, pinHeaders) {
   return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
-         '/gviz/tq?tqx=out:json&sheet=' + encodeURIComponent(sheetName);
+         '/gviz/tq?tqx=out:json' + (pinHeaders ? '&headers=1' : '') +
+         '&sheet=' + encodeURIComponent(sheetName);
 }
 
-async function fetchSheetData(sheetName) {
+async function fetchSheetData(sheetName, pinHeaders) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const resp = await fetch(sheetUrl(sheetName), { signal: controller.signal });
+    const resp = await fetch(sheetUrl(sheetName, pinHeaders), { signal: controller.signal });
     clearTimeout(timeout);
     if (!resp.ok) throw new Error('Failed to fetch "' + sheetName + '": HTTP ' + resp.status);
     const text = await resp.text();
@@ -1933,6 +1938,20 @@ function renderBreakdowns() {
   var filtered = getFilteredData();
   var dim = document.getElementById('breakdownDim').value;
 
+  // Age / gender / hour live in their own tabs (Meta breakdown limits), so
+  // swap the data source for those dims. Only the date + campaign filters
+  // apply (the rows do not carry creative tags or placements).
+  if (dim === 'age' || dim === 'gender' || dim === 'hour') {
+    var fs = getFilterState();
+    var src = (dim === 'hour') ? hourlyBreakData : demoBreakData;
+    filtered = src.filter(function(r) {
+      if (fs.from && r.date < fs.from) return false;
+      if (fs.to && r.date > fs.to) return false;
+      if (dim !== 'hour' && fs.campaign && r.campaign !== fs.campaign) return false;
+      return true;
+    });
+  }
+
   var dimKeyFns = {
     color:       function(r) { return r.color || '(none)'; },
     theme:       function(r) { return r.theme || '(none)'; },
@@ -1947,6 +1966,10 @@ function renderBreakdowns() {
     tag_product:    function(r) { return r.tag_product || '(none)'; },
     platform:    function(r) { return r.platform || '(none)'; },
     placement:   function(r) { return r.placement || '(none)'; },
+    device:      function(r) { return r.device || '(none)'; },
+    age:         function(r) { return r.age || '(none)'; },
+    gender:      function(r) { return r.gender || '(none)'; },
+    hour:        function(r) { return r.hour || '(none)'; },
     campaign:    function(r) { return r.campaign || '(none)'; },
     adSet:       function(r) { return r.adSet || '(none)'; }
   };
@@ -2397,6 +2420,8 @@ function renderCreative() {
 // month at or before the viewed month applies, so one row carries forward
 // until a later row overrides it. Best-effort: no tab = no target lines.
 let budgetsByMonth = {};
+let demoBreakData = [];    // Demographics tab rows (Meta age x gender, campaign-level daily)
+let hourlyBreakData = [];  // Hourly tab rows (account-level daily)
 
 async function loadBudgets() {
   try {
@@ -2714,6 +2739,39 @@ async function loadData() {
 
     // Budgets tab for pacing targets (best-effort; missing tab is fine)
     await loadBudgets();
+
+    // Demographics + Hourly breakdown tabs (best-effort; written by ad_sync)
+    try {
+      var demoRows = await fetchSheetData('Demographics', true);
+      demoBreakData = demoRows.map(function(r) {
+        return {
+          date: normalizeDateStr(r['Date']),
+          age: String(r['Age'] || '').trim(),
+          gender: String(r['Gender'] || '').trim(),
+          campaign: String(r['Campaign'] || '').trim(),
+          spend: pv(r['Spend']), impressions: pv(r['Impressions']), clicks: pv(r['Clicks']),
+          purchases: pv(r['Purchases']), revenue: pv(r['Revenue']), registrations: pv(r['Registrations']),
+          reach: 0, atc: 0, atcValue: 0, lpv: 0, linkClicks: 0, leads: 0, thruPlays: 0,
+          engagements: 0, reactions: 0, comments: 0, shares: 0, videoPlays3s: 0, contentViews: 0
+        };
+      }).filter(function(r) { return r.date && r.spend > 0; });
+    } catch (e) { demoBreakData = []; }
+    try {
+      var hourRows = await fetchSheetData('Hourly', true);
+      hourlyBreakData = hourRows.map(function(r) {
+        var h = parseInt(r['Hour'], 10);
+        return {
+          date: normalizeDateStr(r['Date']),
+          hour: isNaN(h) ? '' : (h < 10 ? '0' + h : '' + h) + ':00',
+          campaign: '',
+          spend: pv(r['Spend']), impressions: pv(r['Impressions']), clicks: pv(r['Clicks']),
+          purchases: pv(r['Purchases']), revenue: pv(r['Revenue']), registrations: pv(r['Registrations']),
+          reach: 0, atc: 0, atcValue: 0, lpv: 0, linkClicks: 0, leads: 0, thruPlays: 0,
+          engagements: 0, reactions: 0, comments: 0, shares: 0, videoPlays3s: 0, contentViews: 0
+        };
+      }).filter(function(r) { return r.date && r.hour !== '' && r.spend > 0; });
+    } catch (e) { hourlyBreakData = []; }
+    console.log('[Unsealed Dashboard] Demo rows:', demoBreakData.length, '| Hourly rows:', hourlyBreakData.length);
     sparkLoopData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
     // Data diagnostics

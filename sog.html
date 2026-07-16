@@ -579,6 +579,10 @@ tr:hover td{background:#fafaf8;}
           <optgroup label="Both Platforms">
             <option value="platform">Platform</option>
             <option value="placement">Placement / Network</option>
+            <option value="device">Device</option>
+            <option value="age">Age</option>
+            <option value="gender">Gender</option>
+            <option value="hour">Hour of Day</option>
             <option value="campaign">Campaign</option>
             <option value="lp">Landing Page</option>
             <option value="adset">Ad Set / Ad Group</option>
@@ -601,6 +605,7 @@ tr:hover td{background:#fafaf8;}
           <optgroup label="Google">
             <option value="campaign_type">Campaign Type (Search/Display/YouTube)</option>
             <option value="creative_direction">Creative Direction</option>
+            <option value="pmax_channel">PMax Channel (Search/YouTube/Display/Discover)</option>
           </optgroup>
         </select>
       </label>
@@ -610,6 +615,9 @@ tr:hover td{background:#fafaf8;}
           <optgroup label="Both Platforms">
             <option value="platform">Platform</option>
             <option value="placement">Placement / Network</option>
+            <option value="device">Device</option>
+            <option value="age">Age</option>
+            <option value="gender">Gender</option>
             <option value="campaign">Campaign</option>
             <option value="lp">Landing Page</option>
             <option value="adset">Ad Set / Ad Group</option>
@@ -632,6 +640,7 @@ tr:hover td{background:#fafaf8;}
           <optgroup label="Google">
             <option value="campaign_type">Campaign Type</option>
             <option value="creative_direction">Creative Direction</option>
+            <option value="pmax_channel">PMax Channel</option>
           </optgroup>
         </select>
       </label>
@@ -884,6 +893,10 @@ let headlineData = [];      // headline asset performance
 let descriptionData = [];   // description asset performance
 let keywordData = [];       // keyword performance
 let placementData = [];     // placement-level rows (Meta publisher+position, Google network)
+let deviceData = [];        // device-level rows (Meta device_platform, Google segments.device)
+let demoData = [];          // age x gender rows (Google: age OR gender per row, other = '(all)')
+let hourlyData = [];        // hour-of-day rows (account level, no campaign)
+let pmaxData = [];          // PMax channel rows (Google PMax campaigns by serving channel)
 let chartInstances = {};
 let currentTab = 'overview';
 let campaignSort = { col: 'spend', asc: false };
@@ -1234,6 +1247,83 @@ function classifyKeywordTheme(kw) {
 }
 
 var MATCH_TYPE_MAP = {'2':'Exact','3':'Phrase','4':'Broad','EXACT':'Exact','PHRASE':'Phrase','BROAD':'Broad'};
+
+function normalizeDeviceRow(r) {
+  var plat = String(r['Platform'] || '').trim().toLowerCase();
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: plat === 'google' ? 'google' : 'meta',
+    device: String(r['Device'] || '').trim(),
+    campaign: String(r['Campaign'] || '').trim(),
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '', placement: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    frequency: 0
+  };
+}
+
+function normalizeDemoRow(r) {
+  var plat = String(r['Platform'] || '').trim().toLowerCase();
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: plat === 'google' ? 'google' : 'meta',
+    age: String(r['Age'] || '').trim(),
+    gender: String(r['Gender'] || '').trim(),
+    campaign: String(r['Campaign'] || '').trim(),
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '', placement: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    frequency: 0
+  };
+}
+
+function normalizeHourlyRow(r) {
+  var plat = String(r['Platform'] || '').trim().toLowerCase();
+  var h = parseInt(r['Hour'], 10);
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: plat === 'google' ? 'google' : 'meta',
+    hour: isNaN(h) ? '' : (h < 10 ? '0' + h : '' + h) + ':00',
+    campaign: '',
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '', placement: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    frequency: 0
+  };
+}
+
+function normalizePmaxRow(r) {
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: 'google',
+    pmax_channel: String(r['Channel'] || '').trim(),
+    campaign: String(r['Campaign'] || '').trim(),
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '', placement: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    frequency: 0
+  };
+}
 
 function normalizePlacementRow(r) {
   var plat = String(r['Platform'] || '').trim().toLowerCase();
@@ -1986,6 +2076,26 @@ function getFilteredAdDetail() {
 function getBreakdownSource(dim, dim2) {
   if (dim === 'placement' || dim2 === 'placement') {
     return applyFilters(placementData, getFilterState());
+  }
+  // Special-source dims (each tab is the only carrier of its column).
+  if (dim === 'device' || dim2 === 'device') {
+    return applyFilters(deviceData, getFilterState());
+  }
+  if (dim === 'age' || dim2 === 'age') {
+    // Google gender-only rows carry age='(all)' — exclude to avoid double counting
+    return applyFilters(demoData, getFilterState()).filter(function(r) { return r.age && r.age !== '(all)'; });
+  }
+  if (dim === 'gender' || dim2 === 'gender') {
+    return applyFilters(demoData, getFilterState()).filter(function(r) { return r.gender && r.gender !== '(all)'; });
+  }
+  if (dim === 'hour' || dim2 === 'hour') {
+    // Account-level rows (no campaign) — the campaign filter does not apply here
+    var fs = getFilterState();
+    var fsNoCampaign = Object.assign({}, fs, { campaign: '' });
+    return applyFilters(hourlyData, fsNoCampaign);
+  }
+  if (dim === 'pmax_channel' || dim2 === 'pmax_channel') {
+    return applyFilters(pmaxData, getFilterState());
   }
   return getFilteredAdDetail();
 }
@@ -3157,7 +3267,7 @@ function doLogin() {
 async function loadData() {
   try {
     await Promise.all([loadAdTags(), loadBudgets()]);   // tags before normalizing Meta ad rows; budgets for pacing targets
-    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows] = await Promise.all([
+    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows, deviceRows, demoRows, hourlyRows, pmaxRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
       fetchSheetData('Google Ad Detail').catch(function() { return []; }),
@@ -3165,6 +3275,10 @@ async function loadData() {
       fetchSheetData('Description Performance').catch(function() { return []; }),
       fetchSheetData('Keywords').catch(function() { return []; }),
       fetchSheetData('Placement Detail').catch(function() { return []; }),
+      fetchSheetData('Device Detail').catch(function() { return []; }),
+      fetchSheetData('Demographics').catch(function() { return []; }),
+      fetchSheetData('Hourly').catch(function() { return []; }),
+      fetchSheetData('PMax Channels').catch(function() { return []; }),
     ]);
 
     // Normalize campaign breakdown (daily rows with Date + Platform)
@@ -3225,6 +3339,29 @@ async function loadData() {
       if (pr.date && pr.placement && pr.spend > 0) placementData.push(pr);
     }
     placementData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+    // Normalize device / demographic / hourly / PMax channel data
+    deviceData = [];
+    for (var i = 0; i < deviceRows.length; i++) {
+      var dv = normalizeDeviceRow(deviceRows[i]);
+      if (dv.date && dv.device && dv.spend > 0) deviceData.push(dv);
+    }
+    demoData = [];
+    for (var i = 0; i < demoRows.length; i++) {
+      var dm = normalizeDemoRow(demoRows[i]);
+      if (dm.date && (dm.age || dm.gender) && dm.spend > 0) demoData.push(dm);
+    }
+    hourlyData = [];
+    for (var i = 0; i < hourlyRows.length; i++) {
+      var hh = normalizeHourlyRow(hourlyRows[i]);
+      if (hh.date && hh.hour !== '' && hh.spend > 0) hourlyData.push(hh);
+    }
+    pmaxData = [];
+    for (var i = 0; i < pmaxRows.length; i++) {
+      var px = normalizePmaxRow(pmaxRows[i]);
+      if (px.date && px.pmax_channel && px.spend > 0) pmaxData.push(px);
+    }
+    console.log('[SOG Dashboard] Device:', deviceData.length, '| Demo:', demoData.length, '| Hourly:', hourlyData.length, '| PMax:', pmaxData.length);
 
     console.log('[SOG Dashboard] Keywords:', keywordData.length, '| Placements:', placementData.length);
     console.log('[SOG Dashboard] Headlines:', headlineData.length, '| Descriptions:', descriptionData.length);
