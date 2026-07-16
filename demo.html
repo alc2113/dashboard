@@ -584,6 +584,10 @@ tr:hover td{background:#fafaf8;}
           <optgroup label="Both Platforms">
             <option value="platform">Platform</option>
             <option value="placement">Placement / Network</option>
+            <option value="device">Device</option>
+            <option value="age">Age</option>
+            <option value="gender">Gender</option>
+            <option value="hour">Hour of Day</option>
             <option value="campaign">Campaign</option>
             <option value="lp">Landing Page</option>
             <option value="adset">Ad Set / Ad Group</option>
@@ -599,6 +603,7 @@ tr:hover td{background:#fafaf8;}
             <option value="campaign_type">Campaign Type (Search/Display/YouTube)</option>
             <option value="creative_direction">Creative Direction</option>
             <option value="direction">Direction (1 vs 2)</option>
+            <option value="pmax_channel">PMax Channel (Search/YouTube/Display/Discover)</option>
           </optgroup>
         </select>
       </label>
@@ -608,6 +613,9 @@ tr:hover td{background:#fafaf8;}
           <optgroup label="Both Platforms">
             <option value="platform">Platform</option>
             <option value="placement">Placement / Network</option>
+            <option value="device">Device</option>
+            <option value="age">Age</option>
+            <option value="gender">Gender</option>
             <option value="campaign">Campaign</option>
             <option value="lp">Landing Page</option>
             <option value="adset">Ad Set / Ad Group</option>
@@ -623,6 +631,7 @@ tr:hover td{background:#fafaf8;}
             <option value="campaign_type">Campaign Type</option>
             <option value="creative_direction">Creative Direction</option>
             <option value="direction">Direction</option>
+            <option value="pmax_channel">PMax Channel</option>
           </optgroup>
         </select>
       </label>
@@ -871,6 +880,10 @@ let headlineData = [];      // headline asset performance
 let descriptionData = [];   // description asset performance
 let keywordData = [];       // keyword performance
 let placementData = [];     // placement-level rows (Meta publisher+position, Google network)
+let deviceData = [];        // device-level rows
+let demoData = [];          // age x gender rows (Google: age OR gender per row, other = '(all)')
+let hourlyData = [];        // hour-of-day rows (account level, no campaign)
+let pmaxData = [];          // PMax channel rows
 let chartInstances = {};
 let currentTab = 'overview';
 let campaignSort = { col: 'spend', asc: false };
@@ -907,11 +920,14 @@ function formatPct(v) {
   return (v * 100).toFixed(2) + '%';
 }
 
-function formatDelta(current, previous, invertColor) {
+function formatDelta(current, previous, invertColor, absFmt) {
   if (!previous || previous === 0) return { text: '\u2014', cls: 'neutral' };
-  const pctChange = (current - previous) / Math.abs(previous);
+  const diff = current - previous;
+  const pctChange = diff / Math.abs(previous);
   const arrow = pctChange >= 0 ? '\u2191' : '\u2193';
-  const text = (pctChange >= 0 ? '+' : '') + (pctChange * 100).toFixed(1) + '% ' + arrow;
+  let text = (pctChange >= 0 ? '+' : '') + (pctChange * 100).toFixed(1) + '% ' + arrow;
+  // absFmt: optional formatter for the absolute change, e.g. "+12.4% \u2191 (+$1,234)"
+  if (absFmt) text += ' (' + (diff >= 0 ? '+' : '\u2212') + absFmt(Math.abs(diff)) + ')';
   let cls;
   if (invertColor) {
     cls = pctChange <= 0 ? 'good' : 'bad';
@@ -1168,6 +1184,87 @@ function classifyKeywordTheme(kw) {
 
 var MATCH_TYPE_MAP = {'2':'Exact','3':'Phrase','4':'Broad','EXACT':'Exact','PHRASE':'Phrase','BROAD':'Broad'};
 
+function normalizeDeviceRow(r) {
+  var plat = String(r['Platform'] || '').trim().toLowerCase();
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: plat === 'google' ? 'google' : 'meta',
+    device: String(r['Device'] || '').trim(),
+    campaign: String(r['Campaign'] || '').trim(),
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '', placement: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    revenue: pv(r['Revenue']),
+    frequency: 0
+  };
+}
+
+function normalizeDemoRow(r) {
+  var plat = String(r['Platform'] || '').trim().toLowerCase();
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: plat === 'google' ? 'google' : 'meta',
+    age: String(r['Age'] || '').trim(),
+    gender: String(r['Gender'] || '').trim(),
+    campaign: String(r['Campaign'] || '').trim(),
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '', placement: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    revenue: pv(r['Revenue']),
+    frequency: 0
+  };
+}
+
+function normalizeHourlyRow(r) {
+  var plat = String(r['Platform'] || '').trim().toLowerCase();
+  var h = parseInt(r['Hour'], 10);
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: plat === 'google' ? 'google' : 'meta',
+    hour: isNaN(h) ? '' : (h < 10 ? '0' + h : '' + h) + ':00',
+    campaign: '',
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '', placement: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    revenue: pv(r['Revenue']),
+    frequency: 0
+  };
+}
+
+function normalizePmaxRow(r) {
+  return {
+    date: normalizeDateStr(r['Date']),
+    platform: 'google',
+    pmax_channel: String(r['Channel'] || '').trim(),
+    campaign: String(r['Campaign'] || '').trim(),
+    adset: '', adName: '', color: '', creative_theme: '',
+    creative_type: '', lp: '', funnel: '', targeting: '',
+    campaign_type: '', creative_direction: '', direction: '', placement: '',
+    spend: pv(r['Spend']),
+    impressions: pv(r['Impressions']),
+    reach: 0,
+    clicks: pv(r['Clicks']),
+    callsBooked: pv(r['Leads']),
+    revenue: pv(r['Revenue']),
+    frequency: 0
+  };
+}
+
 function normalizePlacementRow(r) {
   var plat = String(r['Platform'] || '').trim().toLowerCase();
   return {
@@ -1402,60 +1499,60 @@ function renderOverview() {
     }
   }
 
-  function delta(curVal, prevVal, invert) {
+  function delta(curVal, prevVal, invert, absFmt) {
     if (!prev || prevVal === undefined) return null;
-    return formatDelta(curVal, prevVal, invert);
+    return formatDelta(curVal, prevVal, invert, absFmt);
   }
   // Platform-scoped delta: compares against the same platform's previous period.
-  function deltaVs(prevAgg, curVal, invert, key) {
+  function deltaVs(prevAgg, curVal, invert, key, absFmt) {
     if (!prevAgg || prevAgg[key] === undefined) return null;
-    return formatDelta(curVal, prevAgg[key], invert);
+    return formatDelta(curVal, prevAgg[key], invert, absFmt);
   }
 
   // --- Combined ---
   const combEl = document.getElementById('kpiCombined');
   combEl.innerHTML = '';
-  combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false), true));
-  combEl.appendChild(buildKpiCard('Purchases', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false), true));
-  combEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true), true));
-  combEl.appendChild(buildKpiCard('Revenue', formatCurrency(allAgg.revenue), delta(allAgg.revenue, prev && prev.revenue, false)));
+  combEl.appendChild(buildKpiCard('Total Spend', formatCurrency(allAgg.spend), delta(allAgg.spend, prev && prev.spend, false, formatCurrency), true));
+  combEl.appendChild(buildKpiCard('Purchases', formatNumber(allAgg.callsBooked), delta(allAgg.callsBooked, prev && prev.callsBooked, false, formatNumber), true));
+  combEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true, formatCurrency), true));
+  combEl.appendChild(buildKpiCard('Revenue', formatCurrency(allAgg.revenue), delta(allAgg.revenue, prev && prev.revenue, false, formatCurrency)));
   combEl.appendChild(buildKpiCard('ROAS', allAgg.roas.toFixed(2) + 'x', delta(allAgg.roas, prev && prev.roas, false)));
-  combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false)));
-  combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false)));
+  combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false, formatNumber)));
+  combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false, formatNumber)));
 
   // --- Meta ---
   const metaEl = document.getElementById('kpiMeta');
   metaEl.innerHTML = '';
-  metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), deltaVs(prevMeta, metaAgg.spend, false, 'spend')));
-  metaEl.appendChild(buildKpiCard('Meta Purchases', formatNumber(metaAgg.callsBooked), deltaVs(prevMeta, metaAgg.callsBooked, false, 'callsBooked')));
-  metaEl.appendChild(buildKpiCard('Meta Cost/Purchase', formatCurrency(metaAgg.costPerLead), deltaVs(prevMeta, metaAgg.costPerLead, true, 'costPerLead')));
-  metaEl.appendChild(buildKpiCard('Meta Revenue', formatCurrency(metaAgg.revenue), deltaVs(prevMeta, metaAgg.revenue, false, 'revenue')));
+  metaEl.appendChild(buildKpiCard('Meta Spend', formatCurrency(metaAgg.spend), deltaVs(prevMeta, metaAgg.spend, false, 'spend', formatCurrency)));
+  metaEl.appendChild(buildKpiCard('Meta Purchases', formatNumber(metaAgg.callsBooked), deltaVs(prevMeta, metaAgg.callsBooked, false, 'callsBooked', formatNumber)));
+  metaEl.appendChild(buildKpiCard('Meta Cost/Purchase', formatCurrency(metaAgg.costPerLead), deltaVs(prevMeta, metaAgg.costPerLead, true, 'costPerLead', formatCurrency)));
+  metaEl.appendChild(buildKpiCard('Meta Revenue', formatCurrency(metaAgg.revenue), deltaVs(prevMeta, metaAgg.revenue, false, 'revenue', formatCurrency)));
   metaEl.appendChild(buildKpiCard('Meta ROAS', metaAgg.roas.toFixed(2) + 'x', deltaVs(prevMeta, metaAgg.roas, false, 'roas')));
-  metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), deltaVs(prevMeta, metaAgg.clicks, false, 'clicks')));
+  metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), deltaVs(prevMeta, metaAgg.clicks, false, 'clicks', formatNumber)));
   metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), deltaVs(prevMeta, metaAgg.ctr, false, 'ctr')));
-  metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), deltaVs(prevMeta, metaAgg.cpc, true, 'cpc')));
-  metaEl.appendChild(buildKpiCard('Meta CPM', formatCurrency(metaAgg.cpm), deltaVs(prevMeta, metaAgg.cpm, true, 'cpm')));
+  metaEl.appendChild(buildKpiCard('Meta CPC', formatCurrency(metaAgg.cpc), deltaVs(prevMeta, metaAgg.cpc, true, 'cpc', formatCurrency)));
+  metaEl.appendChild(buildKpiCard('Meta CPM', formatCurrency(metaAgg.cpm), deltaVs(prevMeta, metaAgg.cpm, true, 'cpm', formatCurrency)));
   metaEl.appendChild(buildKpiCard('Meta Frequency', metaAgg.frequency.toFixed(2), deltaVs(prevMeta, metaAgg.frequency, false, 'frequency')));
 
   // --- Google ---
   const googleEl = document.getElementById('kpiGoogle');
   googleEl.innerHTML = '';
-  googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), deltaVs(prevGoogle, googleAgg.spend, false, 'spend')));
-  googleEl.appendChild(buildKpiCard('Google Purchases', formatNumber(googleAgg.callsBooked), deltaVs(prevGoogle, googleAgg.callsBooked, false, 'callsBooked')));
-  googleEl.appendChild(buildKpiCard('Google Cost/Purchase', formatCurrency(googleAgg.costPerLead), deltaVs(prevGoogle, googleAgg.costPerLead, true, 'costPerLead')));
-  googleEl.appendChild(buildKpiCard('Google Revenue', formatCurrency(googleAgg.revenue), deltaVs(prevGoogle, googleAgg.revenue, false, 'revenue')));
+  googleEl.appendChild(buildKpiCard('Google Spend', formatCurrency(googleAgg.spend), deltaVs(prevGoogle, googleAgg.spend, false, 'spend', formatCurrency)));
+  googleEl.appendChild(buildKpiCard('Google Purchases', formatNumber(googleAgg.callsBooked), deltaVs(prevGoogle, googleAgg.callsBooked, false, 'callsBooked', formatNumber)));
+  googleEl.appendChild(buildKpiCard('Google Cost/Purchase', formatCurrency(googleAgg.costPerLead), deltaVs(prevGoogle, googleAgg.costPerLead, true, 'costPerLead', formatCurrency)));
+  googleEl.appendChild(buildKpiCard('Google Revenue', formatCurrency(googleAgg.revenue), deltaVs(prevGoogle, googleAgg.revenue, false, 'revenue', formatCurrency)));
   googleEl.appendChild(buildKpiCard('Google ROAS', googleAgg.roas.toFixed(2) + 'x', deltaVs(prevGoogle, googleAgg.roas, false, 'roas')));
-  googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), deltaVs(prevGoogle, googleAgg.clicks, false, 'clicks')));
+  googleEl.appendChild(buildKpiCard('Google Clicks', formatNumber(googleAgg.clicks), deltaVs(prevGoogle, googleAgg.clicks, false, 'clicks', formatNumber)));
   googleEl.appendChild(buildKpiCard('Google CTR', formatPct(googleAgg.ctr), deltaVs(prevGoogle, googleAgg.ctr, false, 'ctr')));
-  googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), deltaVs(prevGoogle, googleAgg.cpc, true, 'cpc')));
+  googleEl.appendChild(buildKpiCard('Google CPC', formatCurrency(googleAgg.cpc), deltaVs(prevGoogle, googleAgg.cpc, true, 'cpc', formatCurrency)));
 
   // --- Delivery ---
   const delEl = document.getElementById('kpiDelivery');
   delEl.innerHTML = '';
   delEl.appendChild(buildKpiCard('CTR (All)', formatPct(allAgg.ctr), delta(allAgg.ctr, prev && prev.ctr, false)));
-  delEl.appendChild(buildKpiCard('CPC (All)', formatCurrency(allAgg.cpc), delta(allAgg.cpc, prev && prev.cpc, true)));
-  delEl.appendChild(buildKpiCard('CPM (All)', formatCurrency(allAgg.cpm), delta(allAgg.cpm, prev && prev.cpm, true)));
-  delEl.appendChild(buildKpiCard('Reach', formatNumber(allAgg.reach), delta(allAgg.reach, prev && prev.reach, false)));
+  delEl.appendChild(buildKpiCard('CPC (All)', formatCurrency(allAgg.cpc), delta(allAgg.cpc, prev && prev.cpc, true, formatCurrency)));
+  delEl.appendChild(buildKpiCard('CPM (All)', formatCurrency(allAgg.cpm), delta(allAgg.cpm, prev && prev.cpm, true, formatCurrency)));
+  delEl.appendChild(buildKpiCard('Reach', formatNumber(allAgg.reach), delta(allAgg.reach, prev && prev.reach, false, formatNumber)));
   delEl.appendChild(buildKpiCard('Frequency', allAgg.frequency.toFixed(2), delta(allAgg.frequency, prev && prev.frequency, false)));
 
   renderOverviewPeriodTables(filtered);
@@ -1481,24 +1578,24 @@ function renderOverviewPeriodTables(filtered) {
     tbody.innerHTML = '';
     groups.forEach(function(g, i) {
       const p = groups[i + 1];   // previous (older) period; last row has none
-      function d(cur, prevVal, invert) {
+      function d(cur, prevVal, invert, absFmt) {
         if (!p) return '';
-        const del = formatDelta(cur, prevVal, invert);
+        const del = formatDelta(cur, prevVal, invert, absFmt);
         return '<span class="tbl-delta ' + del.cls + '">' + del.text + '</span>';
       }
       const tr = document.createElement('tr');
       tr.innerHTML =
         '<td>' + labelFn(g.key) + '</td>' +
-        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false) + '</td>' +
+        '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false, formatCurrency) + '</td>' +
         '<td>' + formatNumber(g.impressions) + '</td>' +
         '<td>' + formatNumber(g.reach) + '</td>' +
-        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false) + '</td>' +
+        '<td>' + formatNumber(g.clicks) + d(g.clicks, p && p.clicks, false, formatNumber) + '</td>' +
         '<td>' + formatPct(g.ctr) + d(g.ctr, p && p.ctr, false) + '</td>' +
         '<td>' + formatCurrency(g.cpc) + '</td>' +
         '<td>' + formatCurrency(g.cpm) + '</td>' +
-        '<td>' + formatNumber(g.callsBooked) + d(g.callsBooked, p && p.callsBooked, false) + '</td>' +
-        '<td>' + formatCurrency(g.costPerLead) + d(g.costPerLead, p && p.costPerLead, true) + '</td>' +
-        '<td>' + formatCurrency(g.revenue || 0) + d(g.revenue || 0, p && (p.revenue || 0), false) + '</td>' +
+        '<td>' + formatNumber(g.callsBooked) + d(g.callsBooked, p && p.callsBooked, false, formatNumber) + '</td>' +
+        '<td>' + formatCurrency(g.costPerLead) + d(g.costPerLead, p && p.costPerLead, true, formatCurrency) + '</td>' +
+        '<td>' + formatCurrency(g.revenue || 0) + d(g.revenue || 0, p && (p.revenue || 0), false, formatCurrency) + '</td>' +
         '<td>' + (g.roas || 0).toFixed(2) + 'x' + d(g.roas || 0, p && (p.roas || 0), false) + '</td>' +
         '<td>' + g.frequency.toFixed(2) + '</td>';
       tbody.appendChild(tr);
@@ -1934,6 +2031,23 @@ function getFilteredAdDetail() {
 function getBreakdownSource(dim, dim2) {
   if (dim === 'placement' || dim2 === 'placement') {
     return applyFilters(placementData, getFilterState());
+  }
+  if (dim === 'device' || dim2 === 'device') {
+    return applyFilters(deviceData, getFilterState());
+  }
+  if (dim === 'age' || dim2 === 'age') {
+    return applyFilters(demoData, getFilterState()).filter(function(r) { return r.age && r.age !== '(all)'; });
+  }
+  if (dim === 'gender' || dim2 === 'gender') {
+    return applyFilters(demoData, getFilterState()).filter(function(r) { return r.gender && r.gender !== '(all)'; });
+  }
+  if (dim === 'hour' || dim2 === 'hour') {
+    var fs = getFilterState();
+    var fsNoCampaign = Object.assign({}, fs, { campaign: '' });
+    return applyFilters(hourlyData, fsNoCampaign);
+  }
+  if (dim === 'pmax_channel' || dim2 === 'pmax_channel') {
+    return applyFilters(pmaxData, getFilterState());
   }
   return getFilteredAdDetail();
 }
@@ -3128,7 +3242,7 @@ function doLogin() {
 async function loadData() {
   try {
     await loadBudgets();
-    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows] = await Promise.all([
+    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows, deviceRows, demoRows, hourlyRows, pmaxRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
       fetchSheetData('Google Ad Detail').catch(function() { return []; }),
@@ -3136,6 +3250,10 @@ async function loadData() {
       fetchSheetData('Description Performance').catch(function() { return []; }),
       fetchSheetData('Keywords').catch(function() { return []; }),
       fetchSheetData('Placement Detail').catch(function() { return []; }),
+      fetchSheetData('Device Detail').catch(function() { return []; }),
+      fetchSheetData('Demographics').catch(function() { return []; }),
+      fetchSheetData('Hourly').catch(function() { return []; }),
+      fetchSheetData('PMax Channels').catch(function() { return []; }),
     ]);
 
     // Normalize campaign breakdown (daily rows with Date + Platform)
@@ -3190,6 +3308,29 @@ async function loadData() {
       if (pr.date && pr.placement && pr.spend > 0) placementData.push(pr);
     }
     placementData.sort(function(a, b) { return a.date.localeCompare(b.date); });
+
+    // Normalize device / demographic / hourly / PMax channel data
+    deviceData = [];
+    for (var i = 0; i < deviceRows.length; i++) {
+      var dv = normalizeDeviceRow(deviceRows[i]);
+      if (dv.date && dv.device && dv.spend > 0) deviceData.push(dv);
+    }
+    demoData = [];
+    for (var i = 0; i < demoRows.length; i++) {
+      var dm = normalizeDemoRow(demoRows[i]);
+      if (dm.date && (dm.age || dm.gender) && dm.spend > 0) demoData.push(dm);
+    }
+    hourlyData = [];
+    for (var i = 0; i < hourlyRows.length; i++) {
+      var hh = normalizeHourlyRow(hourlyRows[i]);
+      if (hh.date && hh.hour !== '' && hh.spend > 0) hourlyData.push(hh);
+    }
+    pmaxData = [];
+    for (var i = 0; i < pmaxRows.length; i++) {
+      var px = normalizePmaxRow(pmaxRows[i]);
+      if (px.date && px.pmax_channel && px.spend > 0) pmaxData.push(px);
+    }
+    console.log("[PJ's Pet Shop Dashboard] Device:", deviceData.length, "| Demo:", demoData.length, "| Hourly:", hourlyData.length, "| PMax:", pmaxData.length);
 
     console.log("[PJ's Pet Shop Dashboard] Keywords:", keywordData.length, "| Placements:", placementData.length);
     console.log("[PJ's Pet Shop Dashboard] Headlines:", headlineData.length, "| Descriptions:", descriptionData.length);

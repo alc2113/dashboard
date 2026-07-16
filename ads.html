@@ -136,7 +136,7 @@ const AI_DIMS=CFG.aiDims||[];
 const EDIT_OPTIONS=CFG.editOptions||{};   // controlled-dim dropdown values; others edit as text
 const WEBHOOK_URL=CFG.webhookUrl||"";     // Apps Script /exec to save tag edits back
 const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
-const BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);
+let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);   // special dims appended after load when their tabs have data
 const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Revenue":"Leads");
 const RESULT_ONE=RESULT_LABEL.replace(/s$/,"").toLowerCase();   // "lead" / "purchase"
 
@@ -166,6 +166,15 @@ function parseGviz(text){
 }
 
 let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
+// Optional breakdown tabs (Device Detail / Demographics / Hourly / PMax Channels).
+// Rows carry the dim value under the dim's display name so aggByDim works as-is.
+let BRK={device:[],demo:[],hourly:[],pmax:[]};
+function parseBrkTab(text, build){
+  if(!text) return [];
+  try{
+    return parseGviz(text).rows.map(build).filter(r=>r && r._date && r._spend>0);
+  }catch(e){ return []; }
+}
 let BUDGETS={};   // {'YYYY-MM': monthly budget} from the sheet's Budgets tab (optional)
 
 // Most recent Budgets-tab month at or before ym applies (one row carries forward).
@@ -179,8 +188,12 @@ function monthlyBudgetFor(ym){
 Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              fetch(gvizUrl(TAG_TAB)).then(r=>r.text()),
              fetch(gvizUrl(PERF_TAB)).then(r=>r.text()).catch(()=>""),
-             fetch(gvizUrl("Budgets")).then(r=>r.text()).catch(()=>"")])
- .then(([dailyT, tagT, perfT, budgetT])=>{
+             fetch(gvizUrl("Budgets")).then(r=>r.text()).catch(()=>""),
+             fetch(gvizUrl("Device Detail")).then(r=>r.text()).catch(()=>""),
+             fetch(gvizUrl("Demographics")).then(r=>r.text()).catch(()=>""),
+             fetch(gvizUrl("Hourly")).then(r=>r.text()).catch(()=>""),
+             fetch(gvizUrl("PMax Channels")).then(r=>r.text()).catch(()=>"")])
+ .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT])=>{
    try{ parseGviz(budgetT).rows.forEach(r=>{
      const m=String(r["Month"]||"").slice(0,7);
      const b=parseFloat(String(r["Budget"]||"").replace(/[$,]/g,""));
@@ -208,6 +221,22 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
    const ds=ROWS.map(r=>r._date).filter(Boolean).sort();
    DMIN=ds[0]||""; DMAX=ds[ds.length-1]||"";
    state.from=DMIN; state.to=DMAX;
+
+   // Optional breakdown tabs → special dims (only offered when data exists)
+   const brkBase=r=>({_date:String(r["Date"]||"").slice(0,10), "Ad ID":"",
+     _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _clicks:pv(r["Clicks"]),
+     _leads:pv(r["Results"]), _rev:pv(r["Revenue"])});
+   BRK.device=parseBrkTab(deviceT, r=>Object.assign(brkBase(r), {"Device":String(r["Device"]||"").trim(), Campaign:String(r["Campaign"]||"")}));
+   BRK.demo=parseBrkTab(demoT, r=>Object.assign(brkBase(r), {"Age":String(r["Age"]||"").trim(), "Gender":String(r["Gender"]||"").trim(), Campaign:String(r["Campaign"]||"")}));
+   BRK.hourly=parseBrkTab(hourlyT, r=>{ const h=parseInt(r["Hour"],10);
+     return Object.assign(brkBase(r), {"Hour of Day": isNaN(h)?"":( (h<10?"0"+h:""+h)+":00")}); });
+   BRK.pmax=parseBrkTab(pmaxT, r=>Object.assign(brkBase(r), {"PMax Channel":String(r["Channel"]||"").trim(), Campaign:String(r["Campaign"]||""),
+     _leads:pv(r["Leads"]!==undefined?r["Leads"]:r["Results"])}));
+   if(BRK.device.length) BREAKDOWN_DIMS.push("Device");
+   if(BRK.demo.length) BREAKDOWN_DIMS.push("Age","Gender");
+   if(BRK.hourly.length) BREAKDOWN_DIMS.push("Hour of Day");
+   if(BRK.pmax.length) BREAKDOWN_DIMS.push("PMax Channel");
+
    buildShell(); render();
  })
  .catch(e=>{ document.getElementById("content").innerHTML=
@@ -523,7 +552,17 @@ function renderTrends(f){
 }
 
 let bdDim=BREAKDOWN_DIMS[0];
+// Special dims live in their own tabs (account/campaign level, not ad-keyed).
+function specialBrkRows(dim){
+  if(dim==="Device") return BRK.device;
+  if(dim==="Age"||dim==="Gender") return BRK.demo.filter(r=>r[dim] && r[dim]!=="(all)");
+  if(dim==="Hour of Day") return BRK.hourly;
+  if(dim==="PMax Channel") return BRK.pmax;
+  return null;
+}
 function renderBreakdowns(f){
+  const sp=specialBrkRows(bdDim);
+  if(sp) f=sp.filter(r=>r._date>=state.from && r._date<=state.to);
   const opts=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}${AI_DIMS.includes(d)?" (AI)":""}</option>`).join("");
   const g=groupBy(f,bdDim);
   let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows)}));
