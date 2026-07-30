@@ -244,6 +244,40 @@ th .sort-arrow{font-size:10px;margin-left:4px;color:var(--text-muted);}
 td{padding:8px 12px;border-bottom:1px solid #f0efec;white-space:nowrap;}
 tr:hover td{background:#fafaf8;}
 
+/* ===== CREATIVE TAB (AI tags) ===== */
+.aimark{font-size:12px;font-weight:500;color:var(--primary);margin-left:10px;}
+.ai-pill{
+  display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;
+  background:rgba(32,157,80,.10);color:var(--primary-dark);border:1px solid rgba(32,157,80,.25);
+}
+.warn-bar{
+  font-size:12.5px;color:var(--text-muted);background:var(--header-bg);
+  border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin:10px 0 14px;
+}
+td.edit{cursor:pointer;}
+td.edit:hover{outline:1px dashed var(--primary);outline-offset:-1px;}
+td.edit.unsaved{background:#fff7e0;}
+td.edit.saved{background:#eaf7ef;}
+.cell-edit{font:inherit;padding:3px 6px;border:1px solid var(--primary);border-radius:6px;max-width:180px;}
+.modal-bg{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;
+  align-items:center;justify-content:center;
+}
+.modal-bg.show{display:flex;}
+.modal{
+  background:var(--card);border-radius:12px;padding:22px 24px;max-width:420px;width:92%;
+  border:1px solid var(--border);box-shadow:0 12px 40px rgba(0,0,0,.18);font-size:14px;
+}
+.modal h3{margin-bottom:8px;font-size:16px;}
+.modal p{color:var(--text-muted);margin-bottom:12px;line-height:1.45;}
+.modal label{font-size:12.5px;color:var(--text-muted);display:block;margin-bottom:14px;}
+.modal .row{display:flex;gap:10px;justify-content:flex-end;}
+.modal button{
+  font:inherit;padding:7px 14px;border-radius:8px;border:1px solid var(--border);
+  background:var(--card);cursor:pointer;
+}
+.modal button.primary{background:var(--primary);border-color:var(--primary);color:#fff;}
+
 /* ===== LEADERBOARD ===== */
 .leader-cards{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;}
 .leader-col-title{font-size:14px;font-weight:700;margin-bottom:10px;}
@@ -395,6 +429,7 @@ tr:hover td{background:#fafaf8;}
     <button class="tab-btn" data-tab="assets">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
+    <button class="tab-btn" data-tab="creative">Creative</button>
   </div>
 </div>
 
@@ -853,6 +888,29 @@ tr:hover td{background:#fafaf8;}
     </div>
   </div>
 
+  <!-- CREATIVE TAB -->
+  <div id="tab-creative" class="tab-content">
+    <div class="chart-title" style="margin-bottom:4px;">
+      Ads ranked by ROAS <span class="aimark">&#10024; creative tagged by Claude</span>
+    </div>
+    <div class="warn-bar">&#9998; Click any AI tag to edit it. In the live client version your change overrides the AI and saves back to the tagging sheet. In this demo, edits stay on screen only.</div>
+    <div class="table-wrap">
+      <table id="creativeTable">
+        <thead><tr id="creativeHead"></tr></thead>
+        <tbody id="creativeBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-bg" id="editWarn">
+  <div class="modal">
+    <h3>You're editing an AI tag</h3>
+    <p>In the live client version this replaces the tag Claude generated and saves it to your tagging sheet. In this demo the edit stays on screen only.</p>
+    <label><input type="checkbox" id="dontWarn"> Don't warn me again this session</label>
+    <div class="row"><button id="warnCancel">Cancel</button><button class="primary" id="warnOk">Got it, edit</button></div>
+  </div>
 </div>
 
 <script>
@@ -891,6 +949,7 @@ let breakdownSort = { col: 'spend', asc: false };
 let assetSort = { col: 'spend', asc: false };
 let keywordSort = { col: 'spend', asc: false };
 let adsSort = { col: 'spend', asc: false };
+let creativeSort = { col: null, asc: true };
 let activeChannel = '';     // '' = all, 'meta', 'google'
 
 // ========================================================================
@@ -3150,6 +3209,199 @@ function renderPacing() {
 // ========================================================================
 // RENDER CURRENT TAB
 // ========================================================================
+// ========================================================================
+// TAB: CREATIVE (per-ad table with AI creative tags)
+// ========================================================================
+var CREATIVE_TAG_COLS = [
+  { field: 'creative_type',      label: 'Type' },
+  { field: 'creative_theme',     label: 'Theme' },
+  { field: 'color',              label: 'Color' },
+  { field: 'creative_direction', label: 'Direction' },
+  { field: 'lp',                 label: 'LP' },
+  { field: 'funnel',             label: 'Funnel' }
+];
+
+function creativeAgg() {
+  var filtered = getFilteredAdDetail();
+  var byAd = {};
+  filtered.forEach(function(r) {
+    if (!r.adName) return;
+    var k = r.platform + '|' + r.adName;
+    var a = byAd[k];
+    if (!a) {
+      a = byAd[k] = { key: k, name: r.adName, platform: r.platform, spend: 0, purchases: 0, revenue: 0, tags: {} };
+      CREATIVE_TAG_COLS.forEach(function(c) { a.tags[c.field] = (r[c.field] || '').trim(); });
+    }
+    a.spend += r.spend;
+    a.purchases += r.callsBooked;
+    a.revenue += (r.revenue || 0);
+    CREATIVE_TAG_COLS.forEach(function(c) { if (!a.tags[c.field] && r[c.field]) a.tags[c.field] = String(r[c.field]).trim(); });
+  });
+  return Object.keys(byAd).map(function(k) {
+    var a = byAd[k];
+    a.roas = a.spend > 0 ? a.revenue / a.spend : 0;
+    return a;
+  });
+}
+
+function renderCreative() {
+  var ads = creativeAgg();
+
+  var smart = function(a, b) {
+    if (a.revenue && b.revenue) return b.roas - a.roas;
+    return b.spend - a.spend;
+  };
+  var sval = function(a, c) {
+    if (c === 'name') return (a.name || '').toLowerCase();
+    if (c === 'platform') return a.platform;
+    if (c === 'spend') return a.spend;
+    if (c === 'purchases') return a.purchases;
+    if (c === 'revenue') return a.revenue;
+    if (c === 'roas') return a.roas;
+    return (a.tags[c] || '').toLowerCase();
+  };
+  if (creativeSort.col) {
+    ads.sort(function(a, b) {
+      var va = sval(a, creativeSort.col), vb = sval(b, creativeSort.col);
+      var s = creativeSort.asc ? 1 : -1;
+      return va < vb ? -s : va > vb ? s : 0;
+    });
+  } else {
+    ads.sort(smart);
+  }
+
+  var thead = document.getElementById('creativeHead');
+  thead.innerHTML =
+    '<th data-col="name">Ad</th>' +
+    '<th data-col="platform">Platform</th>' +
+    CREATIVE_TAG_COLS.map(function(c) { return '<th data-col="' + c.field + '">' + c.label + '</th>'; }).join('') +
+    '<th data-col="spend">Spend</th>' +
+    '<th data-col="purchases">Purchases</th>' +
+    '<th data-col="revenue">Revenue</th>' +
+    '<th data-col="roas">ROAS</th>';
+
+  var tbody = document.getElementById('creativeBody');
+  tbody.innerHTML = '';
+  ads.forEach(function(a) {
+    var tr = document.createElement('tr');
+    var tagCells = CREATIVE_TAG_COLS.map(function(c, i) {
+      var v = a.tags[c.field] || '—';
+      var inner = (i === 0 && a.tags[c.field]) ? '<span class="ai-pill">' + escHtml(v) + '</span>' : escHtml(v);
+      return '<td class="edit" data-adkey="' + escHtml(a.key) + '" data-field="' + c.field + '">' + inner + '</td>';
+    }).join('');
+    tr.innerHTML =
+      '<td title="' + escHtml(a.name) + '">' + escHtml(a.name.length > 60 ? a.name.substring(0, 57) + '...' : a.name) + '</td>' +
+      '<td>' + (a.platform === 'meta' ? 'Meta' : 'Google') + '</td>' +
+      tagCells +
+      '<td>' + formatCurrency(a.spend) + '</td>' +
+      '<td>' + formatNumber(a.purchases) + '</td>' +
+      '<td>' + formatCurrency(a.revenue) + '</td>' +
+      '<td>' + (a.revenue ? a.roas.toFixed(2) + 'x' : '—') + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  document.querySelectorAll('#creativeHead th').forEach(function(th) {
+    var col = th.dataset.col;
+    if (col === creativeSort.col) {
+      var span = document.createElement('span');
+      span.className = 'sort-arrow';
+      span.textContent = creativeSort.asc ? '▲' : '▼';
+      th.appendChild(span);
+    }
+    th.addEventListener('click', function() {
+      if (creativeSort.col === col) {
+        creativeSort.asc = !creativeSort.asc;
+      } else {
+        creativeSort.col = col;
+        creativeSort.asc = (col === 'name' || col === 'platform' || CREATIVE_TAG_COLS.some(function(c) { return c.field === col; }));
+      }
+      renderCreative();
+    });
+  });
+
+  wireCreativeEdit();
+}
+
+// Inline tag editing (demo: edits stay in the page, no backend save)
+var creativeEditWarned = false;
+function wireCreativeEdit() {
+  var el = document.getElementById('tab-creative');
+  if (!el || el._wired) return;
+  el._wired = true;
+  el.addEventListener('click', function(e) {
+    var cell = e.target.closest('td.edit');
+    if (!cell || cell.querySelector('.cell-edit')) return;
+    if (creativeEditWarned) { beginCreativeEdit(cell); return; }
+    var m = document.getElementById('editWarn');
+    m.classList.add('show');
+    document.getElementById('warnOk').onclick = function() {
+      if (document.getElementById('dontWarn').checked) creativeEditWarned = true;
+      m.classList.remove('show');
+      beginCreativeEdit(cell);
+    };
+    document.getElementById('warnCancel').onclick = function() { m.classList.remove('show'); };
+  });
+}
+
+function creativeEditOptions(field) {
+  var seen = {};
+  adDetailData.forEach(function(r) {
+    var v = String(r[field] || '').trim();
+    if (v) seen[v] = true;
+  });
+  return Object.keys(seen).sort();
+}
+
+function beginCreativeEdit(cell) {
+  var field = cell.dataset.field;
+  var cur = cell.textContent.trim();
+  if (cur === '—') cur = '';
+  var opts = creativeEditOptions(field);
+  var inp;
+  if (opts.length >= 2) {
+    inp = document.createElement('select');
+    inp.className = 'cell-edit';
+    if (cur && opts.indexOf(cur) === -1) opts.unshift(cur);
+    opts.forEach(function(o) {
+      var op = document.createElement('option');
+      op.value = o; op.textContent = o;
+      if (o === cur) op.selected = true;
+      inp.appendChild(op);
+    });
+  } else {
+    inp = document.createElement('input');
+    inp.className = 'cell-edit';
+    inp.value = cur;
+    inp.size = 20;
+  }
+  cell.innerHTML = '';
+  cell.appendChild(inp);
+  inp.focus();
+  var commit = function() { commitCreativeEdit(cell, field, inp.value, cur); };
+  inp.addEventListener('blur', commit, { once: true });
+  inp.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); }
+    if (ev.key === 'Escape') {
+      inp.removeEventListener('blur', commit);
+      cell.textContent = cur || '—';
+    }
+  });
+  if (opts.length >= 2) inp.addEventListener('change', function() { inp.blur(); });
+}
+
+function commitCreativeEdit(cell, field, value, prev) {
+  value = (value || '').trim();
+  var isFirstCol = field === CREATIVE_TAG_COLS[0].field;
+  if (isFirstCol && value) cell.innerHTML = '<span class="ai-pill">' + escHtml(value) + '</span>';
+  else cell.textContent = value || '—';
+  if (value === prev) return;
+  var key = cell.dataset.adkey;
+  adDetailData.forEach(function(r) {
+    if (r.platform + '|' + r.adName === key) r[field] = value;
+  });
+  cell.classList.add('saved');
+}
+
 function renderCurrentTab() {
   switch (currentTab) {
     case 'overview':    renderOverview(); break;
@@ -3162,6 +3414,7 @@ function renderCurrentTab() {
     case 'assets':      renderAssets(); break;
     case 'funnel':      renderFunnel(); break;
     case 'pacing':      renderPacing(); break;
+    case 'creative':    renderCreative(); break;
   }
   updateHeaderDateRange();
 }
