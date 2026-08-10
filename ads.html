@@ -135,6 +135,7 @@ const IS_ROAS=CFG.resultMetric==="roas";
 const AI_DIMS=CFG.aiDims||[];
 const EDIT_OPTIONS=CFG.editOptions||{};   // controlled-dim dropdown values; others edit as text
 const WEBHOOK_URL=CFG.webhookUrl||"";     // Apps Script /exec to save tag edits back
+const MODELED=CFG.modeled||null;          // CRM truth layer config (optional)
 const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
 let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);   // special dims appended after load when their tabs have data
 const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Revenue":"Leads");
@@ -154,7 +155,8 @@ const num=v=>Math.round(+v||0).toLocaleString();
 const pv=v=>{ if(v==null||v==="") return 0; if(typeof v==="number") return v; return parseFloat(String(v).replace(/[$,%]/g,""))||0; };
 
 // gviz with headers=1 (pins header to row 1 so upsert-frozen string rows aren't dropped).
-function gvizUrl(tab){ return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`; }
+function gvizUrlFor(sheetId,tab){ return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`; }
+function gvizUrl(tab){ return gvizUrlFor(SHEET_ID,tab); }
 function parseGviz(text){
   const j=JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}")+1));
   const cols=(j.table.cols||[]).map(c=>c.label||"");
@@ -169,6 +171,7 @@ let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
 // Optional breakdown tabs (Device Detail / Demographics / Hourly / PMax Channels).
 // Rows carry the dim value under the dim's display name so aggByDim works as-is.
 let BRK={device:[],demo:[],hourly:[],pmax:[]};
+let MOD={rows:[],ga4:[]};   // CRM truth layer (monthly) + GA4 traffic, when configured
 function parseBrkTab(text, build){
   if(!text) return [];
   try{
@@ -192,8 +195,19 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              fetch(gvizUrl("Device Detail")).then(r=>r.text()).catch(()=>""),
              fetch(gvizUrl("Demographics")).then(r=>r.text()).catch(()=>""),
              fetch(gvizUrl("Hourly")).then(r=>r.text()).catch(()=>""),
-             fetch(gvizUrl("PMax Channels")).then(r=>r.text()).catch(()=>"")])
- .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT])=>{
+             fetch(gvizUrl("PMax Channels")).then(r=>r.text()).catch(()=>""),
+             MODELED?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.tab||"Modeled Metrics")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
+             MODELED&&MODELED.ga4Tab?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.ga4Tab)).then(r=>r.text()).catch(()=>""):Promise.resolve("")])
+ .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T])=>{
+   // CRM truth layer (optional tab)
+   MOD.rows=[]; MOD.ga4=[];
+   try{ parseGviz(modeledT).rows.forEach(r=>{ if(!r["Month"]||!r["Source"]) return;
+     MOD.rows.push({month:String(r["Month"]).slice(0,7), source:String(r["Source"]),
+       bookings:pv(r["HS Bookings"]!==undefined?r["HS Bookings"]:r["CRM Conversions"]), cancels:pv(r["HS Cancels"]),
+       spend:pv(r["Spend"]), claimed:pv(r["Platform Claimed"])}); }); }catch(e){}
+   try{ parseGviz(ga4T).rows.forEach(r=>{ if(!r["Month"]||!r["Channel"]) return;
+     MOD.ga4.push({month:String(r["Month"]).slice(0,7), channel:String(r["Channel"]),
+       sessions:pv(r["Sessions"]), users:pv(r["Users"]), keyEvents:pv(r["Key Events"])}); }); }catch(e){}
    try{ parseGviz(budgetT).rows.forEach(r=>{
      const m=String(r["Month"]||"").slice(0,7);
      const b=parseFloat(String(r["Budget"]||"").replace(/[$,]/g,""));
@@ -270,6 +284,7 @@ function buildShell(){
       <button class="tab-btn" data-tab="byad">By Ad</button>
       <button class="tab-btn" data-tab="headlines">Headlines &amp; Copy</button>
       <button class="tab-btn" data-tab="funnel">Funnel</button>
+      ${MOD.rows.length?`<button class="tab-btn" data-tab="modeled">Cost per ${MODELED.noun||"Booking"}</button>`:""}
       <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
       <button class="tab-btn" data-tab="creative">Creative</button>
     </div>
@@ -281,6 +296,7 @@ function buildShell(){
     <div id="tab-byad" class="tab-content"></div>
     <div id="tab-headlines" class="tab-content"></div>
     <div id="tab-funnel" class="tab-content"></div>
+    ${MOD.rows.length?`<div id="tab-modeled" class="tab-content"></div>`:""}
     <div id="tab-pacing" class="tab-content"></div>
     <div id="tab-creative" class="tab-content"></div>`;
 
@@ -317,6 +333,7 @@ function render(){
   else if(state.tab==="byad") renderByAd(f);
   else if(state.tab==="headlines") renderHeadlines(f);
   else if(state.tab==="funnel") renderFunnel(f);
+  else if(state.tab==="modeled") renderModeled();
   else if(state.tab==="pacing") renderPacing(f);
   else if(state.tab==="creative") renderCreative(f);
 }
@@ -424,6 +441,82 @@ function renderHeadlines(f){
   document.getElementById("tab-headlines").innerHTML=
     `<div class="card"><h2>By Headline</h2><div style="overflow-x:auto">${tbl(heads)}</div></div>`+
     `<div class="card"><h2>By Primary Text</h2><div style="overflow-x:auto">${tbl(bodies)}</div></div>`;
+}
+
+/* ── CRM truth layer: cost per CRM conversion by source, monthly ──
+   CRM-created conversions (counted once by Create date + Original source)
+   joined to platform spend. Platform-claimed shown for reference, never
+   summed across platforms. Monthly grain; ignores the global date filter. */
+let modCorrOn=false;
+function renderModeled(){
+  const NOUN=(MODELED&&MODELED.noun)||"Booking", CRM=(MODELED&&MODELED.crmName)||"CRM";
+  const CORR=(MODELED&&MODELED.corrFactor)||0;
+  const isPaid=s=>s.indexOf("Paid ")===0;
+  const adjB=(src,b)=>(modCorrOn&&CORR&&isPaid(src))?b*CORR:b;
+  const months=[...new Set(MOD.rows.map(r=>r.month))].sort();
+  // Real current month (not DMAX: the ad-ID product sheet can lag the modeled tabs)
+  const now=new Date();
+  const curMonth=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  const cellMap={}; MOD.rows.forEach(r=>cellMap[r.month+"|"+r.source]=r);
+  const cpb=(m,s)=>{ const r=cellMap[m+"|"+s]; if(!r||!r.spend) return null; const b=adjB(s,r.bookings); return b>0?r.spend/b:null; };
+  const paidSources=[...new Set(MOD.rows.filter(r=>isPaid(r.source)).map(r=>r.source))].sort();
+  const fullMonths=months.filter(m=>m<curMonth), lm=fullMonths[fullMonths.length-1], pm=fullMonths[fullMonths.length-2];
+  let kpis="";
+  if(lm){
+    paidSources.forEach(s=>{ const v=cpb(lm,s); if(v===null) return;
+      const p=pm?cpb(pm,s):null;
+      const d=(p!=null)?periodDelta(v,p,true,money):"";
+      kpis+=`<div class="kpi"><div class="label">${s} Cost/${NOUN} (${lm})</div><div class="val">${money(v)}</div>${d}</div>`; });
+    let pb=0,ps=0; paidSources.forEach(s=>{ const r=cellMap[lm+"|"+s]; if(r){pb+=adjB(s,r.bookings); ps+=r.spend;} });
+    if(pb>0) kpis+=`<div class="kpi"><div class="label">All Paid Cost/${NOUN} (${lm})</div><div class="val">${money(ps/pb)}</div></div>`;
+  }
+  const corrCtl=CORR?`<div style="margin:0 0 10px;font-size:13px;"><label style="cursor:pointer;"><input type="checkbox" id="modCorr"${modCorrOn?" checked":""}> Apply source-loss correction (&times;${CORR} on paid ${NOUN.toLowerCase()}s)</label><div class="note">${MODELED.corrNote||""}</div></div>`:"";
+  const tblBody=MOD.rows.slice().sort((a,b)=>a.month===b.month?(a.source<b.source?-1:1):(a.month<b.month?1:-1)).map(r=>{
+    const b=adjB(r.source,r.bookings), c=(r.spend>0&&b>0)?money(r.spend/b):"—";
+    return `<tr><td>${r.month}${r.month===curMonth?" (MTD)":""}</td><td>${r.source}</td><td class="num">${(modCorrOn&&b!==r.bookings)?b.toFixed(1):num(r.bookings)}</td><td class="num">${num(r.cancels)||"—"}</td><td class="num">${r.spend>0?money(r.spend):"—"}</td><td class="num">${c}</td><td class="num">${r.claimed>0?num(r.claimed):"—"}</td></tr>`; }).join("");
+  // Booking CVR vs GA4 sessions (generic source-prefix mapping; PMax traffic reports under Cross-network)
+  const ga4Cell={}; MOD.ga4.forEach(r=>ga4Cell[r.month+"|"+r.channel]=r);
+  const cvrGroups=[
+    {label:"Paid Search (incl PMax)", channels:["Paid Search","Cross-network"], match:s=>s.indexOf("Paid Search")===0, paid:true},
+    {label:"Paid Social", channels:["Paid Social"], match:s=>s.indexOf("Paid Social")===0, paid:true},
+    {label:"Organic Search", channels:["Organic Search"], match:s=>s==="Organic Search", paid:false},
+    {label:"Direct", channels:["Direct"], match:s=>s.indexOf("Direct")===0, paid:false}];
+  let cvrBody="";
+  months.slice().reverse().forEach(m=>{ cvrGroups.forEach(g=>{
+    let sess=0,book=0;
+    g.channels.forEach(ch=>{ const r=ga4Cell[m+"|"+ch]; if(r) sess+=r.sessions; });
+    MOD.rows.forEach(r=>{ if(r.month===m&&g.match(r.source)) book+=r.bookings; });
+    if(g.paid&&modCorrOn&&CORR) book*=CORR;
+    if(!sess&&!book) return;
+    cvrBody+=`<tr><td>${m}${m===curMonth?" (MTD)":""}</td><td>${g.label}</td><td class="num">${num(sess)}</td><td class="num">${(modCorrOn&&g.paid)?book.toFixed(1):num(book)}</td><td class="num">${sess>0?(100*book/sess).toFixed(2)+"%":"—"}</td></tr>`; }); });
+  const ga4Card=MOD.ga4.length?`<div class="card"><h2>GA4 sessions by channel (monthly)</h2><div class="chart-wrap"><canvas id="modGa4"></canvas></div></div>
+    <div class="card"><h2>${NOUN} conversion rate (${CRM.toLowerCase()==="crm"?"CRM":CRM} ${NOUN.toLowerCase()}s &divide; GA4 sessions)</h2><div style="overflow-x:auto"><table><thead><tr><th>Month</th><th>Channel</th><th class="num">GA4 Sessions</th><th class="num">${NOUN}s</th><th class="num">CVR</th></tr></thead><tbody>${cvrBody}</tbody></table></div></div>`:"";
+  document.getElementById("tab-modeled").innerHTML=
+    `<div class="note" style="margin-bottom:10px;">${NOUN}s are created in ${CRM}, counted once each by Create date and Original source (the truth layer). Platform-claimed conversions are reference only and are never summed across platforms. Monthly view; the date filter above does not apply.</div>
+     ${corrCtl}
+     <div class="kpis">${kpis}</div>
+     <div class="card"><h2>Cost per ${NOUN.toLowerCase()} by source (${CRM} vs platform spend)</h2><div class="chart-wrap"><canvas id="modCpb"></canvas></div></div>
+     <div class="card"><h2>${NOUN}s by source (${CRM}, monthly)</h2><div class="chart-wrap"><canvas id="modBook"></canvas></div></div>
+     <div class="card"><h2>Monthly detail</h2><div class="note">Platform Claimed = what the ad platform reports for the same month; treat as directional only.</div><div style="overflow-x:auto"><table><thead><tr><th>Month</th><th>Source</th><th class="num">${NOUN}s</th><th class="num">Cancels</th><th class="num">Spend</th><th class="num">Cost/${NOUN}</th><th class="num">Platform Claimed</th></tr></thead><tbody>${tblBody}</tbody></table></div></div>
+     ${ga4Card}`;
+  const corrEl=document.getElementById("modCorr");
+  if(corrEl) corrEl.addEventListener("change",e=>{ modCorrOn=e.target.checked; renderModeled(); });
+  makeChart("modCpb",{type:"line",data:{labels:months,datasets:paidSources.filter(s=>months.some(m=>cpb(m,s)!==null)).map((s,i)=>({label:s,borderColor:COLORS[i%COLORS.length],backgroundColor:COLORS[i%COLORS.length],spanGaps:false,tension:.25,data:months.map(m=>cpb(m,s))}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+  const srcTotals={}; MOD.rows.forEach(r=>srcTotals[r.source]=(srcTotals[r.source]||0)+r.bookings);
+  const allSources=Object.keys(srcTotals).filter(s=>srcTotals[s]>0).sort((a,b)=>srcTotals[b]-srcTotals[a]);
+  makeChart("modBook",{type:"bar",data:{labels:months,datasets:allSources.map((s,i)=>({label:s,backgroundColor:COLORS[i%COLORS.length],data:months.map(m=>{const r=cellMap[m+"|"+s];return r?r.bookings:0;})}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
+  if(MOD.ga4.length){
+    const chTot={}; MOD.ga4.forEach(r=>chTot[r.channel]=(chTot[r.channel]||0)+r.sessions);
+    const chans=Object.keys(chTot).sort((a,b)=>chTot[b]-chTot[a]);
+    const top=chans.slice(0,6);
+    const gaMonths=[...new Set(MOD.ga4.map(r=>r.month))].sort();
+    const dsets=top.map((ch,i)=>({label:ch,backgroundColor:COLORS[i%COLORS.length],data:gaMonths.map(m=>{const r=ga4Cell[m+"|"+ch];return r?r.sessions:0;})}));
+    if(chans.length>6) dsets.push({label:"Other",backgroundColor:"#BBBBBB",data:gaMonths.map(m=>chans.slice(6).reduce((t,ch)=>{const r=ga4Cell[m+"|"+ch];return t+(r?r.sessions:0);},0))});
+    makeChart("modGa4",{type:"bar",data:{labels:gaMonths,datasets:dsets},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
+  }
 }
 
 function renderPacing(f){

@@ -428,6 +428,7 @@ td.edit.saved{background:#eaf7ef;}
     <button class="tab-btn" data-tab="ads">By Ad</button>
     <button class="tab-btn" data-tab="assets">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
+    <button class="tab-btn" data-tab="modeled">Cost per Order</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
     <button class="tab-btn" data-tab="creative">Creative</button>
   </div>
@@ -876,6 +877,54 @@ td.edit.saved{background:#eaf7ef;}
   </div>
 
   <!-- BUDGET PACING TAB -->
+  <!-- COST PER ORDER (MODELED METRICS) TAB -->
+  <div id="tab-modeled" class="tab-content">
+    <div style="font-size:12px;color:#666;margin-bottom:12px;">
+      Orders are counted once each in the CRM by Create date and Original source (the truth layer).
+      Platform-claimed conversions are shown for reference only and are never summed across platforms.
+      Monthly view; the date filter above does not apply to this tab.
+    </div>
+    <div class="kpi-grid" id="modeledKpis" style="margin-bottom:16px;"></div>
+    <div class="chart-container">
+      <div class="chart-title">Cost per Order by Source (CRM orders vs platform spend)</div>
+      <div class="chart-wrap"><canvas id="chartModeledCpb"></canvas></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Orders by Source (CRM, monthly)</div>
+      <div class="chart-wrap"><canvas id="chartModeledBookings"></canvas></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Monthly Detail</div>
+      <div style="font-size:12px;color:#666;margin-bottom:8px;">
+        Platform Claimed = what Meta / Google Ads report for the same month. Ad platforms over-claim
+        relative to the CRM; treat claimed numbers as directional only.
+      </div>
+      <div class="table-wrap">
+        <table id="modeledTable">
+          <thead><tr><th>Month</th><th>Source</th><th>Orders</th><th>Cancels</th><th>Spend</th><th>Cost / Order</th><th>Platform Claimed</th></tr></thead>
+          <tbody id="modeledTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Order Conversion Rate (orders &divide; GA4 sessions)</div>
+      <div style="font-size:12px;color:#666;margin-bottom:8px;">
+        GA4 default channel groups. PMax sessions mostly report under "Cross-network", so the Paid Search row
+        uses Paid Search + Cross-network sessions against all paid-search orders.
+      </div>
+      <div class="table-wrap">
+        <table id="modeledCvrTable">
+          <thead><tr><th>Month</th><th>Channel</th><th>GA4 Sessions</th><th>CRM Orders</th><th>Order CVR</th></tr></thead>
+          <tbody id="modeledCvrBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">GA4 Sessions by Channel (monthly)</div>
+      <div class="chart-wrap"><canvas id="chartGa4Traffic"></canvas></div>
+    </div>
+  </div>
+
   <div id="tab-pacing" class="tab-content">
     <div class="kpi-grid" id="pacingKpis" style="margin-bottom:16px;"></div>
     <div class="chart-container">
@@ -942,6 +991,8 @@ let deviceData = [];        // device-level rows
 let demoData = [];          // age x gender rows (Google: age OR gender per row, other = '(all)')
 let hourlyData = [];        // hour-of-day rows (account level, no campaign)
 let pmaxData = [];          // PMax channel rows
+let modeledData = [];       // Modeled Metrics: monthly CRM truth layer by source
+let ga4TrafficData = [];    // GA4 Traffic: monthly sessions by channel
 let chartInstances = {};
 let currentTab = 'overview';
 let campaignSort = { col: 'spend', asc: false };
@@ -3402,6 +3453,164 @@ function commitCreativeEdit(cell, field, value, prev) {
   cell.classList.add('saved');
 }
 
+// ========================================================================
+// TAB: COST PER ORDER (MODELED METRICS)
+// CRM orders (Create date + Original source) = truth layer, joined to
+// platform spend by month. Monthly grain; ignores the global date filter.
+// ========================================================================
+var MODELED_PAID = ['Paid Social (Meta)', 'Paid Search - Brand', 'Paid Search - NonBrand', 'Paid Search - PMax', 'Paid Search - Shopping'];
+
+function renderModeled() {
+  var curMonth = formatDateStr(new Date()).slice(0, 7);
+  var months = [];
+  var seenM = {};
+  modeledData.forEach(function(r) { if (!seenM[r.month]) { seenM[r.month] = 1; months.push(r.month); } });
+  months.sort();
+
+  var cell = {};
+  modeledData.forEach(function(r) { cell[r.month + '|' + r.source] = r; });
+  function cpb(month, source) {
+    var r = cell[month + '|' + source];
+    if (!r || !r.spend || !r.bookings) return null;
+    return r.spend / r.bookings;
+  }
+
+  var fullMonths = months.filter(function(m) { return m < curMonth; });
+  var lm = fullMonths[fullMonths.length - 1];
+  var prevM = fullMonths[fullMonths.length - 2];
+  var kpis = document.getElementById('modeledKpis');
+  kpis.innerHTML = '';
+  if (lm) {
+    var lmLabel = ' (' + lm + ')';
+    MODELED_PAID.forEach(function(src) {
+      var v = cpb(lm, src);
+      if (v === null) return;
+      var pv2 = prevM ? cpb(prevM, src) : null;
+      var delta = (pv2 !== null && pv2 !== undefined) ? formatDelta(v, pv2, true, formatCurrency) : null;
+      kpis.appendChild(buildKpiCard(src.replace(' (Meta)', '') + ' Cost/Order' + lmLabel, formatCurrency(v), delta, false));
+    });
+    var paidB = 0, paidS = 0;
+    MODELED_PAID.forEach(function(src) {
+      var r = cell[lm + '|' + src];
+      if (r) { paidB += r.bookings; paidS += r.spend; }
+    });
+    if (paidB > 0) {
+      kpis.appendChild(buildKpiCard('All Paid Cost/Order' + lmLabel, formatCurrency(paidS / paidB), null, true));
+      kpis.appendChild(buildKpiCard('Paid Orders (CRM)' + lmLabel, formatNumber(paidB), null, false));
+    }
+  }
+
+  var palette = ['#209D50', '#4A90D9', '#F5A623', '#9B59B6', '#E74C3C', '#1ABC9C', '#34495E', '#D35400', '#7F8C8D', '#2C3E50'];
+
+  createChart('chartModeledCpb', {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: MODELED_PAID.filter(function(src) {
+        return months.some(function(m) { return cpb(m, src) !== null; });
+      }).map(function(src, i) {
+        return { label: src, borderColor: palette[i % palette.length], backgroundColor: palette[i % palette.length],
+                 spanGaps: false, tension: 0.25,
+                 data: months.map(function(m) { return cpb(m, src); }) };
+      })
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v; } } } },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  var sources = [];
+  var seenS = {};
+  modeledData.forEach(function(r) { if (r.bookings > 0 && !seenS[r.source]) { seenS[r.source] = 1; sources.push(r.source); } });
+  var totalBySource = {};
+  modeledData.forEach(function(r) { totalBySource[r.source] = (totalBySource[r.source] || 0) + r.bookings; });
+  sources.sort(function(a, b) { return totalBySource[b] - totalBySource[a]; });
+  createChart('chartModeledBookings', {
+    type: 'bar',
+    data: {
+      labels: months,
+      datasets: sources.map(function(src, i) {
+        return { label: src, backgroundColor: palette[i % palette.length],
+                 data: months.map(function(m) { var r = cell[m + '|' + src]; return r ? r.bookings : 0; }) };
+      })
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  var rows = modeledData.slice().sort(function(a, b) {
+    return a.month === b.month ? (a.source < b.source ? -1 : 1) : (a.month < b.month ? 1 : -1);
+  });
+  document.getElementById('modeledTableBody').innerHTML = rows.map(function(r) {
+    var cpbTxt = (r.spend > 0 && r.bookings > 0) ? formatCurrency(r.spend / r.bookings) : '';
+    return '<tr><td>' + r.month + (r.month === curMonth ? ' (MTD)' : '') + '</td><td>' + escHtml(r.source) + '</td><td>' +
+           formatNumber(r.bookings) + '</td><td>' + formatNumber(r.cancels) + '</td><td>' +
+           (r.spend > 0 ? formatCurrency(r.spend) : '') + '</td><td>' + cpbTxt + '</td><td>' +
+           (r.claimed > 0 ? formatNumber(r.claimed) : '') + '</td></tr>';
+  }).join('');
+
+  var ga4Cell = {};
+  ga4TrafficData.forEach(function(r) { ga4Cell[r.month + '|' + r.channel] = r; });
+  var cvrGroups = [
+    { label: 'Paid Search (incl PMax)', channels: ['Paid Search', 'Cross-network'],
+      match: function(s) { return s.indexOf('Paid Search') === 0; } },
+    { label: 'Paid Social (Meta)', channels: ['Paid Social'],
+      match: function(s) { return s.indexOf('Paid Social') === 0; } },
+    { label: 'Organic Search', channels: ['Organic Search'],
+      match: function(s) { return s === 'Organic Search'; } },
+    { label: 'Direct', channels: ['Direct'],
+      match: function(s) { return s.indexOf('Direct') === 0; } }
+  ];
+  var cvrHtml = '';
+  months.slice().reverse().forEach(function(m) {
+    cvrGroups.forEach(function(g) {
+      var sess = 0, book = 0;
+      g.channels.forEach(function(ch) { var r = ga4Cell[m + '|' + ch]; if (r) sess += r.sessions; });
+      modeledData.forEach(function(r) { if (r.month === m && g.match(r.source)) book += r.bookings; });
+      if (!sess && !book) return;
+      cvrHtml += '<tr><td>' + m + (m === curMonth ? ' (MTD)' : '') + '</td><td>' + g.label + '</td><td>' +
+                 formatNumber(sess) + '</td><td>' + formatNumber(book) + '</td><td>' +
+                 (sess > 0 ? (100 * book / sess).toFixed(2) + '%' : '') + '</td></tr>';
+    });
+  });
+  document.getElementById('modeledCvrBody').innerHTML = cvrHtml;
+
+  var chTotals = {};
+  ga4TrafficData.forEach(function(r) { chTotals[r.channel] = (chTotals[r.channel] || 0) + r.sessions; });
+  var channels = Object.keys(chTotals).sort(function(a, b) { return chTotals[b] - chTotals[a]; });
+  var topCh = channels.slice(0, 6);
+  var gaMonths = [];
+  var seenGm = {};
+  ga4TrafficData.forEach(function(r) { if (!seenGm[r.month]) { seenGm[r.month] = 1; gaMonths.push(r.month); } });
+  gaMonths.sort();
+  var dsets = topCh.map(function(ch, i) {
+    return { label: ch, backgroundColor: palette[i % palette.length],
+             data: gaMonths.map(function(m) { var r = ga4Cell[m + '|' + ch]; return r ? r.sessions : 0; }) };
+  });
+  if (channels.length > 6) {
+    dsets.push({ label: 'Other', backgroundColor: '#BBBBBB',
+                 data: gaMonths.map(function(m) {
+                   var t = 0;
+                   channels.slice(6).forEach(function(ch) { var r = ga4Cell[m + '|' + ch]; if (r) t += r.sessions; });
+                   return t;
+                 }) });
+  }
+  createChart('chartGa4Traffic', {
+    type: 'bar',
+    data: { labels: gaMonths, datasets: dsets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
 function renderCurrentTab() {
   switch (currentTab) {
     case 'overview':    renderOverview(); break;
@@ -3413,6 +3622,7 @@ function renderCurrentTab() {
     case 'ads':         renderAds(); break;
     case 'assets':      renderAssets(); break;
     case 'funnel':      renderFunnel(); break;
+    case 'modeled':     renderModeled(); break;
     case 'pacing':      renderPacing(); break;
     case 'creative':    renderCreative(); break;
   }
@@ -3495,7 +3705,7 @@ function doLogin() {
 async function loadData() {
   try {
     await loadBudgets();
-    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows, deviceRows, demoRows, hourlyRows, pmaxRows] = await Promise.all([
+    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows, deviceRows, demoRows, hourlyRows, pmaxRows, modeledRows, ga4TrafficRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
       fetchSheetData('Google Ad Detail').catch(function() { return []; }),
@@ -3507,7 +3717,27 @@ async function loadData() {
       fetchSheetData('Demographics').catch(function() { return []; }),
       fetchSheetData('Hourly').catch(function() { return []; }),
       fetchSheetData('PMax Channels').catch(function() { return []; }),
+      fetchSheetData('Modeled Metrics').catch(function() { return []; }),
+      fetchSheetData('GA4 Traffic').catch(function() { return []; }),
     ]);
+
+    // Normalize modeled metrics (monthly CRM truth layer) + GA4 traffic
+    modeledData = [];
+    for (var i = 0; i < modeledRows.length; i++) {
+      var mo = modeledRows[i];
+      if (!mo['Month'] || !mo['Source']) continue;
+      modeledData.push({ month: String(mo['Month']).slice(0, 7), source: mo['Source'],
+                         bookings: pv(mo['HS Bookings']), cancels: pv(mo['HS Cancels']),
+                         spend: pv(mo['Spend']), claimed: pv(mo['Platform Claimed']) });
+    }
+    ga4TrafficData = [];
+    for (var i = 0; i < ga4TrafficRows.length; i++) {
+      var gt = ga4TrafficRows[i];
+      if (!gt['Month'] || !gt['Channel']) continue;
+      ga4TrafficData.push({ month: String(gt['Month']).slice(0, 7), channel: gt['Channel'],
+                            sessions: pv(gt['Sessions']), users: pv(gt['Users']),
+                            keyEvents: pv(gt['Key Events']) });
+    }
 
     // Normalize campaign breakdown (daily rows with Date + Platform)
     campaignData = [];

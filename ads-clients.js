@@ -27,6 +27,19 @@ window.AD_CLIENTS = {
     // "cpa" (lead-gen → Leads/CPA) | "roas" (ecommerce → Revenue/ROAS)
     resultMetric: "cpa",
     resultLabel: "Leads",       // what the conversion is called (Leads / Purchases / Signups…)
+    // CRM truth layer (optional): adds a "Cost per Booking" tab reading monthly
+    // Modeled Metrics (+ GA4 Traffic) tabs. May live in a different spreadsheet
+    // than the ad-ID product sheet. corrFactor is the client's source-loss
+    // correction midpoint (omit to hide the toggle).
+    modeled: {
+      sheetId: "19X1yl62Z_xSRic4Xz8JTurKjNNgcmRWuXNRYM5zYnfA",  // SOG main dashboard sheet
+      tab: "Modeled Metrics",
+      ga4Tab: "GA4 Traffic",
+      noun: "Booking",          // the CRM conversion, singular ("Booking" / "Order"...)
+      crmName: "HubSpot",
+      corrFactor: 1.375,
+      corrNote: "Some paid-driven bookings lose their source to the HubSpot Meetings widget cookie issue. 1.375 is the July 2026 cross-channel analysis midpoint (bounds +11% to +37%)."
+    },
     dimensions: ["Format", "Audience", "Funnel", "Placement",
                  "Message Motivator", "Secondary Motivator", "Production Style",
                  "Subject", "Aspect Ratio", "Offer", "Product/Service"],
