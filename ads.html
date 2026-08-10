@@ -498,6 +498,12 @@ function renderSparkLoopTab(){
       <table><thead><tr><th>Month</th><th class="num">Paid</th><th class="num">Payouts</th></tr></thead><tbody>${moRows}</tbody></table></div></div>
     <div class="card"><h2>Payout history (weekly)</h2><div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
       <table><thead><tr><th>Week Ending</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>${poRows}</tbody></table></div></div>
+    <div class="card"><h2>Ads &times; earnings — net effective cost per ${RESULT_ONE}</h2>
+      <div class="chart-wrap" style="height:280px;"><canvas id="slNetChart"></canvas></div>
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto;margin-top:10px;">
+      <table><thead><tr><th>Month</th><th class="num">Spend</th><th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>
+        <th class="num">SL Earnings</th><th class="num">Net Spend</th><th class="num">Net CPA</th></tr></thead><tbody id="slNetBody"></tbody></table></div>
+      <div class="note" style="margin-top:8px;">Net Spend = ad spend minus SparkLoop earnings paid that month. Directional: payouts lag signups (weekly cycles + pending period), and earnings include signups from all sources, not only ads.</div></div>
     <div class="card"><h2>Partner programs (by CPA)</h2><div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
       <table><thead><tr><th>Partner Program</th><th>Status</th><th class="num">CPA</th><th class="num">Max Payout</th></tr></thead><tbody>${paRows}</tbody></table></div></div>`;
   makeChart("slPayChart",{type:"bar",
@@ -513,6 +519,29 @@ function renderSparkLoopTab(){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
       scales:{x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:18}},
               y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+
+  // Ads x earnings: monthly ad spend + results vs SL earnings -> net effective CPA
+  const adM={};
+  ROWS.forEach(r=>{ if(!r._date) return; const m=r._date.slice(0,7);
+    (adM[m]=adM[m]||{spend:0,res:0}); adM[m].spend+=r._spend; adM[m].res+=r._leads; });
+  const combined=Object.keys(adM).sort().map(m=>{
+    const spend=adM[m].spend, res=adM[m].res, earn=monthMap[m]?monthMap[m].amount:0, net=spend-earn;
+    return {month:m,spend,res,earn,net,cpa:res>0?spend/res:0,netCpa:res>0?net/res:0}; });
+  document.getElementById("slNetBody").innerHTML=combined.slice().reverse().map(c=>
+    `<tr><td>${c.month}</td><td class="num">${money(c.spend)}</td><td class="num">${num(c.res)}</td>
+     <td class="num">${c.res>0?money(c.cpa):"—"}</td><td class="num">${money(c.earn)}</td>
+     <td class="num">${money(c.net)}</td><td class="num"><strong>${c.res>0?money(c.netCpa):"—"}</strong></td></tr>`).join("");
+  makeChart("slNetChart",{type:"bar",
+    data:{labels:combined.map(c=>c.month),
+      datasets:[
+        {label:"Spend",data:combined.map(c=>c.spend),backgroundColor:COLORS[1],borderRadius:2,yAxisID:"y",order:2},
+        {label:"SL Earnings",data:combined.map(c=>c.earn),backgroundColor:COLORS[0],borderRadius:2,yAxisID:"y",order:2},
+        {label:"CPA",type:"line",data:combined.map(c=>c.cpa),borderColor:COLORS[3],backgroundColor:COLORS[3],yAxisID:"y1",tension:.25,order:1},
+        {label:"Net CPA",type:"line",data:combined.map(c=>c.netCpa),borderColor:COLORS[7],backgroundColor:COLORS[7],yAxisID:"y1",tension:.25,order:1}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{position:"top"}},
+      scales:{y:{position:"left",beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}},
+              y1:{position:"right",grid:{drawOnChartArea:false},ticks:{callback:v=>"$"+(+v).toFixed(2)}}}}});
 }
 
 /* ── CRM truth layer: cost per CRM conversion by source, monthly ──

@@ -959,6 +959,24 @@ td.edit.saved{background:#eaf7ef;}
         </div>
       </div>
     </div>
+    <h3 style="margin:24px 0 12px">Ads &times; Earnings — Net Effective Cost per Purchase</h3>
+    <div class="chart-container">
+      <div class="chart-title">Ad Spend vs Partner Earnings, with CPA and Net CPA (monthly)</div>
+      <div class="chart-wrap"><canvas id="chartSLCombined"></canvas></div>
+    </div>
+    <div class="table-wrap" style="margin-top:12px;">
+      <table id="slCombinedTable">
+        <thead><tr>
+          <th>Month</th><th>Ad Spend</th><th>Purchases</th><th>CPA</th>
+          <th>Earnings</th><th>Net Spend</th><th>Net CPA</th>
+        </tr></thead>
+        <tbody id="slCombinedBody"></tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:var(--muted,#888);margin:8px 0 0;">
+      Net Spend = ad spend minus partner earnings paid that month. Directional: payouts lag
+      signups, and earnings include signups from all sources, not only ads.
+    </div>
     <div class="chart-title" style="margin:16px 0 8px;">Partner Programs (by CPA)</div>
     <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
       <table id="slPartnersTable">
@@ -3284,6 +3302,67 @@ function renderSparkLoopDemo() {
     tr.innerHTML = '<td>' + p.name + '</td><td>' + p.status.replace(/_/g, ' ') + '</td>' +
                    '<td>' + formatCurrency(p.cpa) + '</td><td>' + formatCurrency(p.maxPayout) + '</td>';
     paBody.appendChild(tr);
+  });
+
+  // Ads x earnings: monthly ad spend + purchases vs partner earnings -> net effective CPA
+  var adM = {};
+  campaignData.forEach(function(r) {
+    if (!r.date) return;
+    var m = r.date.slice(0, 7);
+    if (!adM[m]) adM[m] = { spend: 0, res: 0 };
+    adM[m].spend += r.spend;
+    adM[m].res += r.callsBooked;
+  });
+  var combined = Object.keys(adM).sort().map(function(m) {
+    var spend = adM[m].spend, res = adM[m].res;
+    var earn = monthMap[m] ? monthMap[m].amount : 0;
+    var net = spend - earn;
+    return { month: m, spend: spend, res: res, earn: earn, net: net,
+             cpa: res > 0 ? spend / res : 0, netCpa: res > 0 ? net / res : 0 };
+  });
+
+  createChart('chartSLCombined', {
+    type: 'bar',
+    data: {
+      labels: combined.map(function(c) { return c.month; }),
+      datasets: [
+        { label: 'Ad Spend', data: combined.map(function(c) { return c.spend; }),
+          backgroundColor: '#4A90D9', borderRadius: 2, yAxisID: 'y', order: 2 },
+        { label: 'Earnings', data: combined.map(function(c) { return c.earn; }),
+          backgroundColor: '#209D50', borderRadius: 2, yAxisID: 'y', order: 2 },
+        { label: 'CPA', type: 'line', data: combined.map(function(c) { return c.cpa; }),
+          borderColor: '#FFA500', backgroundColor: '#FFA500', yAxisID: 'y1', tension: 0.25, order: 1 },
+        { label: 'Net CPA', type: 'line', data: combined.map(function(c) { return c.netCpa; }),
+          borderColor: '#E8527A', backgroundColor: '#E8527A', yAxisID: 'y1', tension: 0.25, order: 1 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { position: 'left', beginAtZero: true,
+             ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } },
+        y1: { position: 'right', grid: { drawOnChartArea: false },
+              ticks: { callback: function(v) { return '$' + (+v).toFixed(2); } } }
+      }
+    }
+  });
+
+  var cbBody = document.getElementById('slCombinedBody');
+  cbBody.innerHTML = '';
+  combined.slice().reverse().forEach(function(c) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + c.month + '</td>' +
+      '<td>' + formatCurrency(c.spend) + '</td>' +
+      '<td>' + formatNumber(c.res) + '</td>' +
+      '<td>' + (c.res > 0 ? formatCurrency(c.cpa) : '—') + '</td>' +
+      '<td>' + formatCurrency(c.earn) + '</td>' +
+      '<td>' + formatCurrency(c.net) + '</td>' +
+      '<td>' + (c.res > 0 ? '<strong>' + formatCurrency(c.netCpa) + '</strong>' : '—') + '</td>';
+    cbBody.appendChild(tr);
   });
 }
 

@@ -709,6 +709,25 @@ tr.clickable:hover td{background:#f0f9f3;}
         </div>
       </div>
     </div>
+    <h3 style="margin:24px 0 12px">Ads &times; Earnings — Net Effective CPA per Registration</h3>
+    <div class="chart-container">
+      <div class="chart-title">FB Spend vs SL Earnings, with CPA and Net CPA per CR (monthly)</div>
+      <div class="chart-wrap"><canvas id="chartSLCombined"></canvas></div>
+    </div>
+    <div class="table-wrap" style="margin-top:12px;">
+      <table id="slCombinedTable">
+        <thead><tr>
+          <th>Month</th><th>FB Spend</th><th>Registrations (CR)</th><th>CPA (CR)</th>
+          <th>SL Earnings</th><th>Net Spend</th><th>Net CPA (CR)</th>
+        </tr></thead>
+        <tbody id="slCombinedBody"></tbody>
+      </table>
+    </div>
+    <div style="font-size:12px;color:var(--muted,#888);margin:8px 0 0;">
+      Net Spend = FB Spend minus SparkLoop earnings paid that month. Directional: payouts lag
+      signups (weekly cycles + up to 14-day pending), and earnings include signups from all
+      sources, not only ads.
+    </div>
     <div class="chart-title" style="margin:16px 0 8px;">Partner Programs (by CPA)</div>
     <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
       <table id="slPartnersTable">
@@ -2381,6 +2400,71 @@ function renderSparkLoopEarn() {
         '<td>' + formatCurrency(r.maxPayout) + '</td>';
       paBody.appendChild(tr);
     });
+
+  // Ads x Earnings: back into net effective CPA per Registration (CR = the
+  // SparkLoop signup event). Whole-history monthly, from the Meta rows.
+  var adMonthly = {};
+  enrichedData.forEach(function(r) {
+    if (!r.date) return;
+    var m = r.date.slice(0, 7);
+    if (!adMonthly[m]) adMonthly[m] = { spend: 0, regs: 0 };
+    adMonthly[m].spend += r.spend;
+    adMonthly[m].regs += r.registrations;
+  });
+  var combined = Object.keys(adMonthly).sort().map(function(m) {
+    var spend = adMonthly[m].spend, regs = adMonthly[m].regs;
+    var earn = monthMap[m] ? monthMap[m].amount : 0;
+    var net = spend - earn;
+    return {
+      month: m, spend: spend, regs: regs, earn: earn, net: net,
+      cpa: regs > 0 ? spend / regs : 0,
+      netCpa: regs > 0 ? net / regs : 0
+    };
+  });
+
+  createChart('chartSLCombined', {
+    type: 'bar',
+    data: {
+      labels: combined.map(function(c) { return c.month; }),
+      datasets: [
+        { label: 'FB Spend', data: combined.map(function(c) { return c.spend; }),
+          backgroundColor: '#4A90D9', borderRadius: 2, yAxisID: 'y', order: 2 },
+        { label: 'SL Earnings', data: combined.map(function(c) { return c.earn; }),
+          backgroundColor: '#209D50', borderRadius: 2, yAxisID: 'y', order: 2 },
+        { label: 'CPA (CR)', type: 'line', data: combined.map(function(c) { return c.cpa; }),
+          borderColor: '#FFA500', backgroundColor: '#FFA500', yAxisID: 'y1', tension: 0.25, order: 1 },
+        { label: 'Net CPA (CR)', type: 'line', data: combined.map(function(c) { return c.netCpa; }),
+          borderColor: '#E8527A', backgroundColor: '#E8527A', yAxisID: 'y1', tension: 0.25, order: 1 }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        y: { position: 'left', beginAtZero: true,
+             ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } },
+        y1: { position: 'right', grid: { drawOnChartArea: false },
+              ticks: { callback: function(v) { return '$' + v.toFixed(2); } } }
+      }
+    }
+  });
+
+  var cbBody = document.getElementById('slCombinedBody');
+  cbBody.innerHTML = '';
+  combined.slice().reverse().forEach(function(c) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + c.month + '</td>' +
+      '<td>' + formatCurrency(c.spend) + '</td>' +
+      '<td>' + formatNumber(c.regs) + '</td>' +
+      '<td>' + (c.regs > 0 ? formatCurrency(c.cpa) : '—') + '</td>' +
+      '<td>' + formatCurrency(c.earn) + '</td>' +
+      '<td>' + formatCurrency(c.net) + '</td>' +
+      '<td>' + (c.regs > 0 ? '<strong>' + formatCurrency(c.netCpa) + '</strong>' : '—') + '</td>';
+    cbBody.appendChild(tr);
+  });
 }
 
 function renderSparkLoop() {
