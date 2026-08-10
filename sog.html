@@ -394,6 +394,7 @@ tr:hover td{background:#fafaf8;}
     <button class="tab-btn" data-tab="ads">By Ad</button>
     <button class="tab-btn" data-tab="assets">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
+    <button class="tab-btn" data-tab="siteevents">Site Events</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
     <button class="tab-btn" data-tab="creative">Creative</button>
   </div>
@@ -849,6 +850,36 @@ tr:hover td{background:#fafaf8;}
     </div>
   </div>
 
+  <!-- SITE EVENTS TAB (GA4 site-wide + Meta ads-attributed, never summed) -->
+  <div id="tab-siteevents" class="tab-content">
+    <div id="siteEventsEmpty" style="display:none;padding:24px;color:#666;">No site events in the selected range. Tracking went live 2026-07-30.</div>
+    <div id="siteEventsLeadWarn" style="display:none;background:#FDECEA;border:1px solid #E74C3C;color:#C0392B;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;"></div>
+    <div class="kpi-grid" id="siteEventsKpis" style="margin-bottom:16px;"></div>
+    <div class="chart-container">
+      <div class="chart-title">Daily Site Events (GA4, all traffic)</div>
+      <div class="chart-wrap"><canvas id="chartSiteEvents"></canvas></div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">Source Breakdown (GA4, all traffic)</div>
+      <div class="table-wrap">
+        <table id="siteEventsSourceTable">
+          <thead><tr><th>Event</th><th>Source</th><th>Count</th><th>Revenue</th></tr></thead>
+          <tbody id="siteEventsSourceBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title">GA4 Site-Wide vs Meta Ads-Attributed</div>
+      <div style="font-size:12px;color:#666;margin-bottom:8px;">Two measurement systems, shown side by side on purpose. GA4 counts every visitor; Meta counts only what it attributes to ads and over-counts relative to site-side truth. Never sum the two columns.</div>
+      <div class="table-wrap">
+        <table id="siteEventsCompareTable">
+          <thead><tr><th>Event</th><th>GA4 (all traffic)</th><th>Meta ads-attributed</th><th>Meta value</th></tr></thead>
+          <tbody id="siteEventsCompareBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- BUDGET PACING TAB -->
   <div id="tab-pacing" class="tab-content">
     <div class="kpi-grid" id="pacingKpis" style="margin-bottom:16px;"></div>
@@ -907,6 +938,8 @@ let adsSort = { col: 'spend', asc: false };
 let activeChannel = '';     // '' = all, 'meta', 'google'
 let tagsByAdName = {};       // {adNameLower: {tag_*}} from the creative product sheet, joined onto Meta ad rows
 let budgetsByMonth = {};     // {'YYYY-MM': monthly budget} from the Budgets tab
+let siteEventsData = [];     // GA4 site events: {date, event, source, count, revenue}
+let metaEventData = [];      // Meta pixel events by campaign: {date, campaign, event, count, value}
 
 // ========================================================================
 // PARSING HELPER
@@ -3021,6 +3054,194 @@ function renderFunnel() {
 // ========================================================================
 // TAB: BUDGET PACING
 // ========================================================================
+// ========================================================================
+// TAB: SITE EVENTS (GA4 site-wide + Meta ads-attributed, never summed)
+// ========================================================================
+var SITE_EVENT_LABELS = {
+  generate_lead: 'Guide Downloads',
+  video_signup: 'Intro Video Signups',
+  newsletter_signup: 'Newsletter Signups',
+  try_waitlist: 'TRY Waitlist',
+  careers_application: 'Careers Applications',
+  volunteer_signup: 'Volunteer Signups',
+  book_outbound_click: 'Book Order Clicks',
+  purchase: 'Book Purchases',
+  form_submit: 'Discovery Calls'
+};
+var SITE_CALL_SOURCES = { 'discovery-call': 1, 'ecolawns-call': 1 };
+// Meta pixel event <-> GA4 event pairs (the GTM tag map, spec 2026-07-20)
+var META_GA4_PAIRS = [
+  ['AddToWishlist', 'generate_lead'],
+  ['StartTrial', 'video_signup'],
+  ['Contact', 'newsletter_signup'],
+  ['AddToCart', 'try_waitlist'],
+  ['SubmitApplication', 'careers_application'],
+  ['Donate', 'volunteer_signup'],
+  ['FindLocation', 'book_outbound_click'],
+  ['Subscribe', 'purchase'],
+  ['CompleteRegistration', 'form_submit']
+];
+// Meta-only events with no GA4 twin on the site side
+var META_ONLY_EVENTS = {
+  InitiateCheckout: 'Kajabi Checkout Started',
+  Schedule: 'Webinar Registrations',
+  Purchase: 'TRY Course Purchases',
+  'Custom (unmapped)': 'Custom (unmapped pixel events)',
+  Lead: 'Lead (RETIRED)'
+};
+
+function siteEventGroup(r) {
+  if (r.event === 'form_submit' && !SITE_CALL_SOURCES[r.source]) return 'Other Form Submits';
+  return SITE_EVENT_LABELS[r.event] || r.event;
+}
+
+function renderSiteEvents() {
+  var f = getFilterState();
+  var inRange = siteEventsData.filter(function(r) {
+    if (f.from && r.date < f.from) return false;
+    if (f.to && r.date > f.to) return false;
+    return true;
+  });
+  var metaInRange = metaEventData.filter(function(r) {
+    if (f.from && r.date < f.from) return false;
+    if (f.to && r.date > f.to) return false;
+    if (f.campaign && r.campaign !== f.campaign) return false;
+    return true;
+  });
+
+  var empty = document.getElementById('siteEventsEmpty');
+  empty.style.display = (inRange.length || metaInRange.length) ? 'none' : 'block';
+
+  // Retired-event warning: any Meta Lead rows are a tracking bug, surface loudly
+  var leadCount = 0;
+  metaInRange.forEach(function(r) { if (r.event === 'Lead') leadCount += r.count; });
+  var warn = document.getElementById('siteEventsLeadWarn');
+  if (leadCount > 0) {
+    warn.textContent = 'Meta reported ' + formatNumber(leadCount) + ' Lead event(s) in this range. Lead is retired on SOG; something on the site is firing it. Investigate.';
+    warn.style.display = 'block';
+  } else {
+    warn.style.display = 'none';
+  }
+
+  // Previous equal-length window for KPI deltas
+  var prev = [];
+  if (f.from && f.to) {
+    var fromD = parseDate(f.from), toD = parseDate(f.to);
+    if (fromD && toD) {
+      var days = Math.round((toD - fromD) / 86400000) + 1;
+      var prevTo = new Date(fromD); prevTo.setDate(prevTo.getDate() - 1);
+      var prevFrom = new Date(prevTo); prevFrom.setDate(prevFrom.getDate() - days + 1);
+      var pf = formatDateStr(prevFrom), pt = formatDateStr(prevTo);
+      prev = siteEventsData.filter(function(r) { return r.date >= pf && r.date <= pt; });
+    }
+  }
+
+  function groupTotals(rows) {
+    var t = {};
+    rows.forEach(function(r) {
+      var g = siteEventGroup(r);
+      if (!t[g]) t[g] = { count: 0, revenue: 0 };
+      t[g].count += r.count;
+      t[g].revenue += r.revenue;
+    });
+    return t;
+  }
+  var totals = groupTotals(inRange);
+  var prevTotals = groupTotals(prev);
+
+  // KPI cards in a fixed, meaningful order
+  var kpiOrder = ['Guide Downloads', 'Intro Video Signups', 'Newsletter Signups', 'TRY Waitlist',
+                  'Careers Applications', 'Volunteer Signups', 'Book Order Clicks', 'Book Purchases',
+                  'Discovery Calls', 'Other Form Submits'];
+  var kpis = document.getElementById('siteEventsKpis');
+  kpis.innerHTML = '';
+  kpiOrder.forEach(function(g) {
+    if (!totals[g] && !prevTotals[g]) return;
+    var cur = totals[g] || { count: 0, revenue: 0 };
+    var prv = prevTotals[g] || { count: 0, revenue: 0 };
+    var delta = formatDelta(cur.count, prv.count, false, formatNumber);
+    var value = formatNumber(cur.count);
+    if (g === 'Book Purchases' && cur.revenue > 0) value += ' (' + formatCurrency(cur.revenue) + ')';
+    kpis.appendChild(buildKpiCard(g, value, delta, g === 'Book Purchases'));
+  });
+
+  // Daily stacked bar by event group
+  var dates = [];
+  var seenDate = {};
+  inRange.forEach(function(r) { if (!seenDate[r.date]) { seenDate[r.date] = 1; dates.push(r.date); } });
+  dates.sort();
+  var groups = kpiOrder.filter(function(g) { return totals[g]; });
+  var palette = ['#209D50', '#4A90D9', '#F5A623', '#9B59B6', '#E74C3C', '#1ABC9C', '#34495E', '#D35400', '#7F8C8D', '#2C3E50'];
+  var byDateGroup = {};
+  inRange.forEach(function(r) {
+    var k = r.date + '|' + siteEventGroup(r);
+    byDateGroup[k] = (byDateGroup[k] || 0) + r.count;
+  });
+  createChart('chartSiteEvents', {
+    type: 'bar',
+    data: {
+      labels: dates,
+      datasets: groups.map(function(g, i) {
+        return { label: g, backgroundColor: palette[i % palette.length],
+                 data: dates.map(function(d) { return byDateGroup[d + '|' + g] || 0; }) };
+      })
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+
+  // Source breakdown table
+  var bySource = {};
+  inRange.forEach(function(r) {
+    var k = siteEventGroup(r) + '|' + r.source;
+    if (!bySource[k]) bySource[k] = { group: siteEventGroup(r), source: r.source, count: 0, revenue: 0 };
+    bySource[k].count += r.count;
+    bySource[k].revenue += r.revenue;
+  });
+  var srcRows = Object.keys(bySource).map(function(k) { return bySource[k]; });
+  srcRows.sort(function(a, b) { return b.count - a.count; });
+  document.getElementById('siteEventsSourceBody').innerHTML = srcRows.map(function(r) {
+    return '<tr><td>' + escHtml(r.group) + '</td><td>' + escHtml(r.source) + '</td><td>' +
+           formatNumber(r.count) + '</td><td>' + (r.revenue > 0 ? formatCurrency(r.revenue) : '—') + '</td></tr>';
+  }).join('');
+
+  // GA4 vs Meta comparison (labeled, never summed)
+  var ga4ByEvent = {};
+  inRange.forEach(function(r) {
+    // Discovery-call GA4 twin for CompleteRegistration excludes non-call form_submit noise
+    if (r.event === 'form_submit' && !SITE_CALL_SOURCES[r.source]) return;
+    ga4ByEvent[r.event] = (ga4ByEvent[r.event] || 0) + r.count;
+  });
+  var metaByEvent = {};
+  metaInRange.forEach(function(r) {
+    if (!metaByEvent[r.event]) metaByEvent[r.event] = { count: 0, value: 0 };
+    metaByEvent[r.event].count += r.count;
+    metaByEvent[r.event].value += r.value;
+  });
+  var compHtml = '';
+  META_GA4_PAIRS.forEach(function(p) {
+    var metaEv = p[0], ga4Ev = p[1];
+    var label = SITE_EVENT_LABELS[ga4Ev] || metaEv;
+    var g = ga4ByEvent[ga4Ev] || 0;
+    var m = metaByEvent[metaEv] || { count: 0, value: 0 };
+    if (!g && !m.count) return;
+    compHtml += '<tr><td>' + escHtml(label + ' (' + metaEv + ')') + '</td><td>' + formatNumber(g) +
+                '</td><td>' + formatNumber(m.count) + '</td><td>' +
+                (m.value > 0 ? formatCurrency(m.value) : '—') + '</td></tr>';
+  });
+  Object.keys(META_ONLY_EVENTS).forEach(function(metaEv) {
+    var m = metaByEvent[metaEv];
+    if (!m || !m.count) return;
+    compHtml += '<tr><td>' + escHtml(META_ONLY_EVENTS[metaEv] + ' (' + metaEv + ')') + '</td><td>—</td><td>' +
+                formatNumber(m.count) + '</td><td>' + (m.value > 0 ? formatCurrency(m.value) : '—') + '</td></tr>';
+  });
+  document.getElementById('siteEventsCompareBody').innerHTML =
+    compHtml || '<tr><td colspan="4" style="color:#666;">No events in range on either side yet.</td></tr>';
+}
+
 function renderPacing() {
   var filtered = getFilteredData();
   var sorted = filtered.slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
@@ -3185,6 +3406,7 @@ function renderCurrentTab() {
     case 'ads':         renderAds(); break;
     case 'assets':      renderAssets(); break;
     case 'funnel':      renderFunnel(); break;
+    case 'siteevents':  renderSiteEvents(); break;
     case 'pacing':      renderPacing(); break;
     case 'creative':    if (window.crRefresh) window.crRefresh(); break;
   }
@@ -3267,7 +3489,7 @@ function doLogin() {
 async function loadData() {
   try {
     await Promise.all([loadAdTags(), loadBudgets()]);   // tags before normalizing Meta ad rows; budgets for pacing targets
-    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows, deviceRows, demoRows, hourlyRows, pmaxRows] = await Promise.all([
+    var [campaignRows, metaAdRows, googleAdRows, headlineRows, descRows, kwRows, placementRows, deviceRows, demoRows, hourlyRows, pmaxRows, siteEventRows, metaEventRows] = await Promise.all([
       fetchSheetData('Campaign Breakdown'),
       fetchSheetData('Meta Ad Detail').catch(function() { return []; }),
       fetchSheetData('Google Ad Detail').catch(function() { return []; }),
@@ -3279,7 +3501,25 @@ async function loadData() {
       fetchSheetData('Demographics').catch(function() { return []; }),
       fetchSheetData('Hourly').catch(function() { return []; }),
       fetchSheetData('PMax Channels').catch(function() { return []; }),
+      fetchSheetData('Site Events').catch(function() { return []; }),
+      fetchSheetData('Meta Event Detail').catch(function() { return []; }),
     ]);
+
+    // Normalize site events (GA4) + Meta pixel event detail
+    siteEventsData = [];
+    for (var i = 0; i < siteEventRows.length; i++) {
+      var se = siteEventRows[i];
+      if (!se['Date'] || !se['Event']) continue;
+      siteEventsData.push({ date: se['Date'], event: se['Event'], source: se['Source'] || '',
+                            count: pv(se['Count']), revenue: pv(se['Revenue']) });
+    }
+    metaEventData = [];
+    for (var i = 0; i < metaEventRows.length; i++) {
+      var me = metaEventRows[i];
+      if (!me['Date'] || !me['Event']) continue;
+      metaEventData.push({ date: me['Date'], campaign: me['Campaign'] || '', event: me['Event'],
+                           count: pv(me['Count']), value: pv(me['Value']) });
+    }
 
     // Normalize campaign breakdown (daily rows with Date + Platform)
     campaignData = [];
