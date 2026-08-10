@@ -67,6 +67,13 @@ window.AD_CLIENTS = {
     // Subscription: purchases (sub starts) primary, ranked on cost per purchase.
     resultMetric: "cpa",
     resultLabel: "Purchases",
+    // SparkLoop Earn tabs (written by scripts/unsealed_sparkloop_pull.py on the
+    // main Unsealed dashboard sheet). Optional — tab appears only when data loads.
+    sparkloop: {
+      sheetId: "1rEOXHebRMyfbAhldCsoJeLqnpokoqgOZ28yJXztsoZs",
+      payoutsTab: "SparkLoop Payouts",
+      partnersTab: "SparkLoop Partners",
+    },
     dimensions: ["Format", "Audience", "Funnel", "Placement",
                  "Message Motivator", "Secondary Motivator", "Production Style",
                  "Subject", "Aspect Ratio", "Offer", "Product/Service"],

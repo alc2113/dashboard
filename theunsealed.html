@@ -677,9 +677,49 @@ tr.clickable:hover td{background:#f0f9f3;}
 
   <!-- FB + SPARKLOOP TAB -->
   <div id="tab-sparkloop" class="tab-content">
+    <h3 style="margin-bottom:12px">SparkLoop Partner Earnings</h3>
+    <div class="kpi-grid" id="slEarnKpis" style="margin-bottom:16px;"></div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Weekly Partner Payouts</div>
+        <div class="chart-wrap"><canvas id="chartSLPayouts"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Monthly Totals</div>
+        <div class="chart-wrap"><canvas id="chartSLMonthly"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row" style="margin-top:16px;">
+      <div>
+        <div class="chart-title" style="margin-bottom:8px;">Monthly Totals</div>
+        <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
+          <table id="slMonthlyTable">
+            <thead><tr><th>Month</th><th>Paid</th><th>Payouts</th></tr></thead>
+            <tbody id="slMonthlyBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="chart-title" style="margin-bottom:8px;">Payout History (weekly)</div>
+        <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
+          <table id="slPayoutsTable">
+            <thead><tr><th>Week Ending</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody id="slPayoutsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="chart-title" style="margin:16px 0 8px;">Partner Programs (by CPA)</div>
+    <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
+      <table id="slPartnersTable">
+        <thead><tr><th>Partner Program</th><th>Status</th><th>CPA</th><th>Max Payout</th></tr></thead>
+        <tbody id="slPartnersBody"></tbody>
+      </table>
+    </div>
+    <h3 style="margin:24px 0 12px">FB Daily</h3>
     <div class="kpi-grid" id="slKpis" style="margin-bottom:16px;"></div>
     <div class="chart-container">
-      <div class="chart-title">FB Revenue + SparkLoop Earnings Over Time</div>
+      <div class="chart-title">FB Revenue Over Time</div>
       <div class="chart-wrap"><canvas id="chartSL"></canvas></div>
     </div>
     <div class="table-wrap" style="margin-top:16px;">
@@ -692,12 +732,6 @@ tr.clickable:hover td{background:#f0f9f3;}
           <th data-col="fbPurchases">FB Purch</th>
           <th data-col="fbRevenue">FB Rev</th>
           <th data-col="fbRoas">FB ROAS</th>
-          <th data-col="slNewSubs">SL New Subs</th>
-          <th data-col="slConfirmed">SL Confirmed</th>
-          <th data-col="slPending">SL Pending</th>
-          <th data-col="slEarnings">SL Earnings</th>
-          <th data-col="combinedRevenue">Combined Rev</th>
-          <th data-col="combinedRoas">Combined ROAS</th>
         </tr></thead>
         <tbody id="slBody"></tbody>
       </table>
@@ -778,6 +812,8 @@ const PASSWORD = 'unsealed2026';
 let rawData = [];          // normalized rows from Raw Data sheet
 let adPerfData = [];       // raw rows from Ad Performance sheet
 let sparkLoopData = [];    // normalized rows from FB + SparkLoop sheet
+let slPayoutsData = [];    // SparkLoop Earn payout history (weekly)
+let slPartnersData = [];   // SparkLoop partner campaigns snapshot
 let tagLookup = {};        // adName -> {color, theme, type, landingPage, campaignTag}
 let enrichedData = [];     // rawData enriched with tags
 let chartInstances = {};   // canvasId -> Chart instance (for cleanup)
@@ -2217,29 +2253,153 @@ function renderFunnel() {
 // ========================================================================
 // TAB: FB + SPARKLOOP
 // ========================================================================
+function renderSparkLoopEarn() {
+  // Whole-history Earn view, weekly payout periods exactly as the API returns
+  // them + monthly rollup + lifetime. Not tied to the global date filter.
+  var dated = slPayoutsData.filter(function(r) { return r.date; })
+    .sort(function(a, b) { return a.date.localeCompare(b.date); });
+  var paidAll = slPayoutsData.filter(function(r) { return r.status === 'Paid'; });
+  var expected = slPayoutsData.filter(function(r) { return r.status !== 'Paid'; });
+  var lifetime = paidAll.reduce(function(s, r) { return s + r.amount; }, 0);
+  var expectedTotal = expected.reduce(function(s, r) { return s + r.amount; }, 0);
+
+  // Monthly rollup of paid payouts (by week-ending month)
+  var monthMap = {};
+  paidAll.forEach(function(r) {
+    var m = r.date ? r.date.slice(0, 7) : '(no date)';
+    if (!monthMap[m]) monthMap[m] = { amount: 0, count: 0 };
+    monthMap[m].amount += r.amount;
+    monthMap[m].count += 1;
+  });
+  var months = Object.keys(monthMap).sort().map(function(m) {
+    return { month: m, amount: monthMap[m].amount, count: monthMap[m].count };
+  });
+
+  var datedPaid = dated.filter(function(r) { return r.status === 'Paid'; });
+  var last = datedPaid.length ? datedPaid[datedPaid.length - 1] : null;
+  var thisMonth = getMonthKey(todayStr());
+  var thisMonthAmt = monthMap[thisMonth] ? monthMap[thisMonth].amount : 0;
+  var activePartners = slPartnersData.filter(function(r) { return r.status === 'active'; }).length;
+
+  var kpisEl = document.getElementById('slEarnKpis');
+  kpisEl.innerHTML = '';
+  var earnKpis = [
+    ['Lifetime Paid', formatCurrency(lifetime)],
+    ['This Month (' + thisMonth + ')', formatCurrency(thisMonthAmt)],
+    ['Last Payout' + (last ? ' (' + last.date + ')' : ''), last ? formatCurrency(last.amount) : '—'],
+    ['Expected Payout', expectedTotal > 0 ? formatCurrency(expectedTotal) : '$0'],
+    ['Active Partner Programs', formatNumber(activePartners)]
+  ];
+  earnKpis.forEach(function(item) {
+    kpisEl.appendChild(buildKpiCard(item[0], item[1], null));
+  });
+
+  createChart('chartSLPayouts', {
+    type: 'bar',
+    data: {
+      labels: dated.map(function(r) { return r.date; }),
+      datasets: [{
+        label: 'Payout',
+        data: dated.map(function(r) { return r.amount; }),
+        backgroundColor: dated.map(function(r) { return r.status === 'Paid' ? '#209D50' : '#FFA500'; }),
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 26 } },
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } }
+      }
+    }
+  });
+
+  var chartMonths = months.filter(function(m) { return m.month !== '(no date)'; });
+  createChart('chartSLMonthly', {
+    type: 'bar',
+    data: {
+      labels: chartMonths.map(function(m) { return m.month; }),
+      datasets: [{
+        label: 'Paid',
+        data: chartMonths.map(function(m) { return m.amount; }),
+        backgroundColor: '#209D50',
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 18 } },
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } }
+      }
+    }
+  });
+
+  var moBody = document.getElementById('slMonthlyBody');
+  moBody.innerHTML = '';
+  months.slice().reverse().forEach(function(m) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + m.month + '</td>' +
+      '<td>' + formatCurrency(m.amount) + '</td>' +
+      '<td>' + m.count + '</td>';
+    moBody.appendChild(tr);
+  });
+  var trTotal = document.createElement('tr');
+  trTotal.innerHTML = '<td><strong>Lifetime</strong></td><td><strong>' + formatCurrency(lifetime) +
+    '</strong></td><td><strong>' + paidAll.length + '</strong></td>';
+  moBody.appendChild(trTotal);
+
+  var poBody = document.getElementById('slPayoutsBody');
+  poBody.innerHTML = '';
+  dated.slice().reverse().forEach(function(r) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td>' + r.date + '</td>' +
+      '<td>' + formatCurrency(r.amount) + '</td>' +
+      '<td>' + (r.status === 'Paid' ? 'Paid' : '<strong>Expected</strong>') + '</td>';
+    poBody.appendChild(tr);
+  });
+
+  var paBody = document.getElementById('slPartnersBody');
+  paBody.innerHTML = '';
+  slPartnersData.slice()
+    .sort(function(a, b) {
+      if ((a.status === 'active') !== (b.status === 'active')) return a.status === 'active' ? -1 : 1;
+      return b.cpa - a.cpa;
+    })
+    .forEach(function(r) {
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + r.name + '</td>' +
+        '<td>' + r.status.replace(/_/g, ' ') + '</td>' +
+        '<td>' + formatCurrency(r.cpa) + '</td>' +
+        '<td>' + formatCurrency(r.maxPayout) + '</td>';
+      paBody.appendChild(tr);
+    });
+}
+
 function renderSparkLoop() {
+  renderSparkLoopEarn();
+  // FB-only daily view. The AA tab's SL columns stopped updating after Feb 2026
+  // (dead feed); real SparkLoop earnings live in the section above.
   var filtered = getFilteredSLData();
   var sorted = filtered.slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
 
   // Compute totals
-  var totals = {
-    fbSpend: 0, fbImpressions: 0, fbClicks: 0, fbPurchases: 0, fbRevenue: 0,
-    slNewSubs: 0, slConfirmed: 0, slPending: 0, slEarnings: 0, combinedRevenue: 0
-  };
+  var totals = { fbSpend: 0, fbImpressions: 0, fbClicks: 0, fbPurchases: 0, fbRevenue: 0 };
   sorted.forEach(function(r) {
     totals.fbSpend += r.fbSpend;
     totals.fbImpressions += r.fbImpressions;
     totals.fbClicks += r.fbClicks;
     totals.fbPurchases += r.fbPurchases;
     totals.fbRevenue += r.fbRevenue;
-    totals.slNewSubs += r.slNewSubs;
-    totals.slConfirmed += r.slConfirmed;
-    totals.slPending += r.slPending;
-    totals.slEarnings += r.slEarnings;
-    totals.combinedRevenue += r.combinedRevenue;
   });
   var fbRoas = totals.fbSpend > 0 ? totals.fbRevenue / totals.fbSpend : 0;
-  var combinedRoas = totals.fbSpend > 0 ? totals.combinedRevenue / totals.fbSpend : 0;
 
   // KPI cards
   var kpisEl = document.getElementById('slKpis');
@@ -2250,53 +2410,30 @@ function renderSparkLoop() {
     ['FB Clicks', formatNumber(totals.fbClicks)],
     ['FB Purchases', formatNumber(totals.fbPurchases)],
     ['FB Revenue', formatCurrency(totals.fbRevenue)],
-    ['FB ROAS', formatROAS(fbRoas)],
-    ['SL New Subscribers', formatNumber(totals.slNewSubs)],
-    ['SL Confirmed Referrals', formatNumber(totals.slConfirmed)],
-    ['SL Pending Referrals', formatNumber(totals.slPending)],
-    ['SL Earnings', formatCurrency(totals.slEarnings)],
-    ['Combined Revenue', formatCurrency(totals.combinedRevenue)],
-    ['Combined ROAS', formatROAS(combinedRoas)]
+    ['FB ROAS', formatROAS(fbRoas)]
   ];
   slKpiData.forEach(function(item) {
     kpisEl.appendChild(buildKpiCard(item[0], item[1], null));
   });
 
-  // Stacked bar chart
-  var chartLabels = sorted.map(function(r) { return r.date; });
   createChart('chartSL', {
     type: 'bar',
     data: {
-      labels: chartLabels,
-      datasets: [
-        {
-          label: 'FB Revenue',
-          data: sorted.map(function(r) { return r.fbRevenue; }),
-          backgroundColor: '#209D50',
-          borderRadius: 2
-        },
-        {
-          label: 'SL Earnings',
-          data: sorted.map(function(r) { return r.slEarnings; }),
-          backgroundColor: '#FFA500',
-          borderRadius: 2
-        }
-      ]
+      labels: sorted.map(function(r) { return r.date; }),
+      datasets: [{
+        label: 'FB Revenue',
+        data: sorted.map(function(r) { return r.fbRevenue; }),
+        backgroundColor: '#209D50',
+        borderRadius: 2
+      }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' } },
+      plugins: { legend: { display: false } },
       scales: {
-        x: {
-          stacked: true,
-          ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 30 }
-        },
-        y: {
-          stacked: true,
-          beginAtZero: true,
-          ticks: { callback: function(v) { return '$' + v.toLocaleString(); } }
-        }
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 30 } },
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } }
       }
     }
   });
@@ -2324,13 +2461,7 @@ function renderSparkLoop() {
       '<td>' + formatNumber(r.fbClicks) + '</td>' +
       '<td>' + formatNumber(r.fbPurchases) + '</td>' +
       '<td>' + formatCurrency(r.fbRevenue) + '</td>' +
-      '<td>' + formatROAS(r.fbRoas) + '</td>' +
-      '<td>' + formatNumber(r.slNewSubs) + '</td>' +
-      '<td>' + formatNumber(r.slConfirmed) + '</td>' +
-      '<td>' + formatNumber(r.slPending) + '</td>' +
-      '<td>' + formatCurrency(r.slEarnings) + '</td>' +
-      '<td>' + formatCurrency(r.combinedRevenue) + '</td>' +
-      '<td>' + formatROAS(r.combinedRoas) + '</td>';
+      '<td>' + formatROAS(r.fbRoas) + '</td>';
     tbody.appendChild(tr);
   });
 
@@ -2772,6 +2903,31 @@ async function loadData() {
       }).filter(function(r) { return r.date && r.hour !== '' && r.spend > 0; });
     } catch (e) { hourlyBreakData = []; }
     console.log('[Unsealed Dashboard] Demo rows:', demoBreakData.length, '| Hourly rows:', hourlyBreakData.length);
+
+    // SparkLoop Earn tabs (written by unsealed_sparkloop_pull.py; best-effort)
+    try {
+      var poRows = await fetchSheetData('SparkLoop Payouts', true);
+      slPayoutsData = poRows.map(function(r) {
+        return {
+          // one legacy payout has no period dates; keep it for totals (empty date)
+          date: String(r['Date'] || '').trim() ? normalizeDateStr(r['Date']) : '',
+          amount: pv(r['Amount (USD)']),
+          status: String(r['Status'] || '').trim()
+        };
+      }).filter(function(r) { return r.amount > 0; });
+    } catch (e) { slPayoutsData = []; }
+    try {
+      var paRows = await fetchSheetData('SparkLoop Partners', true);
+      slPartnersData = paRows.map(function(r) {
+        return {
+          name: String(r['Partner Program'] || '').trim(),
+          status: String(r['Status'] || '').trim(),
+          cpa: pv(r['CPA (USD)']),
+          maxPayout: pv(r['Max Payout (USD)'])
+        };
+      }).filter(function(r) { return r.name; });
+    } catch (e) { slPartnersData = []; }
+    console.log('[Unsealed Dashboard] SL payouts:', slPayoutsData.length, '| partners:', slPartnersData.length);
     sparkLoopData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
     // Data diagnostics

@@ -429,6 +429,7 @@ td.edit.saved{background:#eaf7ef;}
     <button class="tab-btn" data-tab="assets">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="modeled">Cost per Order</button>
+    <button class="tab-btn" data-tab="sparkloop">Partner Payouts</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
     <button class="tab-btn" data-tab="creative">Creative</button>
   </div>
@@ -922,6 +923,48 @@ td.edit.saved{background:#eaf7ef;}
     <div class="chart-container">
       <div class="chart-title">GA4 Sessions by Channel (monthly)</div>
       <div class="chart-wrap"><canvas id="chartGa4Traffic"></canvas></div>
+    </div>
+  </div>
+
+  <!-- PARTNER PAYOUTS TAB (SparkLoop-style earnings view; synthesized demo data) -->
+  <div id="tab-sparkloop" class="tab-content">
+    <div class="kpi-grid" id="slEarnKpis" style="margin-bottom:16px;"></div>
+    <div class="chart-row">
+      <div class="chart-container">
+        <div class="chart-title">Weekly Partner Payouts</div>
+        <div class="chart-wrap"><canvas id="chartSLPayouts"></canvas></div>
+      </div>
+      <div class="chart-container">
+        <div class="chart-title">Monthly Totals</div>
+        <div class="chart-wrap"><canvas id="chartSLMonthly"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-row" style="margin-top:16px;">
+      <div>
+        <div class="chart-title" style="margin-bottom:8px;">Monthly Totals</div>
+        <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
+          <table id="slMonthlyTable">
+            <thead><tr><th>Month</th><th>Paid</th><th>Payouts</th></tr></thead>
+            <tbody id="slMonthlyBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="chart-title" style="margin-bottom:8px;">Payout History (weekly)</div>
+        <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
+          <table id="slPayoutsTable">
+            <thead><tr><th>Week Ending</th><th>Amount</th><th>Status</th></tr></thead>
+            <tbody id="slPayoutsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="chart-title" style="margin:16px 0 8px;">Partner Programs (by CPA)</div>
+    <div class="table-wrap" style="max-height:360px;overflow-y:auto;">
+      <table id="slPartnersTable">
+        <thead><tr><th>Partner Program</th><th>Status</th><th>CPA</th><th>Max Payout</th></tr></thead>
+        <tbody id="slPartnersBody"></tbody>
+      </table>
     </div>
   </div>
 
@@ -3099,6 +3142,151 @@ function renderFunnel() {
 // ========================================================================
 // TAB: BUDGET PACING
 // ========================================================================
+// ========================================================================
+// TAB: PARTNER PAYOUTS (SparkLoop-style earn view, synthesized demo data)
+// ========================================================================
+var demoSL = null;
+function buildDemoSL() {
+  if (demoSL) return demoSL;
+  // Deterministic pseudo-random weekly payouts, ~18 months ending last Thursday
+  var payouts = [];
+  var seed = 42;
+  function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  var end = new Date();
+  end.setDate(end.getDate() - ((end.getDay() + 3) % 7));  // most recent Thursday
+  for (var i = 77; i >= 0; i--) {
+    var d = new Date(end);
+    d.setDate(d.getDate() - i * 7);
+    var ramp = 1 + (77 - i) / 30;  // program grows over time
+    var amount = Math.round((300 + rnd() * 900) * ramp * 100) / 100;
+    payouts.push({
+      date: d.toISOString().slice(0, 10),
+      amount: amount,
+      status: i === 0 ? 'Expected' : 'Paid'
+    });
+  }
+  var partners = [
+    { name: "The Weekly Wag's Partner Program", status: 'active', cpa: 5.00, maxPayout: 5000 },
+    { name: "Pet Nutrition Digest's Partner Program", status: 'active', cpa: 4.00, maxPayout: 2500 },
+    { name: "Happy Tails Weekly's Partner Program", status: 'active', cpa: 3.50, maxPayout: 1800 },
+    { name: "The Groomer's Notebook's Partner Program", status: 'active', cpa: 3.00, maxPayout: 1200 },
+    { name: "Vet Approved's Partner Program", status: 'active', cpa: 2.50, maxPayout: 900 },
+    { name: "Small Pets Big Hearts's Partner Program", status: 'active', cpa: 2.00, maxPayout: 600 },
+    { name: "The Aquarium Insider's Partner Program", status: 'awaiting_approval', cpa: 2.00, maxPayout: 500 },
+    { name: "Backyard Chickens Weekly's Partner Program", status: 'awaiting_approval', cpa: 1.50, maxPayout: 400 }
+  ];
+  demoSL = { payouts: payouts, partners: partners };
+  return demoSL;
+}
+
+function renderSparkLoopDemo() {
+  var sl = buildDemoSL();
+  var paid = sl.payouts.filter(function(p) { return p.status === 'Paid'; });
+  var expected = sl.payouts.filter(function(p) { return p.status !== 'Paid'; });
+  var lifetime = paid.reduce(function(s, p) { return s + p.amount; }, 0);
+  var expectedTotal = expected.reduce(function(s, p) { return s + p.amount; }, 0);
+  var monthMap = {};
+  paid.forEach(function(p) {
+    var m = p.date.slice(0, 7);
+    if (!monthMap[m]) monthMap[m] = { amount: 0, count: 0 };
+    monthMap[m].amount += p.amount;
+    monthMap[m].count += 1;
+  });
+  var months = Object.keys(monthMap).sort().map(function(m) {
+    return { month: m, amount: monthMap[m].amount, count: monthMap[m].count };
+  });
+  var last = paid[paid.length - 1];
+  var thisMonth = new Date().toISOString().slice(0, 7);
+  var thisMonthAmt = monthMap[thisMonth] ? monthMap[thisMonth].amount : 0;
+  var activeN = sl.partners.filter(function(p) { return p.status === 'active'; }).length;
+
+  var kpisEl = document.getElementById('slEarnKpis');
+  kpisEl.innerHTML = '';
+  [
+    ['Lifetime Paid', formatCurrency(lifetime)],
+    ['This Month (' + thisMonth + ')', formatCurrency(thisMonthAmt)],
+    ['Last Payout (' + last.date + ')', formatCurrency(last.amount)],
+    ['Expected Payout', formatCurrency(expectedTotal)],
+    ['Active Partner Programs', formatNumber(activeN)]
+  ].forEach(function(item) {
+    kpisEl.appendChild(buildKpiCard(item[0], item[1], null));
+  });
+
+  createChart('chartSLMonthly', {
+    type: 'bar',
+    data: {
+      labels: months.map(function(m) { return m.month; }),
+      datasets: [{
+        label: 'Paid',
+        data: months.map(function(m) { return m.amount; }),
+        backgroundColor: '#209D50',
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 18 } },
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } }
+      }
+    }
+  });
+
+  var moBody = document.getElementById('slMonthlyBody');
+  moBody.innerHTML = '';
+  months.slice().reverse().forEach(function(m) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + m.month + '</td><td>' + formatCurrency(m.amount) + '</td><td>' + m.count + '</td>';
+    moBody.appendChild(tr);
+  });
+  var trTotal = document.createElement('tr');
+  trTotal.innerHTML = '<td><strong>Lifetime</strong></td><td><strong>' + formatCurrency(lifetime) +
+    '</strong></td><td><strong>' + paid.length + '</strong></td>';
+  moBody.appendChild(trTotal);
+
+  createChart('chartSLPayouts', {
+    type: 'bar',
+    data: {
+      labels: sl.payouts.map(function(p) { return p.date; }),
+      datasets: [{
+        label: 'Payout',
+        data: sl.payouts.map(function(p) { return p.amount; }),
+        backgroundColor: sl.payouts.map(function(p) { return p.status === 'Paid' ? '#209D50' : '#FFA500'; }),
+        borderRadius: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { maxRotation: 45, autoSkip: true, maxTicksLimit: 26 } },
+        y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } }
+      }
+    }
+  });
+
+  var poBody = document.getElementById('slPayoutsBody');
+  poBody.innerHTML = '';
+  sl.payouts.slice().reverse().forEach(function(p) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + p.date + '</td><td>' + formatCurrency(p.amount) + '</td>' +
+                   '<td>' + (p.status === 'Paid' ? 'Paid' : '<strong>Expected</strong>') + '</td>';
+    poBody.appendChild(tr);
+  });
+
+  var paBody = document.getElementById('slPartnersBody');
+  paBody.innerHTML = '';
+  sl.partners.forEach(function(p) {
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + p.name + '</td><td>' + p.status.replace(/_/g, ' ') + '</td>' +
+                   '<td>' + formatCurrency(p.cpa) + '</td><td>' + formatCurrency(p.maxPayout) + '</td>';
+    paBody.appendChild(tr);
+  });
+}
+
 function renderPacing() {
   var filtered = getFilteredData();
   var sorted = filtered.slice().sort(function(a, b) { return a.date.localeCompare(b.date); });
@@ -3623,6 +3811,7 @@ function renderCurrentTab() {
     case 'assets':      renderAssets(); break;
     case 'funnel':      renderFunnel(); break;
     case 'modeled':     renderModeled(); break;
+    case 'sparkloop':   renderSparkLoopDemo(); break;
     case 'pacing':      renderPacing(); break;
     case 'creative':    renderCreative(); break;
   }

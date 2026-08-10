@@ -136,6 +136,7 @@ const AI_DIMS=CFG.aiDims||[];
 const EDIT_OPTIONS=CFG.editOptions||{};   // controlled-dim dropdown values; others edit as text
 const WEBHOOK_URL=CFG.webhookUrl||"";     // Apps Script /exec to save tag edits back
 const MODELED=CFG.modeled||null;          // CRM truth layer config (optional)
+const SPARKLOOP=CFG.sparkloop||null;      // SparkLoop Earn tabs config (optional)
 const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
 let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);   // special dims appended after load when their tabs have data
 const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Revenue":"Leads");
@@ -172,6 +173,7 @@ let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
 // Rows carry the dim value under the dim's display name so aggByDim works as-is.
 let BRK={device:[],demo:[],hourly:[],pmax:[]};
 let MOD={rows:[],ga4:[]};   // CRM truth layer (monthly) + GA4 traffic, when configured
+let SL={payouts:[],partners:[]};   // SparkLoop Earn data, when configured
 function parseBrkTab(text, build){
   if(!text) return [];
   try{
@@ -197,8 +199,18 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              fetch(gvizUrl("Hourly")).then(r=>r.text()).catch(()=>""),
              fetch(gvizUrl("PMax Channels")).then(r=>r.text()).catch(()=>""),
              MODELED?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.tab||"Modeled Metrics")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             MODELED&&MODELED.ga4Tab?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.ga4Tab)).then(r=>r.text()).catch(()=>""):Promise.resolve("")])
- .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T])=>{
+             MODELED&&MODELED.ga4Tab?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.ga4Tab)).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
+             SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.payoutsTab||"SparkLoop Payouts")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
+             SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.partnersTab||"SparkLoop Partners")).then(r=>r.text()).catch(()=>""):Promise.resolve("")])
+ .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT])=>{
+   // SparkLoop Earn tabs (optional; written by the client's sparkloop pull script).
+   // Rows with no date (one legacy payout) are kept for totals, skipped in charts.
+   SL={payouts:[],partners:[]};
+   try{ parseGviz(slPayT).rows.forEach(r=>{ const d=String(r["Date"]||"").slice(0,10), a=pv(r["Amount (USD)"]);
+     if(a>0) SL.payouts.push({date:d, amount:a, status:String(r["Status"]||"").trim()}); }); }catch(e){}
+   try{ parseGviz(slParT).rows.forEach(r=>{ const n=String(r["Partner Program"]||"").trim();
+     if(n) SL.partners.push({name:n, status:String(r["Status"]||"").trim(), cpa:pv(r["CPA (USD)"]), maxPayout:pv(r["Max Payout (USD)"])}); }); }catch(e){}
+   SL.payouts.sort((a,b)=>a.date<b.date?-1:1);
    // CRM truth layer (optional tab)
    MOD.rows=[]; MOD.ga4=[];
    try{ parseGviz(modeledT).rows.forEach(r=>{ if(!r["Month"]||!r["Source"]) return;
@@ -285,6 +297,7 @@ function buildShell(){
       <button class="tab-btn" data-tab="headlines">Headlines &amp; Copy</button>
       <button class="tab-btn" data-tab="funnel">Funnel</button>
       ${MOD.rows.length?`<button class="tab-btn" data-tab="modeled">Cost per ${MODELED.noun||"Booking"}</button>`:""}
+      ${SL.payouts.length?`<button class="tab-btn" data-tab="sparkloop">SparkLoop</button>`:""}
       <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
       <button class="tab-btn" data-tab="creative">Creative</button>
     </div>
@@ -297,6 +310,7 @@ function buildShell(){
     <div id="tab-headlines" class="tab-content"></div>
     <div id="tab-funnel" class="tab-content"></div>
     ${MOD.rows.length?`<div id="tab-modeled" class="tab-content"></div>`:""}
+    ${SL.payouts.length?`<div id="tab-sparkloop" class="tab-content"></div>`:""}
     <div id="tab-pacing" class="tab-content"></div>
     <div id="tab-creative" class="tab-content"></div>`;
 
@@ -334,6 +348,7 @@ function render(){
   else if(state.tab==="headlines") renderHeadlines(f);
   else if(state.tab==="funnel") renderFunnel(f);
   else if(state.tab==="modeled") renderModeled();
+  else if(state.tab==="sparkloop") renderSparkLoopTab();
   else if(state.tab==="pacing") renderPacing(f);
   else if(state.tab==="creative") renderCreative(f);
 }
@@ -441,6 +456,63 @@ function renderHeadlines(f){
   document.getElementById("tab-headlines").innerHTML=
     `<div class="card"><h2>By Headline</h2><div style="overflow-x:auto">${tbl(heads)}</div></div>`+
     `<div class="card"><h2>By Primary Text</h2><div style="overflow-x:auto">${tbl(bodies)}</div></div>`;
+}
+
+/* ── SparkLoop partner earnings: weekly payouts as the API returns them,
+   monthly rollup, lifetime total. Whole-history view; ignores the global
+   date filter. Expected = payouts SparkLoop is preparing (paid=false). */
+function renderSparkLoopTab(){
+  const dated=SL.payouts.filter(p=>p.date);
+  const paid=SL.payouts.filter(p=>p.status==="Paid");
+  const expected=SL.payouts.filter(p=>p.status!=="Paid");
+  const lifetime=paid.reduce((s,p)=>s+p.amount,0);
+  const expectedTotal=expected.reduce((s,p)=>s+p.amount,0);
+  const monthMap={};
+  paid.forEach(p=>{ const m=p.date?p.date.slice(0,7):"(no date)";
+    (monthMap[m]=monthMap[m]||{amount:0,count:0}); monthMap[m].amount+=p.amount; monthMap[m].count++; });
+  const months=Object.keys(monthMap).sort().map(m=>({month:m,...monthMap[m]}));
+  const chartMonths=months.filter(m=>m.month!=="(no date)");
+  const datedPaid=dated.filter(p=>p.status==="Paid");
+  const last=datedPaid.length?datedPaid[datedPaid.length-1]:null;
+  const thisMonth=new Date().toISOString().slice(0,7);
+  const thisMonthAmt=monthMap[thisMonth]?monthMap[thisMonth].amount:0;
+  const activeN=SL.partners.filter(p=>p.status==="active").length;
+  const moRows=months.slice().reverse().map(m=>`<tr><td>${m.month}</td><td class="num">${money(m.amount)}</td><td class="num">${m.count}</td></tr>`).join("")+
+    `<tr><td><strong>Lifetime</strong></td><td class="num"><strong>${money(lifetime)}</strong></td><td class="num"><strong>${paid.length}</strong></td></tr>`;
+  const poRows=dated.slice().reverse().map(p=>`<tr><td>${p.date}</td><td class="num">${money(p.amount)}</td><td>${p.status==="Paid"?"Paid":"<strong>Expected</strong>"}</td></tr>`).join("");
+  const paRows=SL.partners.slice().sort((a,b)=>{
+      if((a.status==="active")!==(b.status==="active")) return a.status==="active"?-1:1;
+      return b.cpa-a.cpa; })
+    .map(p=>`<tr><td>${p.name}</td><td>${p.status.replace(/_/g," ")}</td><td class="num">${money(p.cpa)}</td><td class="num">${money(p.maxPayout)}</td></tr>`).join("");
+  document.getElementById("tab-sparkloop").innerHTML=`
+    <div class="kpis">
+      <div class="kpi"><div class="label">Lifetime Paid</div><div class="val">${money(lifetime)}</div></div>
+      <div class="kpi"><div class="label">This Month (${thisMonth})</div><div class="val">${money(thisMonthAmt)}</div></div>
+      <div class="kpi"><div class="label">Last Payout${last?" ("+last.date+")":""}</div><div class="val">${last?money(last.amount):"—"}</div></div>
+      <div class="kpi"><div class="label">Expected Payout</div><div class="val">${money(expectedTotal)}</div></div>
+      <div class="kpi"><div class="label">Active Partner Programs</div><div class="val">${num(activeN)}</div></div>
+    </div>
+    <div class="card"><h2>Weekly partner payouts</h2><div class="chart-wrap" style="height:280px;"><canvas id="slPayChart"></canvas></div></div>
+    <div class="card"><h2>Monthly totals</h2><div class="chart-wrap" style="height:240px;"><canvas id="slMonChart"></canvas></div>
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto;margin-top:10px;">
+      <table><thead><tr><th>Month</th><th class="num">Paid</th><th class="num">Payouts</th></tr></thead><tbody>${moRows}</tbody></table></div></div>
+    <div class="card"><h2>Payout history (weekly)</h2><div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
+      <table><thead><tr><th>Week Ending</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>${poRows}</tbody></table></div></div>
+    <div class="card"><h2>Partner programs (by CPA)</h2><div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
+      <table><thead><tr><th>Partner Program</th><th>Status</th><th class="num">CPA</th><th class="num">Max Payout</th></tr></thead><tbody>${paRows}</tbody></table></div></div>`;
+  makeChart("slPayChart",{type:"bar",
+    data:{labels:dated.map(p=>p.date),
+      datasets:[{label:"Payout",data:dated.map(p=>p.amount),
+        backgroundColor:dated.map(p=>p.status==="Paid"?COLORS[0]:COLORS[3]),borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:26}},
+              y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+  makeChart("slMonChart",{type:"bar",
+    data:{labels:chartMonths.map(m=>m.month),
+      datasets:[{label:"Paid",data:chartMonths.map(m=>m.amount),backgroundColor:COLORS[0],borderRadius:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:18}},
+              y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
 }
 
 /* ── CRM truth layer: cost per CRM conversion by source, monthly ──
