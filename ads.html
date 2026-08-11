@@ -553,6 +553,7 @@ function renderModeled(){
   const NOUN=(MODELED&&MODELED.noun)||"Booking", CRM=(MODELED&&MODELED.crmName)||"CRM";
   const CORR=(MODELED&&MODELED.corrFactor)||0;
   const isPaid=s=>s.indexOf("Paid ")===0;
+  const isAds=s=>isPaid(s)||s==="Google - Other";   // ads-scoped view: unpaid sources stay in the sheet, off the tab
   const adjB=(src,b)=>(modCorrOn&&CORR&&isPaid(src))?b*CORR:b;
   const months=[...new Set(MOD.rows.map(r=>r.month))].sort();
   // Real current month (not DMAX: the ad-ID product sheet can lag the modeled tabs)
@@ -572,16 +573,14 @@ function renderModeled(){
     if(pb>0) kpis+=`<div class="kpi"><div class="label">All Paid Cost/${NOUN} (${lm})</div><div class="val">${money(ps/pb)}</div></div>`;
   }
   const corrCtl=CORR?`<div style="margin:0 0 10px;font-size:13px;"><label style="cursor:pointer;"><input type="checkbox" id="modCorr"${modCorrOn?" checked":""}> Apply source-loss correction (&times;${CORR} on paid ${NOUN.toLowerCase()}s)</label><div class="note">${MODELED.corrNote||""}</div></div>`:"";
-  const tblBody=MOD.rows.slice().sort((a,b)=>a.month===b.month?(a.source<b.source?-1:1):(a.month<b.month?1:-1)).map(r=>{
+  const tblBody=MOD.rows.filter(r=>isAds(r.source)).sort((a,b)=>a.month===b.month?(a.source<b.source?-1:1):(a.month<b.month?1:-1)).map(r=>{
     const b=adjB(r.source,r.bookings), c=(r.spend>0&&b>0)?money(r.spend/b):"—";
     return `<tr><td>${r.month}${r.month===curMonth?" (MTD)":""}</td><td>${r.source}</td><td class="num">${(modCorrOn&&b!==r.bookings)?b.toFixed(1):num(r.bookings)}</td><td class="num">${num(r.cancels)||"—"}</td><td class="num">${r.spend>0?money(r.spend):"—"}</td><td class="num">${c}</td><td class="num">${r.claimed>0?num(r.claimed):"—"}</td></tr>`; }).join("");
   // Booking CVR vs GA4 sessions (generic source-prefix mapping; PMax traffic reports under Cross-network)
   const ga4Cell={}; MOD.ga4.forEach(r=>ga4Cell[r.month+"|"+r.channel]=r);
   const cvrGroups=[
     {label:"Paid Search (incl PMax)", channels:["Paid Search","Cross-network"], match:s=>s.indexOf("Paid Search")===0, paid:true},
-    {label:"Paid Social", channels:["Paid Social"], match:s=>s.indexOf("Paid Social")===0, paid:true},
-    {label:"Organic Search", channels:["Organic Search"], match:s=>s==="Organic Search", paid:false},
-    {label:"Direct", channels:["Direct"], match:s=>s.indexOf("Direct")===0, paid:false}];
+    {label:"Paid Social", channels:["Paid Social"], match:s=>s.indexOf("Paid Social")===0, paid:true}];
   let cvrBody="";
   months.slice().reverse().forEach(m=>{ cvrGroups.forEach(g=>{
     let sess=0,book=0;
@@ -590,10 +589,10 @@ function renderModeled(){
     if(g.paid&&modCorrOn&&CORR) book*=CORR;
     if(!sess&&!book) return;
     cvrBody+=`<tr><td>${m}${m===curMonth?" (MTD)":""}</td><td>${g.label}</td><td class="num">${num(sess)}</td><td class="num">${(modCorrOn&&g.paid)?book.toFixed(1):num(book)}</td><td class="num">${sess>0?(100*book/sess).toFixed(2)+"%":"—"}</td></tr>`; }); });
-  const ga4Card=MOD.ga4.length?`<div class="card"><h2>GA4 sessions by channel (monthly)</h2><div class="chart-wrap"><canvas id="modGa4"></canvas></div></div>
+  const ga4Card=MOD.ga4.length?`<div class="card"><h2>GA4 sessions by paid channel (monthly)</h2><div class="chart-wrap"><canvas id="modGa4"></canvas></div></div>
     <div class="card"><h2>${NOUN} conversion rate (${CRM.toLowerCase()==="crm"?"CRM":CRM} ${NOUN.toLowerCase()}s &divide; GA4 sessions)</h2><div style="overflow-x:auto"><table><thead><tr><th>Month</th><th>Channel</th><th class="num">GA4 Sessions</th><th class="num">${NOUN}s</th><th class="num">CVR</th></tr></thead><tbody>${cvrBody}</tbody></table></div></div>`:"";
   document.getElementById("tab-modeled").innerHTML=
-    `<div class="note" style="margin-bottom:10px;">${NOUN}s are created in ${CRM}, counted once each by Create date and Original source (the truth layer). Platform-claimed conversions are reference only and are never summed across platforms. Monthly view; the date filter above does not apply.</div>
+    `<div class="note" style="margin-bottom:10px;">Paid sources only. ${NOUN}s are created in ${CRM}, counted once each by Create date and Original source (the truth layer). Platform-claimed conversions are reference only and are never summed across platforms. Monthly view; the date filter above does not apply.</div>
      ${corrCtl}
      <div class="kpis">${kpis}</div>
      <div class="card"><h2>Cost per ${NOUN.toLowerCase()} by source (${CRM} vs platform spend)</h2><div class="chart-wrap"><canvas id="modCpb"></canvas></div></div>
@@ -604,12 +603,13 @@ function renderModeled(){
   if(corrEl) corrEl.addEventListener("change",e=>{ modCorrOn=e.target.checked; renderModeled(); });
   makeChart("modCpb",{type:"line",data:{labels:months,datasets:paidSources.filter(s=>months.some(m=>cpb(m,s)!==null)).map((s,i)=>({label:s,borderColor:COLORS[i%COLORS.length],backgroundColor:COLORS[i%COLORS.length],spanGaps:false,tension:.25,data:months.map(m=>cpb(m,s))}))},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
-  const srcTotals={}; MOD.rows.forEach(r=>srcTotals[r.source]=(srcTotals[r.source]||0)+r.bookings);
+  const srcTotals={}; MOD.rows.forEach(r=>{ if(isAds(r.source)) srcTotals[r.source]=(srcTotals[r.source]||0)+r.bookings; });
   const allSources=Object.keys(srcTotals).filter(s=>srcTotals[s]>0).sort((a,b)=>srcTotals[b]-srcTotals[a]);
   makeChart("modBook",{type:"bar",data:{labels:months,datasets:allSources.map((s,i)=>({label:s,backgroundColor:COLORS[i%COLORS.length],data:months.map(m=>{const r=cellMap[m+"|"+s];return r?r.bookings:0;})}))},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
   if(MOD.ga4.length){
-    const chTot={}; MOD.ga4.forEach(r=>chTot[r.channel]=(chTot[r.channel]||0)+r.sessions);
+    const GA4_PAID=["Paid Search","Paid Social","Cross-network","Display","Paid Other","Paid Shopping","Paid Video"];
+    const chTot={}; MOD.ga4.forEach(r=>{ if(GA4_PAID.includes(r.channel)) chTot[r.channel]=(chTot[r.channel]||0)+r.sessions; });
     const chans=Object.keys(chTot).sort((a,b)=>chTot[b]-chTot[a]);
     const top=chans.slice(0,6);
     const gaMonths=[...new Set(MOD.ga4.map(r=>r.month))].sort();

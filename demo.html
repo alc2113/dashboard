@@ -881,9 +881,9 @@ td.edit.saved{background:#eaf7ef;}
   <!-- COST PER ORDER (MODELED METRICS) TAB -->
   <div id="tab-modeled" class="tab-content">
     <div style="font-size:12px;color:#666;margin-bottom:12px;">
-      Orders are counted once each in the CRM by Create date and Original source (the truth layer).
-      Platform-claimed conversions are shown for reference only and are never summed across platforms.
-      Monthly view; the date filter above does not apply to this tab.
+      Paid sources only. Orders are counted once each in the CRM by Create date and Original source
+      (the truth layer). Platform-claimed conversions are shown for reference only and are never summed
+      across platforms. Monthly view; the date filter above does not apply to this tab.
     </div>
     <div class="kpi-grid" id="modeledKpis" style="margin-bottom:16px;"></div>
     <div class="chart-container">
@@ -891,7 +891,7 @@ td.edit.saved{background:#eaf7ef;}
       <div class="chart-wrap"><canvas id="chartModeledCpb"></canvas></div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">Orders by Source (CRM, monthly)</div>
+      <div class="chart-title">Orders by Paid Source (CRM, monthly)</div>
       <div class="chart-wrap"><canvas id="chartModeledBookings"></canvas></div>
     </div>
     <div class="chart-container">
@@ -921,7 +921,7 @@ td.edit.saved{background:#eaf7ef;}
       </div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">GA4 Sessions by Channel (monthly)</div>
+      <div class="chart-title">GA4 Sessions by Paid Channel (monthly)</div>
       <div class="chart-wrap"><canvas id="chartGa4Traffic"></canvas></div>
     </div>
   </div>
@@ -3788,9 +3788,11 @@ function renderModeled() {
     }
   });
 
+  // Ads-scoped view: unpaid sources stay in the sheet but off the tab
+  function isAdsSource(s) { return s.indexOf('Paid ') === 0 || s === 'Google - Other'; }
   var sources = [];
   var seenS = {};
-  modeledData.forEach(function(r) { if (r.bookings > 0 && !seenS[r.source]) { seenS[r.source] = 1; sources.push(r.source); } });
+  modeledData.forEach(function(r) { if (isAdsSource(r.source) && r.bookings > 0 && !seenS[r.source]) { seenS[r.source] = 1; sources.push(r.source); } });
   var totalBySource = {};
   modeledData.forEach(function(r) { totalBySource[r.source] = (totalBySource[r.source] || 0) + r.bookings; });
   sources.sort(function(a, b) { return totalBySource[b] - totalBySource[a]; });
@@ -3810,7 +3812,7 @@ function renderModeled() {
     }
   });
 
-  var rows = modeledData.slice().sort(function(a, b) {
+  var rows = modeledData.filter(function(r) { return isAdsSource(r.source); }).sort(function(a, b) {
     return a.month === b.month ? (a.source < b.source ? -1 : 1) : (a.month < b.month ? 1 : -1);
   });
   document.getElementById('modeledTableBody').innerHTML = rows.map(function(r) {
@@ -3827,11 +3829,7 @@ function renderModeled() {
     { label: 'Paid Search (incl PMax)', channels: ['Paid Search', 'Cross-network'],
       match: function(s) { return s.indexOf('Paid Search') === 0; } },
     { label: 'Paid Social (Meta)', channels: ['Paid Social'],
-      match: function(s) { return s.indexOf('Paid Social') === 0; } },
-    { label: 'Organic Search', channels: ['Organic Search'],
-      match: function(s) { return s === 'Organic Search'; } },
-    { label: 'Direct', channels: ['Direct'],
-      match: function(s) { return s.indexOf('Direct') === 0; } }
+      match: function(s) { return s.indexOf('Paid Social') === 0; } }
   ];
   var cvrHtml = '';
   months.slice().reverse().forEach(function(m) {
@@ -3847,8 +3845,12 @@ function renderModeled() {
   });
   document.getElementById('modeledCvrBody').innerHTML = cvrHtml;
 
+  var GA4_PAID_CHANNELS = ['Paid Search', 'Paid Social', 'Cross-network', 'Display', 'Paid Other', 'Paid Shopping', 'Paid Video'];
   var chTotals = {};
-  ga4TrafficData.forEach(function(r) { chTotals[r.channel] = (chTotals[r.channel] || 0) + r.sessions; });
+  ga4TrafficData.forEach(function(r) {
+    if (GA4_PAID_CHANNELS.indexOf(r.channel) === -1) return;
+    chTotals[r.channel] = (chTotals[r.channel] || 0) + r.sessions;
+  });
   var channels = Object.keys(chTotals).sort(function(a, b) { return chTotals[b] - chTotals[a]; });
   var topCh = channels.slice(0, 6);
   var gaMonths = [];

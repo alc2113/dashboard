@@ -884,9 +884,9 @@ tr:hover td{background:#fafaf8;}
   <!-- COST PER BOOKING (MODELED METRICS) TAB -->
   <div id="tab-modeled" class="tab-content">
     <div style="font-size:12px;color:#666;margin-bottom:12px;">
-      Bookings are discovery calls created in HubSpot, counted once each by Create date and Original source
-      (the truth layer). Platform-claimed conversions are shown for reference only and are never summed
-      across platforms. Monthly view since Jan 2026; the date filter above does not apply to this tab.
+      Paid sources only. Bookings are discovery calls created in HubSpot, counted once each by Create date
+      and Original source (the truth layer). Platform-claimed conversions are shown for reference only and
+      are never summed across platforms. Monthly view since Jan 2026; the date filter above does not apply to this tab.
     </div>
     <div style="margin-bottom:14px;font-size:13px;">
       <label style="cursor:pointer;"><input type="checkbox" id="modeledCorrToggle"> Apply widget-loss correction (&times;1.375 on paid bookings)</label>
@@ -901,7 +901,7 @@ tr:hover td{background:#fafaf8;}
       <div class="chart-wrap"><canvas id="chartModeledCpb"></canvas></div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">Bookings by Source (HubSpot, monthly)</div>
+      <div class="chart-title">Bookings by Paid Source (HubSpot, monthly)</div>
       <div class="chart-wrap"><canvas id="chartModeledBookings"></canvas></div>
     </div>
     <div class="chart-container">
@@ -931,7 +931,7 @@ tr:hover td{background:#fafaf8;}
       </div>
     </div>
     <div class="chart-container">
-      <div class="chart-title">GA4 Sessions by Channel (monthly)</div>
+      <div class="chart-title">GA4 Sessions by Paid Channel (monthly)</div>
       <div class="chart-wrap"><canvas id="chartGa4Traffic"></canvas></div>
     </div>
   </div>
@@ -3535,10 +3535,12 @@ function renderModeled() {
     }
   });
 
-  // Bookings by source, stacked monthly (raw HubSpot counts, no correction)
+  // Bookings by paid source, stacked monthly (raw HubSpot counts, no correction).
+  // Ads-scoped view: organic/direct/referral sources stay in the sheet but off the tab.
+  function isAdsSource(s) { return s.indexOf('Paid ') === 0 || s === 'Google - Other'; }
   var sources = [];
   var seenS = {};
-  modeledData.forEach(function(r) { if (r.bookings > 0 && !seenS[r.source]) { seenS[r.source] = 1; sources.push(r.source); } });
+  modeledData.forEach(function(r) { if (isAdsSource(r.source) && r.bookings > 0 && !seenS[r.source]) { seenS[r.source] = 1; sources.push(r.source); } });
   var totalBySource = {};
   modeledData.forEach(function(r) { totalBySource[r.source] = (totalBySource[r.source] || 0) + r.bookings; });
   sources.sort(function(a, b) { return totalBySource[b] - totalBySource[a]; });
@@ -3558,8 +3560,8 @@ function renderModeled() {
     }
   });
 
-  // Monthly detail table (newest first; current month tagged MTD; raw bookings)
-  var rows = modeledData.slice().sort(function(a, b) {
+  // Monthly detail table (paid rows only, newest first; current month tagged MTD)
+  var rows = modeledData.filter(function(r) { return isAdsSource(r.source); }).sort(function(a, b) {
     return a.month === b.month ? (a.source < b.source ? -1 : 1) : (a.month < b.month ? 1 : -1);
   });
   document.getElementById('modeledTableBody').innerHTML = rows.map(function(r) {
@@ -3578,9 +3580,7 @@ function renderModeled() {
   var cvrGroups = [
     { label: 'Paid Search (incl PMax)', channels: ['Paid Search', 'Cross-network'],
       buckets: ['Paid Search - Brand', 'Paid Search - NonBrand', 'Paid Search - PMax', 'Paid Search - Other'], paid: true },
-    { label: 'Paid Social (Meta)', channels: ['Paid Social'], buckets: ['Paid Social (Meta)'], paid: true },
-    { label: 'Organic Search', channels: ['Organic Search'], buckets: ['Organic Search'], paid: false },
-    { label: 'Direct', channels: ['Direct'], buckets: ['Direct - Other', 'Direct - Meetings widget'], paid: false }
+    { label: 'Paid Social (Meta)', channels: ['Paid Social'], buckets: ['Paid Social (Meta)'], paid: true }
   ];
   var cvrHtml = '';
   months.slice().reverse().forEach(function(m) {
@@ -3597,9 +3597,13 @@ function renderModeled() {
   });
   document.getElementById('modeledCvrBody').innerHTML = cvrHtml;
 
-  // GA4 sessions by channel (top channels, rest grouped as Other)
+  // GA4 sessions, paid channels only (Cross-network = mostly PMax)
+  var GA4_PAID_CHANNELS = ['Paid Search', 'Paid Social', 'Cross-network', 'Display', 'Paid Other', 'Paid Shopping', 'Paid Video'];
   var chTotals = {};
-  ga4TrafficData.forEach(function(r) { chTotals[r.channel] = (chTotals[r.channel] || 0) + r.sessions; });
+  ga4TrafficData.forEach(function(r) {
+    if (GA4_PAID_CHANNELS.indexOf(r.channel) === -1) return;
+    chTotals[r.channel] = (chTotals[r.channel] || 0) + r.sessions;
+  });
   var channels = Object.keys(chTotals).sort(function(a, b) { return chTotals[b] - chTotals[a]; });
   var topCh = channels.slice(0, 6);
   var gaMonths = [];
