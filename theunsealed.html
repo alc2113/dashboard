@@ -411,8 +411,7 @@ tr.clickable:hover td{background:#f0f9f3;}
     <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
     <button class="tab-btn" data-tab="explorer">Ad Explorer</button>
     <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
-    <button class="tab-btn" data-tab="creative">Creative</button>
-    <button class="tab-btn" data-tab="creativetags">Creative Tags</button>
+    <button class="tab-btn" data-tab="creativetags">Creative</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="sparkloop">FB + SparkLoop</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
@@ -646,28 +645,7 @@ tr.clickable:hover td{background:#f0f9f3;}
     </div>
   </div>
 
-  <!-- CREATIVE TAB -->
-  <div id="tab-creative" class="tab-content">
-    <h2 style="margin-bottom:24px">Creative Performance</h2>
-    <div style="margin-bottom:20px">
-      <h3 style="margin-bottom:12px">By Ad Type</h3>
-      <div class="chart-row">
-        <div class="chart-container"><div class="chart-title">Spend by Ad Type</div><div class="chart-wrap"><canvas id="chartCreativeTypeSpend"></canvas></div></div>
-        <div class="chart-container"><div class="chart-title">CPA by Ad Type</div><div class="chart-wrap"><canvas id="chartCreativeTypeCPA"></canvas></div></div>
-      </div>
-      <div class="table-wrap"><table id="creativeTypeTable"><thead id="creativeTypeHead"></thead><tbody id="creativeTypeBody"></tbody></table></div>
-    </div>
-    <div>
-      <h3 style="margin-bottom:12px">By Theme</h3>
-      <div class="chart-row">
-        <div class="chart-container"><div class="chart-title">Spend by Theme</div><div class="chart-wrap"><canvas id="chartCreativeThemeSpend"></canvas></div></div>
-        <div class="chart-container"><div class="chart-title">CPA by Theme</div><div class="chart-wrap"><canvas id="chartCreativeThemeCPA"></canvas></div></div>
-      </div>
-      <div class="table-wrap"><table id="creativeThemeTable"><thead id="creativeThemeHead"></thead><tbody id="creativeThemeBody"></tbody></table></div>
-    </div>
-  </div>
-
-  <!-- CREATIVE TAGS TAB (AI-tagged ads from the product sheet, like SOG) -->
+  <!-- CREATIVE TAB (AI-tagged ads from the product sheet, like SOG; replaced the old Ad Type/Theme charts 2026-08-11) -->
   <div id="tab-creativetags" class="tab-content">
     <div id="cr-content"><div style="padding:24px;color:#888">Loading creative tags…</div></div>
   </div>
@@ -2590,71 +2568,6 @@ function renderSparkLoop() {
 }
 
 // ========================================================================
-// TAB: CREATIVE PERFORMANCE
-// ========================================================================
-function renderCreative() {
-  var filtered = getFilteredData();
-
-  function renderCreativeSection(groupKeyFn, groupLabel, spendChartId, cpaChartId, headId, bodyId) {
-    var grouped = groupBy(filtered, groupKeyFn).filter(function(g) {
-      return g.key && g.key !== '(none)' && g.key.trim() !== '';
-    });
-    var sorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; });
-
-    var chartColors = [];
-    for (var i = 0; i < sorted.length; i++) chartColors.push(COLORS[i % COLORS.length]);
-    var labels = sorted.map(function(g) { return g.key; });
-
-    createChart(spendChartId, {
-      type: 'bar',
-      data: { labels: labels, datasets: [{ label: 'Spend', data: sorted.map(function(g) { return g.spend; }), backgroundColor: chartColors, borderRadius: 4 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toLocaleString(); } } } } }
-    });
-
-    createChart(cpaChartId, {
-      type: 'bar',
-      data: { labels: labels, datasets: [{ label: 'Cost/Purchase', data: sorted.map(function(g) { return g.costPerPurchase; }), backgroundColor: chartColors, borderRadius: 4 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + v.toFixed(2); } } } } }
-    });
-
-    var head = document.getElementById(headId);
-    head.innerHTML = '<tr><th>' + groupLabel + '</th><th>Spend</th><th>Imp</th><th>Clicks</th><th>CTR</th><th>Purchases</th><th>Revenue</th><th>ROAS</th><th>CPA</th><th>ATC</th><th>Cost/ATC</th><th>LPV</th><th>Hook%</th><th>Eng%</th></tr>';
-
-    var body = document.getElementById(bodyId);
-    body.innerHTML = '';
-    sorted.forEach(function(g) {
-      var costPerATC = g.atc > 0 ? g.spend / g.atc : 0;
-      var tr = document.createElement('tr');
-      tr.innerHTML =
-        '<td>' + escHtml(g.key) + '</td>' +
-        '<td>' + formatCurrency(g.spend) + '</td>' +
-        '<td>' + formatNumber(g.impressions) + '</td>' +
-        '<td>' + formatNumber(g.clicks) + '</td>' +
-        '<td>' + formatPct(g.ctr) + '</td>' +
-        '<td>' + formatNumber(g.purchases) + '</td>' +
-        '<td>' + formatCurrency(g.revenue) + '</td>' +
-        '<td>' + formatROAS(g.roas) + '</td>' +
-        '<td>' + formatCurrency(g.costPerPurchase) + '</td>' +
-        '<td>' + formatNumber(g.atc) + '</td>' +
-        '<td>' + formatCurrency(costPerATC) + '</td>' +
-        '<td>' + formatNumber(g.lpv) + '</td>' +
-        '<td>' + formatPct(g.hookRate) + '</td>' +
-        '<td>' + formatPct(g.engRate) + '</td>';
-      body.appendChild(tr);
-    });
-  }
-
-  renderCreativeSection(
-    function(r) { return r.type || '(none)'; }, 'Ad Type',
-    'chartCreativeTypeSpend', 'chartCreativeTypeCPA', 'creativeTypeHead', 'creativeTypeBody'
-  );
-  renderCreativeSection(
-    function(r) { return r.theme || '(none)'; }, 'Theme',
-    'chartCreativeThemeSpend', 'chartCreativeThemeCPA', 'creativeThemeHead', 'creativeThemeBody'
-  );
-}
-
-// ========================================================================
 // TAB: BUDGET PACING
 // ========================================================================
 // Budgets tab (Month = YYYY-MM, Budget = monthly ad budget). The most recent
@@ -2850,7 +2763,6 @@ function renderCurrentTab() {
     case 'leaderboard': renderLeaderboard(); break;
     case 'explorer':    renderExplorer(); break;
     case 'breakdowns':  renderBreakdowns(); break;
-    case 'creative':    renderCreative(); break;
     case 'creativetags': if (window.crRefresh) window.crRefresh(); break;
     case 'funnel':      renderFunnel(); break;
     case 'sparkloop':   renderSparkLoop(); break;
