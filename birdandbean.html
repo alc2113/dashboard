@@ -404,8 +404,8 @@ function dimTable(out,label){
 function dimChart(id,out){
   const top=out.slice().sort((a,b)=>b.spend-a.spend).slice(0,12);
   makeChart(id,{type:"bar",data:{labels:top.map(x=>x.k),datasets:[
-      {label:"Spend",data:top.map(x=>x.spend),backgroundColor:COLORS[0],yAxisID:"x"},
-      {label:"Revenue",data:top.map(x=>x.rev),backgroundColor:COLORS[1],yAxisID:"x"}]},
+      {label:"Spend",data:top.map(x=>x.spend),backgroundColor:COLORS[0]},
+      {label:"Revenue",data:top.map(x=>x.rev),backgroundColor:COLORS[1]}]},
     options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
 }
 function renderCampaigns(f){
@@ -546,11 +546,10 @@ function kpiHtml(f){
     <div class="kpi hero"><div class="label">ROAS</div><div class="val">${t.roas.toFixed(2)}x</div>${kd(t.roas,pAgg&&pAgg.roas,false)}</div>
     <div class="kpi hero"><div class="label">CPA</div><div class="val">${t.leads?money(t.cpa):"—"}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}<div class="sublabel">cost per purchase</div></div>
     <div class="kpi hero"><div class="label">AOV</div><div class="val">${t.leads?money(t.aov):"—"}</div>${kd(t.aov,pAgg&&pAgg.aov,false,money)}<div class="sublabel">Meta-attributed order value</div></div>
-    <div class="kpi muted"><div class="label">LTV</div><div class="val">—</div><div class="sublabel">Needs customer purchase history. Not connected yet.</div></div>
     <div class="kpi"><div class="label">Total Spend</div><div class="val">${money(t.spend)}</div>${kd(t.spend,pAgg&&pAgg.spend,false,money)}</div>
     <div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div>${kd(t.rev,pAgg&&pAgg.rev,false,money)}</div>
     <div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>
-    <div class="kpi"><div class="label">Active Ads</div><div class="val">${t.ads}</div>${kd(t.ads,pAgg&&pAgg.ads,false)}</div></div>
+</div>
     ${pAgg?`<div class="note" style="margin:-12px 0 16px;">Changes compare to the previous ${spanDays} days (${pFrom} to ${pTo}).</div>`:""}`;
 }
 
@@ -592,17 +591,20 @@ function periodTable(rows,keyFn,colLabel,labelFn){
   return `<table><thead><tr><th>${colLabel}</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${RES_HEAD}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
+// Trailing N-day ROAS per day (sum revenue / sum spend over the window), so the line shows the
+// trend instead of echoing each day's revenue spike.
+function rolling(s,n){ return s.days.map((_,i)=>{ let sp=0,rv=0; for(let k=Math.max(0,i-n+1);k<=i;k++){sp+=s.spend[k];rv+=s.rev[k];} return sp?+(rv/sp).toFixed(2):null; }); }
 function renderOverview(f){
   const s=dailySeries(f);
   document.getElementById("tab-overview").innerHTML=kpiHtml(f)+
-    `<div class="card"><h2>Spend & Revenue over time</h2><div class="chart-wrap"><canvas id="ovTrend"></canvas></div></div>
+    `<div class="card"><h2>Spend & Revenue over time <span class="note" style="display:inline;font-weight:400;">dashed line = trailing 7-day ROAS</span></h2><div class="chart-wrap"><canvas id="ovTrend"></canvas></div></div>
      <div class="card"><h2>Week over Week — all campaigns</h2><div style="overflow-x:auto">${periodTable(f,weekKey,"Week of")}</div></div>
      <div class="card"><h2>Month over Month — all campaigns</h2><div style="overflow-x:auto">${periodTable(f,monthKey,"Month",monthLabel)}</div></div>`;
   makeChart("ovTrend",{ type:"line",
     data:{ labels:s.days, datasets:[
       {label:"Spend",data:s.spend,borderColor:COLORS[0],backgroundColor:"rgba(59,74,99,.12)",yAxisID:"y",tension:.25,fill:true},
       {label:"Revenue",data:s.rev,borderColor:COLORS[1],backgroundColor:"rgba(232,128,79,.1)",yAxisID:"y",tension:.25,fill:true},
-      {label:"ROAS",data:s.roas,borderColor:COLORS[5],yAxisID:"y1",tension:.25,borderDash:[4,3],pointRadius:2}
+      {label:"7-day ROAS",data:rolling(s,7),borderColor:COLORS[5],yAxisID:"y1",tension:.25,borderDash:[4,3],pointRadius:0,borderWidth:2}
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom"}},
       scales:{y:{position:"left",ticks:{callback:v=>"$"+v.toLocaleString()}},y1:{position:"right",grid:{drawOnChartArea:false},ticks:{callback:v=>(+v).toFixed(1)+"x"}}}}});
