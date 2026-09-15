@@ -1020,7 +1020,7 @@ tr:hover td{background:#fafaf8;}
           <option value="line">By service line and platform</option>
           <option value="campaign">By campaign</option>
           <option value="keyword">By Google keyword</option>
-          <option value="ad" disabled>By Meta ad (needs the click-to-ad map)</option>
+          <option value="ad" id="dealsDimAd" disabled>By Meta ad (needs the click-to-ad map)</option>
         </select>
       </div>
       <div style="font-size:12px;color:#666;margin-bottom:8px;" id="dealsDimNote"></div>
@@ -3821,6 +3821,10 @@ function renderDeals() {
 
   var asOfEl = document.getElementById('dealsAsOf');
   if (!dealsData.length) { asOfEl.textContent = 'No deal data loaded yet (HS Deals tab is empty).'; return; }
+  var adOpt = document.getElementById('dealsDimAd');
+  var hasAds = dealsData.some(function(r) { return r.ad; });
+  adOpt.disabled = !hasAds;
+  adOpt.textContent = hasAds ? 'By Meta ad' : 'By Meta ad (needs the click-to-ad map)';
   asOfEl.textContent = 'Deal data as of ' + (dealsData[0].asOf || '') + ' via ' + dealsData[0].dataSource + '. ' +
     formatNumber(dealsData.length) + ' deals in HubSpot.';
 
@@ -3997,6 +4001,9 @@ function renderDeals() {
       key = 'google|' + label; spendKey = kwSpendWin[dealsNormName(label)];
     } else if (dim === 'line') {
       label = r.line; key = d.plat + '|' + label; spendKey = null;
+    } else if (dim === 'ad') {
+      if (d.plat !== 'meta') return;
+      label = r.ad || '(ad not logged)'; key = 'meta|' + label; spendKey = null;
     } else return;
     if (!brows[key]) { brows[key] = dealsEmptyAgg(); bMeta[key] = { label: label, plat: platLabel }; brows[key].spend = spendKey || 0; }
     else if (dim === 'campaign' && label !== label.toLowerCase() && bMeta[key].label === bMeta[key].label.toLowerCase()) bMeta[key].label = label;
@@ -4005,6 +4012,7 @@ function renderDeals() {
   if (dim === 'campaign') note = 'Campaign as recorded by HubSpot. Spend joins to the ad platform by name (mapped: pmax_callsbooked, sog nonbranded search, sog branded search, retargeting_completeregistration). Campaigns without spend in the window show no cost.';
   if (dim === 'keyword') note = 'Google deals only. PMax has no keywords, so its deals sit on one row. Spend joins to the Keywords tab by keyword text.';
   if (dim === 'line') note = 'Service line by platform. Spend is not split by service line, so cost columns are blank here; use the scorecard for cost.';
+  if (dim === 'ad') note = 'Meta deals by the ad the contact clicked, from the click log. Deals whose click happened before the log went live show as not logged. Ad-level spend join comes next.';
   document.getElementById('dealsDimNote').textContent = note;
   var bKeys = Object.keys(brows).sort(function(a, b) { return brows[b].deals - brows[a].deals || brows[b].wonValue - brows[a].wonValue; });
   var bMax = { wonValue: 0, spend: 0, deals: 0 };
@@ -4182,7 +4190,7 @@ async function loadData() {
                        closeDate: dl['Close Date'], line: dl['Service Line'], pipeline: dl['Pipeline'], stage: dl['Stage'],
                        cstage: dl['Canonical Stage'], outcome: dl['Outcome'], source: dl['Source'], bucket: dl['Source Bucket'],
                        campaign: dl['Campaign'], latestBucket: dl['Latest Bucket'], latestCampaign: dl['Latest Campaign'],
-                       keyword: dl['Keyword'] || '', latestKeyword: dl['Latest Keyword'] || '',
+                       keyword: dl['Keyword'] || '', latestKeyword: dl['Latest Keyword'] || '', ad: dl['Ad'] || '',
                        value: pv(dl['Deal Value']), leadMagnet: dl['Lead Magnet'] === 'Y', owner: dl['Owner'],
                        leadCallDate: dl['Lead Call Date'], proposalDate: dl['Proposal Date'], wonDate: dl['Won Date'],
                        completeDate: dl['Complete Date'], asOf: dl['As Of'], dataSource: dl['Data Source'] });

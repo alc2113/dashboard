@@ -40,6 +40,15 @@ window.AD_CLIENTS = {
       corrFactor: 1.375,
       corrNote: "Some paid-driven bookings lose their source to the HubSpot Meetings widget cookie issue. 1.375 is the July 2026 cross-channel analysis midpoint (bounds +11% to +37%)."
     },
+    // CRM pipeline + revenue (optional): adds a "Pipeline & Revenue" tab reading
+    // the deal snapshot + change-log tabs (one row per CRM deal, joined to spend
+    // from the modeled + daily ad rows). Same sheet as `modeled` for SOG.
+    deals: {
+      sheetId: "19X1yl62Z_xSRic4Xz8JTurKjNNgcmRWuXNRYM5zYnfA",  // SOG main dashboard sheet
+      dealsTab: "HS Deals",
+      changesTab: "HS Deal Changes",
+      crmName: "HubSpot"
+    },
     dimensions: ["Format", "Audience", "Funnel", "Placement",
                  "Message Motivator", "Secondary Motivator", "Production Style",
                  "Subject", "Aspect Ratio", "Offer", "Product/Service"],

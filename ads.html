@@ -78,6 +78,12 @@ th{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--mu
 .tbl-delta.good{color:var(--good);}
 .tbl-delta.bad{color:var(--bad);}
 .tbl-delta.neutral{color:var(--muted);}
+/* Pipeline & Revenue tab (optional, registry `deals`) */
+.deals-tbl th{cursor:default;}
+.deals-tbl td.dbar{position:relative;}
+.deals-tbl .dbar-fill{position:absolute;left:4px;top:5px;bottom:5px;background:#e3efe7;border-radius:2px;}
+.deals-tbl .dbar-txt{position:relative;}
+.deals-sel{font:inherit;font-size:13px;font-weight:400;padding:3px 7px;border:1px solid var(--border);border-radius:7px;background:#fff;}
 th.num,td.num{text-align:right;}
 tbody tr:hover{background:var(--header-bg);}
 .thumb{width:42px; height:42px; border-radius:6px; object-fit:cover; background:var(--header-bg); display:block;}
@@ -158,6 +164,7 @@ const EDIT_OPTIONS=CFG.editOptions||{};   // controlled-dim dropdown values; oth
 const WEBHOOK_URL=CFG.webhookUrl||"";     // Apps Script /exec to save tag edits back
 const MODELED=CFG.modeled||null;          // CRM truth layer config (optional)
 const SPARKLOOP=CFG.sparkloop||null;      // SparkLoop Earn tabs config (optional)
+const DEALS=CFG.deals||null;              // CRM pipeline + revenue config (optional)
 const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
 let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);   // special dims appended after load when their tabs have data
 const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Revenue":"Leads");
@@ -195,6 +202,8 @@ let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
 let BRK={device:[],demo:[],hourly:[],pmax:[]};
 let MOD={rows:[],ga4:[]};   // CRM truth layer (monthly) + GA4 traffic, when configured
 let SL={payouts:[],partners:[]};   // SparkLoop Earn data, when configured
+let dealsData=[];          // CRM deal snapshot: one row per deal, when `deals` is configured
+let dealChangesData=[];    // CRM deal change log (append-only), when `deals` is configured
 function parseBrkTab(text, build){
   if(!text) return [];
   try{
@@ -240,8 +249,25 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              MODELED?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.tab||"Modeled Metrics")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
              MODELED&&MODELED.ga4Tab?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.ga4Tab)).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
              SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.payoutsTab||"SparkLoop Payouts")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.partnersTab||"SparkLoop Partners")).then(r=>r.text()).catch(()=>""):Promise.resolve("")])
- .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT])=>{
+             SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.partnersTab||"SparkLoop Partners")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
+             DEALS?fetch(gvizUrlFor(DEALS.sheetId||SHEET_ID,DEALS.dealsTab||"HS Deals")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
+             DEALS?fetch(gvizUrlFor(DEALS.sheetId||SHEET_ID,DEALS.changesTab||"HS Deal Changes")).then(r=>r.text()).catch(()=>""):Promise.resolve("")])
+ .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT, dealsT, dealChgT])=>{
+   // CRM deal snapshot + change log (optional; Pipeline & Revenue tab)
+   dealsData=[]; dealChangesData=[];
+   try{ parseGviz(dealsT).rows.forEach(dl=>{ if(!dl["Deal ID"]) return;
+     dealsData.push({ id:String(dl["Deal ID"]).replace(/\.0$/,""), created:dl["Created"]||"", createdMonth:dl["Created Month"]||"",
+       closeDate:dl["Close Date"]||"", line:dl["Service Line"]||"", pipeline:dl["Pipeline"]||"", stage:dl["Stage"]||"",
+       cstage:dl["Canonical Stage"]||"", outcome:dl["Outcome"]||"", source:dl["Source"]||"", bucket:dl["Source Bucket"]||"",
+       campaign:dl["Campaign"]||"", latestBucket:dl["Latest Bucket"]||"", latestCampaign:dl["Latest Campaign"]||"",
+       keyword:dl["Keyword"]||"", latestKeyword:dl["Latest Keyword"]||"",
+       value:pv(dl["Deal Value"]), leadMagnet:dl["Lead Magnet"]==="Y", owner:dl["Owner"]||"",
+       leadCallDate:dl["Lead Call Date"]||"", proposalDate:dl["Proposal Date"]||"", wonDate:dl["Won Date"]||"",
+       completeDate:dl["Complete Date"]||"", asOf:dl["As Of"]||"", dataSource:dl["Data Source"]||"" }); }); }catch(e){}
+   try{ parseGviz(dealChgT).rows.forEach(dc=>{ if(!dc["Deal ID"]||!dc["Observed"]) return;
+     dealChangesData.push({ observed:dc["Observed"], id:String(dc["Deal ID"]).replace(/\.0$/,""), line:dc["Service Line"]||"",
+       bucket:dc["Source Bucket"]||"", campaign:dc["Campaign"]||"", field:dc["Field"]||"", from:dc["From"]||"",
+       to:dc["To"]||"", exactness:dc["Exactness"]||"", value:pv(dc["Deal Value"]), outcome:dc["Outcome"]||"" }); }); }catch(e){}
    // SparkLoop Earn tabs (optional; written by the client's sparkloop pull script).
    // Rows with no date (one legacy payout) are kept for totals, skipped in charts.
    SL={payouts:[],partners:[]};
@@ -337,6 +363,7 @@ function buildShell(){
       <button class="tab-btn" data-tab="headlines">Headlines &amp; Copy</button>
       <button class="tab-btn" data-tab="funnel">Funnel</button>
       ${MOD.rows.length?`<button class="tab-btn" data-tab="modeled">Cost per ${MODELED.noun||"Booking"}</button>`:""}
+      ${DEALS?`<button class="tab-btn" data-tab="deals">Pipeline &amp; Revenue</button>`:""}
       ${SL.payouts.length?`<button class="tab-btn" data-tab="sparkloop">SparkLoop</button>`:""}
       <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
       <button class="tab-btn" data-tab="creative">Creative</button>
@@ -350,6 +377,7 @@ function buildShell(){
     <div id="tab-headlines" class="tab-content"></div>
     <div id="tab-funnel" class="tab-content"></div>
     ${MOD.rows.length?`<div id="tab-modeled" class="tab-content"></div>`:""}
+    ${DEALS?dealsShellHtml():""}
     ${SL.payouts.length?`<div id="tab-sparkloop" class="tab-content"></div>`:""}
     <div id="tab-pacing" class="tab-content"></div>
     <div id="tab-creative" class="tab-content"></div>`;
@@ -388,6 +416,7 @@ function render(){
   else if(state.tab==="headlines") renderHeadlines(f);
   else if(state.tab==="funnel") renderFunnel(f);
   else if(state.tab==="modeled") renderModeled();
+  else if(state.tab==="deals") renderDeals();
   else if(state.tab==="sparkloop") renderSparkLoopTab();
   else if(state.tab==="pacing") renderPacing(f);
   else if(state.tab==="creative") renderCreative(f);
@@ -658,6 +687,398 @@ function renderModeled(){
     makeChart("modGa4",{type:"bar",data:{labels:gaMonths,datasets:dsets},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
   }
+}
+
+/* ── Pipeline & Revenue: CRM deals joined to spend (optional, registry `deals`) ──
+   Ported from sog.html. Spend by (month, source) comes from the modeled rows
+   (MOD.rows); spend by campaign comes from this dashboard's daily ad rows
+   (ROWS, Meta unless a Platform column says google). There are no keyword
+   rows on the ad-ID product sheet, so the keyword breakout carries no spend.
+   Whole-history view; ignores the global date filter. */
+var DEALS_LINES = ['Design', 'Install', 'Caretaking', 'Eco Lawns'];
+var DEALS_SHORT_LADDER = { 'Caretaking': true, 'Eco Lawns': true };   // Created / Won / Complete only
+var DEALS_STALL_DAYS = 30;
+var DEALS_MATURING_MONTHS = 3;
+var DEALS_COLORS = { google: '#4A90D9', meta: '#209D50' };
+// HubSpot records utm_campaign for Google; the ad platform uses its own names.
+var DEALS_GOOGLE_ALIAS = {
+  'pmax_callsbooked': 'PMax_Leads_CallsBooked',
+  'sog nonbranded search': 'Search_NonBrand_CallsBooked',
+  'sog branded search': 'Search_Brand_CallsBooked'
+};
+// Meta utm_campaign values set at the 2026-03-16 launch; the retargeting campaign was renamed afterwards.
+var DEALS_META_ALIAS = {
+  'retargeting_completeregistration': 'LeadGen_Retargeting_CallsBooked',
+  'prospecting_completeregistration': 'Prospecting_CompleteRegistration'
+};
+function dealsAlias(plat, n) {
+  var m = plat === 'google' ? DEALS_GOOGLE_ALIAS : DEALS_META_ALIAS;
+  return m[n] ? dealsNormName(m[n]) : n;
+}
+function dealsCrmName() { return (DEALS && DEALS.crmName) || 'CRM'; }
+function dealsEsc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+
+function dealsIsPaid(b) { return (b || '').indexOf('Paid ') === 0; }
+function dealsPlatform(b) {
+  if (b === 'Paid Social (Meta)') return 'meta';
+  if ((b || '').indexOf('Paid Search') === 0) return 'google';
+  return null;
+}
+function dealsCanonStage(s) {
+  s = (s || '').toLowerCase();
+  if (s.indexOf('lost') !== -1) return 'Lost';
+  if (s.indexOf('complete') !== -1) return 'Complete';
+  if (s.indexOf('won') !== -1 || s === 'active') return 'Won';
+  if (s.indexOf('value engineering') !== -1) return 'Value Engineering';
+  if (s.indexOf('proposal sent') !== -1 || s.indexOf('pricing sent') !== -1 || s.indexOf('quote sent') !== -1) return 'Proposal Sent';
+  if (s.indexOf('lead call') !== -1 || s.indexOf('call scheduled') !== -1) return 'Lead Call';
+  if (s.indexOf('consultation') !== -1 || s.indexOf('schematic') !== -1) return 'Consultation';
+  return s ? 'Other' : '';
+}
+function dealsDaysBetween(a, b) {
+  if (!a || !b) return null;
+  return Math.round((new Date(a + 'T00:00:00') - new Date(b + 'T00:00:00')) / 864e5);
+}
+function dealsShiftMonth(ym, delta) {
+  var d = new Date(parseInt(ym.slice(0, 4), 10), parseInt(ym.slice(5, 7), 10) - 1 + delta, 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function dealsNormName(s) { return String(s || '').trim().toLowerCase(); }
+// Cell with a background bar scaled to the column max.
+function dealsBar(val, max, text) {
+  var w = (max > 0 && val > 0) ? Math.max(2, Math.round(100 * val / max)) : 0;
+  return '<td class="dbar"><div class="dbar-fill" style="width:' + w + '%"></div><span class="dbar-txt">' + text + '</span></td>';
+}
+function dealsStageFlags(r) {
+  var won = r.outcome === 'Won';
+  var complete = !!r.completeDate || r.cstage === 'Complete';
+  var proposal = !!r.proposalDate || r.cstage === 'Proposal Sent' || r.cstage === 'Value Engineering' || won || complete;
+  var leadCall = !!r.leadCallDate || proposal;
+  return { leadCall: leadCall, proposal: proposal, won: won, complete: complete };
+}
+function dealsEmptyAgg() { return { deals: 0, lead: 0, prop: 0, won: 0, lost: 0, open: 0, wonValue: 0, spend: 0 }; }
+function dealsAddDeal(a, r) {
+  var f = dealsStageFlags(r);
+  a.deals++;
+  if (f.leadCall) a.lead++;
+  if (f.proposal) a.prop++;
+  if (r.outcome === 'Won') { a.won++; a.wonValue += r.value; }
+  else if (r.outcome === 'Lost') a.lost++;
+  else a.open++;
+}
+function dealsMetricCells(a, maxes) {
+  var wr = a.deals ? (100 * a.won / a.deals) : null;
+  return dealsBar(a.wonValue, maxes.wonValue, a.wonValue ? money(a.wonValue) : '') +
+         dealsBar(a.spend, maxes.spend, a.spend ? money(a.spend) : '') +
+         '<td>' + ((a.spend && a.won) ? money(a.spend / a.won) : '') + '</td>' +
+         '<td>' + ((a.spend && a.wonValue) ? '$' + (a.wonValue / a.spend).toFixed(2) : '') + '</td>';
+}
+// Google keyword lives in drill-down 2 (kept on the sheet as "Keyword").
+function dealsData_kw(r, attrib) {
+  return (attrib === 'Latest' && r.latestBucket) ? (r.latestKeyword || '') : (r.keyword || '');
+}
+
+// Static tab markup (built once in buildShell so the selects keep their state across renders).
+function dealsShellHtml() {
+  var CRM = dealsCrmName();
+  return `<div id="tab-deals" class="tab-content">
+    <div class="note" style="margin-bottom:6px;">
+      ${CRM} deals joined to ad spend. Paid sources are a <b>floor</b>: an ad click that arrives without campaign
+      tracking is recorded as Direct and cannot be recovered. Recent months are still maturing because open deals
+      have not converted yet, so read the trend, not the newest month. Revenue = the ${CRM} <b>Deal Value</b> field.
+      The date filter above does not apply to this tab.
+    </div>
+    <div class="note" id="dealsAsOf" style="margin-bottom:12px;"></div>
+    <div class="controls" style="gap:14px;">
+      <label>Attribution
+        <select class="deals-sel" id="dealsAttrib">
+          <option value="Original">Original source (first touch)</option>
+          <option value="Latest">Latest source (last touch)</option>
+        </select></label>
+      <label>Window
+        <select class="deals-sel" id="dealsWin">
+          <option value="ytd">Year to date</option>
+          <option value="12m">Last 12 months</option>
+        </select></label>
+    </div>
+
+    <div class="card">
+      <h2>Scorecard <span id="dealsScoreTitle" style="font-weight:400;color:var(--muted);"></span></h2>
+      <div style="overflow-x:auto">
+        <table class="deals-tbl" id="dealsScoreTable">
+          <thead><tr><th>Channel</th><th>Deals</th><th>Won</th><th>Win Rate</th><th>Won Value</th><th>Spend</th><th>Cost / Won</th><th>Value per $1</th></tr></thead>
+          <tbody id="dealsScoreBody"></tbody>
+        </table>
+      </div>
+      <div class="note" style="margin-top:6px;" id="dealsScoreNote">Deals attributed by ${CRM} source. Win rate rises as open deals close.</div>
+    </div>
+
+    <div class="card">
+      <h2>Cumulative Won Value by Month Won, Google vs Meta (dashed = maturing months)</h2>
+      <div class="chart-wrap" style="height:280px;"><canvas id="chartDealsCum"></canvas></div>
+    </div>
+
+    <div class="card">
+      <h2>Monthly Trend by Channel (deals grouped by the month they were created)</h2>
+      <div class="note" style="margin-bottom:8px;">
+        Read across to see the cycle shift. Won and value follow the deal's create month, so the newest three months
+        (marked) still have open deals and will rise. Spend is the platform spend in that month.
+      </div>
+      <div style="overflow-x:auto">
+        <table class="deals-tbl" id="dealsPivotTable">
+          <thead id="dealsPivotHead"></thead>
+          <tbody id="dealsPivotBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Stage Funnel by Service Line
+        <select class="deals-sel" id="dealsFunnelView" style="margin-left:12px;">
+          <option value="all">All paid</option>
+          <option value="google">Google</option>
+          <option value="meta">Meta</option>
+        </select>
+      </h2>
+      <div class="note" style="margin-bottom:8px;">
+        Paid deals created in the window. Design and Install read the full ladder. Caretaking and Eco Lawns read
+        Created, Won, Complete only, because deals on those lines are usually created at the stage the work has already
+        reached. A stage counts when the deal reached it or any later stage. Percentages are of Created.
+      </div>
+      <div style="overflow-x:auto">
+        <table class="deals-tbl" id="dealsFunnelTable">
+          <thead><tr><th>Service Line</th><th>Created</th><th>Lead Call</th><th>Proposal</th><th>Won</th><th>Complete</th><th>Won Value</th></tr></thead>
+          <tbody id="dealsFunnelBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Breakout
+        <select class="deals-sel" id="dealsDim" style="margin-left:12px;">
+          <option value="line">By service line and platform</option>
+          <option value="campaign">By campaign</option>
+          <option value="keyword">By Google keyword</option>
+          <option value="ad" disabled>By Meta ad (needs the click-to-ad map)</option>
+        </select>
+      </h2>
+      <div class="note" style="margin-bottom:8px;" id="dealsDimNote"></div>
+      <div style="overflow-x:auto">
+        <table class="deals-tbl" id="dealsDimTable">
+          <thead><tr><th>Row</th><th>Platform</th><th>Deals</th><th>Lead Call</th><th>Proposal</th><th>Won</th><th>Win Rate</th><th>Won Value</th><th>Spend</th><th>Cost / Won</th><th>Value per $1</th></tr></thead>
+          <tbody id="dealsDimBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDeals() {
+  var CRM = dealsCrmName();
+  var ctl = ['dealsAttrib', 'dealsWin', 'dealsFunnelView', 'dealsDim'].map(function(id) {
+    var el = document.getElementById(id); el.onchange = renderDeals; return el;
+  });
+  var attrib = ctl[0].value, winMode = ctl[1].value, funnelView = ctl[2].value, dim = ctl[3].value;
+
+  var asOfEl = document.getElementById('dealsAsOf');
+  if (!dealsData.length) { asOfEl.textContent = 'No deal data loaded yet (' + ((DEALS && DEALS.dealsTab) || 'HS Deals') + ' tab is empty or could not be read).'; return; }
+  asOfEl.textContent = 'Deal data as of ' + (dealsData[0].asOf || '') + ' via ' + dealsData[0].dataSource + '. ' +
+    num(dealsData.length) + ' deals in ' + CRM + '.';
+
+  var todayStr = fmtDate(new Date());
+  var curMonth = todayStr.slice(0, 7);
+  var maturingFrom = dealsShiftMonth(curMonth, -(DEALS_MATURING_MONTHS - 1));
+  // First month with modeled spend (sog.html hardcodes 2026-01; derived here so other clients work).
+  var modMonths = MOD.rows.map(function(m) { return m.month; }).sort();
+  var spendStart = modMonths.length ? modMonths[0] : curMonth.slice(0, 4) + '-01';
+  var winFrom = winMode === 'ytd' ? curMonth.slice(0, 4) + '-01-01'
+                                  : fmtDate(new Date(new Date().setFullYear(new Date().getFullYear() - 1)));
+  var winLabel = winMode === 'ytd' ? 'deals created ' + curMonth.slice(0, 4) + ' to date' : 'deals created in the last 12 months';
+  document.getElementById('dealsScoreTitle').textContent = '(' + winLabel + ')';
+  document.getElementById('dealsScoreNote').textContent = 'Deals attributed by ' + CRM + ' source. Win rate rises as open deals close.' +
+    (winFrom < spendStart + '-01' ? ' Spend on this sheet starts ' + monthLabel(spendStart) + ', so deals created before that carry no spend and cost figures read low for the 12-month window.' : '');
+
+  // Attribution view + paid-only working set
+  var deals = dealsData.map(function(r) {
+    var useLatest = attrib === 'Latest' && r.latestBucket;
+    return { r: r, vb: useLatest ? r.latestBucket : r.bucket, vc: useLatest ? r.latestCampaign : r.campaign,
+             plat: dealsPlatform(useLatest ? r.latestBucket : r.bucket) };
+  });
+  var paid = deals.filter(function(d) { return d.plat; });
+  var inWin = paid.filter(function(d) { return d.r.created >= winFrom; });
+  // Service lines: the SOG order first, then any other line present on paid deals.
+  var lines = DEALS_LINES.slice();
+  paid.forEach(function(d) { if (d.r.line && lines.indexOf(d.r.line) === -1) lines.push(d.r.line); });
+
+  // Spend: by (month, bucket) from the modeled rows; by campaign from this dashboard's daily ad rows.
+  // No keyword rows exist on the ad-ID product sheet, so kwSpendWin stays empty.
+  var spendBucket = {}, spendPlat = {};
+  MOD.rows.forEach(function(m) {
+    spendBucket[m.month + '|' + m.source] = (spendBucket[m.month + '|' + m.source] || 0) + m.spend;
+    var p = dealsPlatform(m.source) || (m.source === 'Google - Other' ? 'google' : null);
+    if (p) spendPlat[m.month + '|' + p] = (spendPlat[m.month + '|' + p] || 0) + m.spend;
+  });
+  function spendPlatWindow(p) {
+    var t = 0;
+    Object.keys(spendPlat).forEach(function(k) { if (k.split('|')[1] === p && k.slice(0, 7) >= winFrom.slice(0, 7)) t += spendPlat[k]; });
+    return t;
+  }
+  var campSpendWin = {};
+  ROWS.forEach(function(c) {
+    if (!c._date || !c["Campaign"]) return;
+    var plat = String(c["Platform"] || 'meta').trim().toLowerCase() === 'google' ? 'google' : 'meta';
+    var key = plat + '|' + dealsNormName(c["Campaign"]);
+    if (c._date >= winFrom) campSpendWin[key] = (campSpendWin[key] || 0) + c._spend;
+  });
+  var kwSpendWin = {};
+  function platformCampaignName(d) {
+    return dealsAlias(d.plat, dealsNormName(d.vc));
+  }
+
+  // ── Scorecard ──
+  var score = { google: dealsEmptyAgg(), meta: dealsEmptyAgg(), all: dealsEmptyAgg() };
+  inWin.forEach(function(d) { dealsAddDeal(score[d.plat], d.r); dealsAddDeal(score.all, d.r); });
+  score.google.spend = spendPlatWindow('google'); score.meta.spend = spendPlatWindow('meta');
+  score.all.spend = score.google.spend + score.meta.spend;
+  var sMax = { wonValue: Math.max(score.google.wonValue, score.meta.wonValue), spend: Math.max(score.google.spend, score.meta.spend) };
+  document.getElementById('dealsScoreBody').innerHTML = [['Google (Paid search)', score.google], ['Meta (Paid social)', score.meta], ['All paid', score.all]].map(function(x, i) {
+    var a = x[1];
+    return '<tr' + (i === 2 ? ' style="font-weight:600;"' : '') + '><td>' + x[0] + '</td><td>' + num(a.deals) + '</td><td>' + num(a.won) +
+      '</td><td>' + (a.deals ? (100 * a.won / a.deals).toFixed(0) + '%' : '') + '</td>' + dealsMetricCells(a, i === 2 ? { wonValue: 0, spend: 0 } : sMax) + '</tr>';
+  }).join('');
+
+  // ── Cumulative won value by month won (paid, since the first modeled spend month) ──
+  var months = [];
+  for (var ym = spendStart; ym <= curMonth; ym = dealsShiftMonth(ym, 1)) months.push(ym);
+  var wonByMonth = { google: {}, meta: {} };
+  paid.forEach(function(d) {
+    if (d.r.outcome !== 'Won') return;
+    var m = (d.r.wonDate || d.r.closeDate || '').slice(0, 7);
+    if (m) wonByMonth[d.plat][m] = (wonByMonth[d.plat][m] || 0) + d.r.value;
+  });
+  function cumulative(p) {
+    var t = 0;
+    return months.map(function(m) { t += wonByMonth[p][m] || 0; return Math.round(t); });
+  }
+  makeChart('chartDealsCum', {
+    type: 'line',
+    data: { labels: months, datasets: [['google', 'Google'], ['meta', 'Meta']].map(function(x) {
+      return { label: x[1], data: cumulative(x[0]), borderColor: DEALS_COLORS[x[0]], backgroundColor: DEALS_COLORS[x[0]],
+               pointRadius: 3, tension: 0.15, borderWidth: 2, fill: false,
+               segment: { borderDash: function(c) { return months[c.p1DataIndex] >= maturingFrom ? [6, 4] : undefined; } } };
+    }) },
+    options: { responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, ticks: { callback: function(v) { return '$' + num(v); } } } },
+      plugins: { legend: { position: 'bottom' },
+                 tooltip: { callbacks: { label: function(c) { return c.dataset.label + ': ' + money(c.parsed.y) + ' cumulative'; } } } } }
+  });
+
+  // ── Monthly trend pivot: months across, metric rows per channel (cohort by create month) ──
+  var pv_ = { google: {}, meta: {} };
+  months.forEach(function(m) { pv_.google[m] = dealsEmptyAgg(); pv_.meta[m] = dealsEmptyAgg(); });
+  paid.forEach(function(d) { var m = d.r.createdMonth; if (pv_[d.plat][m]) dealsAddDeal(pv_[d.plat][m], d.r); });
+  Object.keys(spendPlat).forEach(function(k) { var m = k.slice(0, 7), p = k.split('|')[1]; if (pv_[p] && pv_[p][m]) pv_[p][m].spend = spendPlat[k]; });
+  var mLabel = function(m) {
+    var d = new Date(parseInt(m.slice(0, 4), 10), parseInt(m.slice(5, 7), 10) - 1, 1);
+    var t = d.toLocaleString('en-US', { month: 'short' }) + ' ' + m.slice(2, 4);
+    if (m === curMonth) t += '<div style="font-size:10px;font-weight:400;color:var(--muted);">MTD</div>';
+    else if (m >= maturingFrom) t += '<div style="font-size:10px;font-weight:400;color:var(--muted);">maturing</div>';
+    return t;
+  };
+  document.getElementById('dealsPivotHead').innerHTML = '<tr><th style="min-width:150px;"></th>' + months.map(function(m) { return '<th style="text-align:right;">' + mLabel(m) + '</th>'; }).join('') + '</tr>';
+  var metrics = [
+    { k: 'deals', label: 'Deals created', f: function(a) { return num(a.deals); } },
+    { k: 'won', label: 'Won so far', f: function(a) { return num(a.won); } },
+    { k: 'wr', label: 'Win rate', f: function(a) { return a.deals ? (100 * a.won / a.deals).toFixed(0) + '%' : ''; } },
+    { k: 'wonValue', label: 'Won value', f: function(a) { return a.wonValue ? money(a.wonValue) : ''; }, bar: true },
+    { k: 'spend', label: 'Spend', f: function(a) { return a.spend ? money(a.spend) : ''; }, bar: true },
+    { k: 'cpw', label: 'Cost per won deal', f: function(a) { return (a.spend && a.won) ? money(a.spend / a.won) : ''; } },
+    { k: 'vps', label: 'Value per $1 spend', f: function(a) { return (a.spend && a.wonValue) ? '$' + (a.wonValue / a.spend).toFixed(2) : ''; } }
+  ];
+  var pivotHtml = '';
+  [['google', 'Google'], ['meta', 'Meta']].forEach(function(ch, ci) {
+    var rows = pv_[ch[0]];
+    pivotHtml += '<tr' + (ci ? ' style="border-top:2px solid var(--border);"' : '') + '><td colspan="' + (months.length + 1) + '" style="font-weight:600;color:' + DEALS_COLORS[ch[0]] + ';padding-top:10px;">' + ch[1] + '</td></tr>';
+    metrics.forEach(function(mt) {
+      var max = 0;
+      if (mt.bar) months.forEach(function(m) { max = Math.max(max, rows[m][mt.k]); });
+      pivotHtml += '<tr><td style="padding-left:20px;color:var(--muted);">' + mt.label + '</td>' + months.map(function(m) {
+        var a = rows[m];
+        return mt.bar ? dealsBar(a[mt.k], max, mt.f(a)).replace('<td class="dbar">', '<td class="dbar" style="text-align:right;">')
+                      : '<td style="text-align:right;">' + mt.f(a) + '</td>';
+      }).join('') + '</tr>';
+    });
+  });
+  document.getElementById('dealsPivotBody').innerHTML = pivotHtml;
+
+  // ── Funnel by service line, view: all / google / meta ──
+  var fdeals = inWin.filter(function(d) { return funnelView === 'all' || d.plat === funnelView; });
+  var funnel = {};
+  var frows = funnelView === 'all' ? ['Google', 'Meta'].concat(lines) : lines;
+  frows.forEach(function(l) { funnel[l] = { created: 0, lead: 0, prop: 0, won: 0, complete: 0, wonValue: 0 }; });
+  fdeals.forEach(function(d) {
+    var r = d.r, f = dealsStageFlags(r);
+    var targets = [r.line];
+    if (funnelView === 'all') targets.push(d.plat === 'google' ? 'Google' : 'Meta');
+    targets.forEach(function(t) {
+      var a = funnel[t]; if (!a) return;
+      a.created++;
+      if (f.leadCall) a.lead++;
+      if (f.proposal) a.prop++;
+      if (f.won) { a.won++; a.wonValue += r.value; }
+      if (f.complete) a.complete++;
+    });
+  });
+  var fMax = { created: 0, wonValue: 0 };
+  frows.forEach(function(l) { fMax.created = Math.max(fMax.created, funnel[l].created); fMax.wonValue = Math.max(fMax.wonValue, funnel[l].wonValue); });
+  function fcell(l, key, n) {
+    if (DEALS_SHORT_LADDER[l] && (key === 'lead' || key === 'prop')) return '<td style="color:#bbb;">n/a</td>';
+    var c = funnel[l].created;
+    var pct = (key !== 'created' && c) ? ' <span style="color:var(--muted);font-size:11px;">' + (100 * n / c).toFixed(0) + '%</span>' : '';
+    return dealsBar(n, fMax.created, num(n) + pct);
+  }
+  document.getElementById('dealsFunnelBody').innerHTML = frows.map(function(l, i) {
+    var a = funnel[l];
+    var isPlat = funnelView === 'all' && i < 2;
+    var sep = (funnelView === 'all' && i === 2) ? ' style="border-top:2px solid var(--border);"' : '';
+    return '<tr' + sep + '><td' + (isPlat ? ' style="font-weight:600;color:' + DEALS_COLORS[l.toLowerCase()] + ';"' : '') + '>' + dealsEsc(l) + '</td>' +
+      fcell(l, 'created', a.created) + fcell(l, 'lead', a.lead) + fcell(l, 'prop', a.prop) + fcell(l, 'won', a.won) + fcell(l, 'complete', a.complete) +
+      dealsBar(a.wonValue, fMax.wonValue, a.wonValue ? money(a.wonValue) : '') + '</tr>';
+  }).join('');
+
+  // ── Breakout by dimension ──
+  var brows = {}, bMeta = {};
+  var note = '';
+  inWin.forEach(function(d) {
+    var r = d.r, key, label, platLabel = d.plat === 'google' ? 'Google' : 'Meta', spendKey = null;
+    if (dim === 'campaign') {
+      label = d.vc || '(no campaign recorded)'; key = d.plat + '|' + dealsNormName(label); spendKey = campSpendWin[d.plat + '|' + platformCampaignName(d)];
+    } else if (dim === 'keyword') {
+      if (d.plat !== 'google') return;
+      var kwRaw = dealsData_kw(r, attrib);
+      var isPmax = dealsNormName(d.vc).indexOf('pmax') !== -1;
+      label = isPmax ? 'PMax (no keyword)' : (kwRaw && kwRaw.indexOf('Unknown keywords') === -1 && !/^[0-9a-f]{8}-[0-9a-f]{4}-/.test(kwRaw) ? kwRaw : '(no keyword)');
+      key = 'google|' + label; spendKey = kwSpendWin[dealsNormName(label)];
+    } else if (dim === 'line') {
+      label = r.line; key = d.plat + '|' + label; spendKey = null;
+    } else return;
+    if (!brows[key]) { brows[key] = dealsEmptyAgg(); bMeta[key] = { label: label, plat: platLabel }; brows[key].spend = spendKey || 0; }
+    else if (dim === 'campaign' && label !== label.toLowerCase() && bMeta[key].label === bMeta[key].label.toLowerCase()) bMeta[key].label = label;
+    dealsAddDeal(brows[key], r);
+  });
+  if (dim === 'campaign') note = 'Campaign as recorded by ' + CRM + '. Spend joins to this dashboard\'s daily ad rows by campaign name (mapped: pmax_callsbooked, sog nonbranded search, sog branded search, retargeting_completeregistration). Campaigns with no ad rows here in the window show no cost; the scorecard carries platform-level spend.';
+  if (dim === 'keyword') note = 'Google deals only. PMax has no keywords, so its deals sit on one row. This dashboard has no keyword spend rows, so cost columns are blank here.';
+  if (dim === 'line') note = 'Service line by platform. Spend is not split by service line, so cost columns are blank here; use the scorecard for cost.';
+  document.getElementById('dealsDimNote').textContent = note;
+  var bKeys = Object.keys(brows).sort(function(a, b) { return brows[b].deals - brows[a].deals || brows[b].wonValue - brows[a].wonValue; });
+  var bMax = { wonValue: 0, spend: 0, deals: 0 };
+  bKeys.forEach(function(k) { bMax.wonValue = Math.max(bMax.wonValue, brows[k].wonValue); bMax.spend = Math.max(bMax.spend, brows[k].spend); bMax.deals = Math.max(bMax.deals, brows[k].deals); });
+  document.getElementById('dealsDimBody').innerHTML = bKeys.map(function(k) {
+    var a = brows[k], m = bMeta[k];
+    return '<tr><td>' + dealsEsc(m.label) + '</td><td style="color:' + DEALS_COLORS[m.plat.toLowerCase()] + ';">' + m.plat + '</td>' +
+      dealsBar(a.deals, bMax.deals, num(a.deals)) + '<td>' + num(a.lead) + '</td><td>' + num(a.prop) + '</td><td>' + num(a.won) +
+      '</td><td>' + (a.deals ? (100 * a.won / a.deals).toFixed(0) + '%' : '') + '</td>' + dealsMetricCells(a, bMax) + '</tr>';
+  }).join('') || '<tr><td colspan="11" style="color:var(--muted);">Nothing in the window.</td></tr>';
 }
 
 function renderPacing(f){
