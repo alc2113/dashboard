@@ -33,6 +33,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   background:#fff; cursor:pointer;}
 .preset.active{background:var(--primary); color:#fff; border-color:var(--primary);}
 .spacer{flex:1;}
+/* Optional login gate (registry `password`) */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 48px);}
+.login-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:48px 40px;width:400px;max-width:90vw;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.08);}
+.login-brand{font-size:20px;font-weight:700;letter-spacing:2.5px;color:var(--primary);margin-bottom:8px;}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:32px;}
+.login-client{font-size:17px;font-weight:600;margin-bottom:28px;color:var(--text);}
+.login-input{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:8px;font-size:15px;outline:none;}
+.login-input:focus{border-color:var(--primary);}
+.login-btn{width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;}
+.login-btn:hover{background:var(--primary-dark);}
+.login-err{color:var(--bad);font-size:13px;margin-top:12px;min-height:20px;}
 
 /* Tabs */
 .tabs{display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px;}
@@ -99,7 +110,17 @@ select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid
 </style>
 </head>
 <body>
-<div class="wrap">
+<div id="loginWrap" class="login-wrap" style="display:none;">
+  <div class="login-card">
+    <div class="login-brand" id="loginBrand">CASSA STRATEGY</div>
+    <div class="login-sub">Ads Dashboard</div>
+    <div class="login-client" id="loginClient">Ad Performance</div>
+    <input type="password" id="loginPw" class="login-input" placeholder="Enter password">
+    <button id="loginBtn" class="login-btn">Sign In</button>
+    <div id="loginErr" class="login-err"></div>
+  </div>
+</div>
+<div class="wrap" id="app">
   <div class="head">
     <div class="brand"><div class="dot" id="brandDot">C</div><div class="name" id="brandName">CASSA STRATEGY</div></div>
     <div class="sub" id="range" style="margin:0;"></div>
@@ -190,6 +211,24 @@ function monthlyBudgetFor(ym){
   return best;
 }
 
+/* Optional password gate: set `password` on the client's registry entry. */
+const PASSWORD=CFG.password||"";
+function doLogin(){
+  const pw=document.getElementById("loginPw").value;
+  if(pw===PASSWORD){ document.getElementById("loginWrap").style.display="none"; document.getElementById("app").style.display="block"; loadData(); }
+  else { document.getElementById("loginErr").textContent="Incorrect password. Please try again."; document.getElementById("loginPw").value=""; document.getElementById("loginPw").focus(); }
+}
+if(PASSWORD){
+  document.getElementById("app").style.display="none";
+  document.getElementById("loginWrap").style.display="flex";
+  document.getElementById("loginBrand").textContent=BRAND.name;
+  document.getElementById("loginClient").textContent=CFG.title||"Ad Performance";
+  document.getElementById("loginBtn").addEventListener("click",doLogin);
+  document.getElementById("loginPw").addEventListener("keydown",e=>{ if(e.key==="Enter") doLogin(); });
+  document.getElementById("loginPw").focus();
+} else { loadData(); }
+
+function loadData(){
 Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              fetch(gvizUrl(TAG_TAB)).then(r=>r.text()),
              fetch(gvizUrl(PERF_TAB)).then(r=>r.text()).catch(()=>""),
@@ -267,12 +306,13 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
  })
  .catch(e=>{ document.getElementById("content").innerHTML=
    `<div class="err">Couldn't load the data.<br><span class="note">If the sheet isn't shared link-readable, the dashboard can't read it. (${e})</span></div>`; });
+}
 
 /* ── Aggregation helpers ─────────────────────────────────────────── */
 function filtered(){ return ROWS.filter(r=>r._date>=state.from && r._date<=state.to); }
 function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0;
   rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;});
-  return {spend,leads,rev,imp,clicks,cpa:leads?spend/leads:0,roas:spend&&rev?rev/spend:0,ads:new Set(rows.map(r=>r["Ad ID"])).size};
+  return {spend,leads,rev,imp,clicks,cpa:leads?spend/leads:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,ads:new Set(rows.map(r=>r["Ad ID"])).size};
 }
 function groupBy(rows,key){ const g={}; rows.forEach(r=>{ const k=(r[key]||"").toString().trim()||"(none)"; (g[k]=g[k]||[]).push(r); }); return g; }
 
@@ -362,9 +402,9 @@ function aggByDim(rows,dimKey){
   return out;
 }
 function dimTable(out){
-  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
   const body=out.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>`+
-    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td><td class="num">${x.leads?money(x.aov):"—"}</td>`
             :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("");
   return `<table><thead><tr><th>Value</th><th class="num">Spend</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
 }
@@ -394,7 +434,7 @@ function adsAgg(rows){
   rows.forEach(r=>{ const id=r["Ad ID"]; const a=byAd[id]||(byAd[id]={id,name:r["Ad Name"],campaign:r["Campaign"],
     format:r["Format"],audience:r["Audience"],funnel:r["Funnel"],headline:r._headline,body:r._body,
     spend:0,leads:0,rev:0,imp:0,clicks:0,tags:r}); a.spend+=r._spend;a.leads+=r._leads;a.rev+=r._rev;a.imp+=r._imp;a.clicks+=r._clicks; });
-  return Object.values(byAd).map(a=>({...a,cpa:a.leads?a.spend/a.leads:0,roas:a.spend&&a.rev?a.rev/a.spend:0,
+  return Object.values(byAd).map(a=>({...a,cpa:a.leads?a.spend/a.leads:0,roas:a.spend&&a.rev?a.rev/a.spend:0,aov:a.leads?a.rev/a.leads:0,
     ctr:a.imp?a.clicks/a.imp*100:0}));
 }
 function bestFirst(ads){ return ads.slice().sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend))); }
@@ -405,9 +445,9 @@ function renderLeaderboard(f){
   const rows=ads.slice(0,25).map((a,i)=>`<tr><td class="num">${i+1}</td><td class="adname">${a.name||""}</td>
     <td><span class="pill">${a.format||"—"}</span></td><td>${a.funnel||"—"}</td>
     <td class="num">${money(a.spend)}</td>`+
-    (IS_ROAS?`<td class="num">${money(a.rev)}</td><td class="num good">${a.roas.toFixed(2)}x</td>`
+    (IS_ROAS?`<td class="num">${money(a.rev)}</td><td class="num good">${a.roas.toFixed(2)}x</td><td class="num">${a.leads?money(a.cpa):"—"}</td><td class="num">${a.leads?money(a.aov):"—"}</td>`
             :`<td class="num">${num(a.leads)}</td><td class="num good">${money(a.cpa)}</td>`)+`</tr>`).join("");
-  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
   document.getElementById("tab-leaderboard").innerHTML=
     `<div class="card"><h2>Top ads by ${IS_ROAS?"ROAS":"cost per "+RESULT_ONE}
        <label style="float:right;font-size:12px;color:var(--muted);">Min spend $<input type="number" id="lbMin" value="${lbMinSpend}" style="width:80px;font:inherit;padding:3px 6px;border:1px solid var(--border);border-radius:6px;"></label></h2>
@@ -420,17 +460,17 @@ let byAdSort={col:null,asc:true};
 function renderByAd(f){
   let ads=adsAgg(f);
   const sval=(a,c)=>{const m={name:(a.name||"").toLowerCase(),campaign:(a.campaign||"").toLowerCase(),format:(a.format||"").toLowerCase(),
-    audience:(a.audience||"").toLowerCase(),funnel:(a.funnel||"").toLowerCase(),spend:a.spend,imp:a.imp,clicks:a.clicks,ctr:a.ctr,leads:a.leads,rev:a.rev,cpa:a.cpa,roas:a.roas};return m[c];};
+    audience:(a.audience||"").toLowerCase(),funnel:(a.funnel||"").toLowerCase(),spend:a.spend,imp:a.imp,clicks:a.clicks,ctr:a.ctr,leads:a.leads,rev:a.rev,cpa:a.cpa,roas:a.roas,aov:a.aov};return m[c];};
   if(byAdSort.col){ const c=byAdSort.col,s=byAdSort.asc?1:-1; ads.sort((a,b)=>{const va=sval(a,c),vb=sval(b,c);return va<vb?-s:va>vb?s:0;}); }
   else ads=bestFirst(ads);
   const arr=c=>byAdSort.col===c?(byAdSort.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
-  const rh=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
+  const rh=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("cpa","CPA","num")+sth("aov","AOV","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
   const head=`<tr>${sth("name","Ad")}${sth("campaign","Campaign")}${sth("format","Format")}${sth("audience","Audience")}${sth("funnel","Funnel")}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${rh}</tr>`;
   const rows=ads.map(a=>`<tr><td class="adname">${a.name||""}</td><td>${a.campaign||"—"}</td><td><span class="pill">${a.format||"—"}</span></td>
     <td>${a.audience||"—"}</td><td>${a.funnel||"—"}</td><td class="num">${money(a.spend)}</td><td class="num">${num(a.imp)}</td>
     <td class="num">${num(a.clicks)}</td><td class="num">${a.ctr.toFixed(2)}%</td>`+
-    (IS_ROAS?`<td class="num">${money(a.rev)}</td><td class="num">${a.rev?a.roas.toFixed(2)+"x":"—"}</td>`
+    (IS_ROAS?`<td class="num">${money(a.rev)}</td><td class="num">${a.rev?a.roas.toFixed(2)+"x":"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td><td class="num">${a.leads?money(a.aov):"—"}</td>`
             :`<td class="num">${num(a.leads)||"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td>`)+`</tr>`).join("");
   document.getElementById("tab-byad").innerHTML=
     `<div class="card"><h2>By Ad</h2><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
@@ -448,10 +488,10 @@ function renderHeadlines(f){
     let out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)}));
     out.sort((a,b)=>IS_ROAS?b.roas-a.roas:(a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend); return out; }
   const heads=grp(f,"_headline"), bodies=grp(f,"_body");
-  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
   const tbl=(out)=>`<table><thead><tr><th>Text</th><th class="num">Spend</th>${rh}</tr></thead><tbody>`+
     out.map(x=>`<tr><td style="white-space:normal;max-width:520px;">${(x.k||"").slice(0,180)}</td><td class="num">${money(x.spend)}</td>`+
-      (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
+      (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td><td class="num">${x.leads?money(x.aov):"—"}</td>`
               :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("")+`</tbody></table>`;
   document.getElementById("tab-headlines").innerHTML=
     `<div class="card"><h2>By Headline</h2><div style="overflow-x:auto">${tbl(heads)}</div></div>`+
@@ -664,8 +704,11 @@ function kpiHtml(f){
     return `<div class="kpi-delta ${cls}">${pct>=0?"+":""}${(pct*100).toFixed(1)}% ${pct>=0?"\u2191":"\u2193"}${abs}</div>`;
   }
   const resultK=IS_ROAS
-    ? `<div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div>${kd(t.rev,pAgg&&pAgg.rev,false,money)}</div>
-       <div class="kpi"><div class="label">Blended ROAS</div><div class="val">${t.roas.toFixed(2)}x</div>${kd(t.roas,pAgg&&pAgg.roas,false)}</div>`
+    ? `<div class="kpi"><div class="label">Blended ROAS</div><div class="val">${t.roas.toFixed(2)}x</div>${kd(t.roas,pAgg&&pAgg.roas,false)}</div>
+       <div class="kpi"><div class="label">CPA</div><div class="val">${t.leads?money(t.cpa):"—"}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}</div>
+       <div class="kpi"><div class="label">AOV</div><div class="val">${t.leads?money(t.aov):"—"}</div>${kd(t.aov,pAgg&&pAgg.aov,false,money)}</div>
+       <div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div>${kd(t.rev,pAgg&&pAgg.rev,false,money)}</div>
+       <div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>`
     : `<div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>
        <div class="kpi"><div class="label">Blended CPA</div><div class="val">${money(t.cpa)}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}</div>`;
   return `<div class="kpis">
@@ -699,13 +742,13 @@ function periodTable(rows,keyFn,colLabel,labelFn){
   const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
   const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs),ctr:0})).sort((a,b)=>b.k.localeCompare(a.k));
   out.forEach(x=>{ x.ctr=x.imp?x.clicks/x.imp*100:0; });
-  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
   const body=out.map((x,i)=>{
     const p=out[i+1];   // previous (older) period; last row has none
     const d=(cur,prev,inv,absFmt)=>p?periodDelta(cur,prev,inv,absFmt):"";
     return `<tr><td>${labelFn?labelFn(x.k):x.k}</td><td class="num">${money(x.spend)}${d(x.spend,p&&p.spend,false,money)}</td><td class="num">${num(x.imp)}</td>`+
       `<td class="num">${num(x.clicks)}${d(x.clicks,p&&p.clicks,false,num)}</td><td class="num">${x.ctr.toFixed(2)}%${d(x.ctr,p&&p.ctr,false)}</td>`+
-      (IS_ROAS?`<td class="num">${money(x.rev)}${d(x.rev,p&&p.rev,false,money)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}${d(x.roas,p&&p.roas,false)}</td>`
+      (IS_ROAS?`<td class="num">${money(x.rev)}${d(x.rev,p&&p.rev,false,money)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}${d(x.roas,p&&p.roas,false)}</td><td class="num">${x.leads?money(x.cpa):"—"}${x.leads&&p&&p.leads?periodDelta(x.cpa,p.cpa,true,money):""}</td><td class="num">${x.leads?money(x.aov):"—"}${x.leads&&p&&p.leads?periodDelta(x.aov,p.aov,false,money):""}</td>`
               :`<td class="num">${num(x.leads)||"—"}${d(x.leads,p&&p.leads,false,num)}</td><td class="num">${x.leads?money(x.cpa):"—"}${x.leads&&p&&p.leads?periodDelta(x.cpa,p.cpa,true,money):""}</td>`)+`</tr>`;
   }).join("");
   return `<table><thead><tr><th>${colLabel}</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
@@ -763,9 +806,9 @@ function renderBreakdowns(f){
   out=out.filter(x=>x.k!=="(none)" || out.length===1);
   out.sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend));
   const top=out.slice().sort((a,b)=>b.spend-a.spend).slice(0,12);
-  const resultHead=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const resultHead=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
   const body=out.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>`+
-     (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td>`
+     (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td><td class="num">${x.leads?money(x.aov):"—"}</td>`
              :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("");
   document.getElementById("tab-breakdowns").innerHTML=
     `<div class="card"><h2>Breakdown by
@@ -785,22 +828,22 @@ function renderCreative(f){
   const byAd={};
   f.forEach(r=>{ const id=r["Ad ID"]; const a=byAd[id]||(byAd[id]={id,name:r["Ad Name"],format:r["Format"],funnel:r["Funnel"],
     spend:0,leads:0,rev:0,tags:r}); a.spend+=r._spend; a.leads+=r._leads; a.rev+=r._rev; });
-  let ads=Object.values(byAd).map(a=>({...a, cpa:a.leads?a.spend/a.leads:0, roas:a.spend&&a.rev?a.rev/a.spend:0}));
+  let ads=Object.values(byAd).map(a=>({...a, cpa:a.leads?a.spend/a.leads:0, roas:a.spend&&a.rev?a.rev/a.spend:0, aov:a.leads?a.rev/a.leads:0}));
   const smart=(a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend));
   const sval=(a,c)=>{ if(c==="spend")return a.spend; if(c==="leads")return a.leads; if(c==="rev")return a.rev;
-    if(c==="cpa")return a.cpa; if(c==="roas")return a.roas; if(c==="name")return (a.name||"").toLowerCase();
+    if(c==="cpa")return a.cpa; if(c==="roas")return a.roas; if(c==="aov")return a.aov; if(c==="name")return (a.name||"").toLowerCase();
     if(c==="format")return (a.format||"").toLowerCase(); if(c==="funnel")return (a.funnel||"").toLowerCase();
     return (a.tags[c]||"").toString().toLowerCase(); };
   ads.sort(crSort.col?((a,b)=>{const va=sval(a,crSort.col),vb=sval(b,crSort.col),s=crSort.asc?1:-1;return va<vb?-s:va>vb?s:0;}):smart);
   const arr=c=>crSort.col===c?(crSort.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
   const aiCols=AI_DIMS;
-  const resultHead=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
+  const resultHead=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("cpa","CPA","num")+sth("aov","AOV","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
   const head=`<tr>${sth("name","Ad")}${sth("format","Format")}${sth("funnel","Funnel")}`+
     aiCols.map(d=>sth(d,d,"ai")).join("")+sth("spend","Spend","num")+resultHead+`</tr>`;
   const rows=ads.map(a=>{
     const resultCells=IS_ROAS
-      ? `<td class="num">${money(a.rev)}</td><td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${a.rev?a.roas.toFixed(2)+"x":"—"}</td>`
+      ? `<td class="num">${money(a.rev)}</td><td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${a.rev?a.roas.toFixed(2)+"x":"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td><td class="num">${a.leads?money(a.aov):"—"}</td>`
       : `<td class="num">${num(a.leads)||"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td>`;
     return `<tr><td class="adname">${a.name||""}</td><td><span class="pill">${a.format||"—"}</span></td><td>${a.funnel||"—"}</td>`+
       aiCols.map(d=>`<td class="ai edit" data-adid="${a.id}" data-field="${d}">${d===aiCols[0]?'<span class="ai-pill">'+(a.tags[d]||"—")+'</span>':(a.tags[d]||"—")}</td>`).join("")+

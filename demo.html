@@ -1515,6 +1515,7 @@ function aggregateRows(rows) {
   t.cpm = t.impressions > 0 ? (t.spend / t.impressions) * 1000 : 0;
   t.costPerLead = t.callsBooked > 0 ? t.spend / t.callsBooked : 0;
   t.roas = t.spend > 0 ? t.revenue / t.spend : 0;
+  t.aov = t.callsBooked > 0 ? t.revenue / t.callsBooked : 0;   // Meta-attributed order value
   t.frequency = t.reach > 0 ? t.impressions / t.reach : 0;
   return t;
 }
@@ -1688,6 +1689,7 @@ function renderOverview() {
   combEl.appendChild(buildKpiCard('Cost / Purchase', formatCurrency(allAgg.costPerLead), delta(allAgg.costPerLead, prev && prev.costPerLead, true, formatCurrency), true));
   combEl.appendChild(buildKpiCard('Revenue', formatCurrency(allAgg.revenue), delta(allAgg.revenue, prev && prev.revenue, false, formatCurrency)));
   combEl.appendChild(buildKpiCard('ROAS', allAgg.roas.toFixed(2) + 'x', delta(allAgg.roas, prev && prev.roas, false)));
+  combEl.appendChild(buildKpiCard('AOV', formatCurrency(allAgg.aov), delta(allAgg.aov, prev && prev.aov, false, formatCurrency)));
   combEl.appendChild(buildKpiCard('Total Clicks', formatNumber(allAgg.clicks), delta(allAgg.clicks, prev && prev.clicks, false, formatNumber)));
   combEl.appendChild(buildKpiCard('Total Impressions', formatNumber(allAgg.impressions), delta(allAgg.impressions, prev && prev.impressions, false, formatNumber)));
 
@@ -1698,6 +1700,7 @@ function renderOverview() {
   metaEl.appendChild(buildKpiCard('Meta Purchases', formatNumber(metaAgg.callsBooked), deltaVs(prevMeta, metaAgg.callsBooked, false, 'callsBooked', formatNumber)));
   metaEl.appendChild(buildKpiCard('Meta Cost/Purchase', formatCurrency(metaAgg.costPerLead), deltaVs(prevMeta, metaAgg.costPerLead, true, 'costPerLead', formatCurrency)));
   metaEl.appendChild(buildKpiCard('Meta Revenue', formatCurrency(metaAgg.revenue), deltaVs(prevMeta, metaAgg.revenue, false, 'revenue', formatCurrency)));
+  metaEl.appendChild(buildKpiCard('Meta AOV', formatCurrency(metaAgg.aov), deltaVs(prevMeta, metaAgg.aov, false, 'aov', formatCurrency)));
   metaEl.appendChild(buildKpiCard('Meta ROAS', metaAgg.roas.toFixed(2) + 'x', deltaVs(prevMeta, metaAgg.roas, false, 'roas')));
   metaEl.appendChild(buildKpiCard('Meta Clicks', formatNumber(metaAgg.clicks), deltaVs(prevMeta, metaAgg.clicks, false, 'clicks', formatNumber)));
   metaEl.appendChild(buildKpiCard('Meta CTR', formatPct(metaAgg.ctr), deltaVs(prevMeta, metaAgg.ctr, false, 'ctr')));
