@@ -31,6 +31,31 @@ body{
   --purple:#9D50D9;
 }
 
+/* creative themes: switch, coverage grid, pair grid */
+.bd-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;font-size:13px;color:var(--text-muted);}
+.bd-bar input{font:inherit;font-size:13px;padding:4px 7px;border:1px solid var(--border);border-radius:7px;background:#fff;}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-right:12px;}
+.seg button{font:inherit;font-size:13px;font-weight:600;padding:6px 14px;border:0;background:#fff;color:var(--text-muted);cursor:pointer;}
+.seg button.on{background:var(--primary);color:#fff;}
+#tab-breakdowns.bd-themes-mode > *:not(#bdSwitch):not(#themesGrid){display:none;}
+#tab-breakdowns:not(.bd-themes-mode) #themesGrid{display:none;}
+.cov-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
+.cov-theme{margin-bottom:20px;} .cov-theme h3{font-size:15px;font-weight:700;} .cov-theme .q{font-size:12px;color:var(--text-muted);margin-bottom:8px;}
+.cov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
+.cov-box{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.cov-box.low{background:var(--header-bg);border-style:dashed;} .cov-box.gap{background:#FFF7E6;border-color:#F0C36D;}
+.cov-box .l{font-size:13px;font-weight:600;} .cov-box .t{height:4px;border-radius:2px;background:var(--header-bg);margin-top:7px;overflow:hidden;}
+.cov-box .t i{display:block;height:100%;background:var(--primary);}
+.cov-box .r{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;font-size:12px;color:var(--text-muted);}
+.cov-box .v{font-size:16px;font-weight:700;color:var(--text);} .cov-box .n{font-size:11.5px;color:var(--text-muted);margin-top:6px;}
+.cov-box .v.good,table.mx td .v.good{color:var(--green);} .cov-box .v.bad,table.mx td .v.bad{color:var(--red);}
+.cov-note{font-size:12px;color:var(--text-muted);margin:-6px 0 14px;}
+table.mx{width:100%;border-collapse:collapse;font-size:13px;} table.mx th,table.mx td{text-align:center;padding:9px 10px;border-bottom:1px solid var(--border);min-width:96px;vertical-align:middle;}
+table.mx th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);}
+table.mx th:first-child,table.mx td:first-child{text-align:left;font-weight:600;min-width:150px;}
+table.mx td .v{font-size:15px;font-weight:700;display:block;} table.mx td .s{font-size:11px;color:var(--text-muted);}
+table.mx td.low{background:var(--header-bg);color:var(--text-muted);} table.mx td.gap{background:#FFFBF0;color:#C9A24D;}
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar{width:8px;height:8px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -601,7 +626,11 @@ tr.clickable:hover td{background:#f0f9f3;}
   </div>
 
   <!-- BREAKDOWNS TAB -->
-  <div id="tab-breakdowns" class="tab-content">
+  <div id="tab-breakdowns" class="tab-content bd-themes-mode">
+    <div id="bdSwitch" class="bd-bar"><span class="seg"><button data-bdv="themes" class="on">Themes</button><button data-bdv="detail">Theme detail</button></span>
+      <label>Min spend $ <input type="number" id="bdMinIn" value="500" style="width:80px;"></label>
+      <span>Anything under the minimum is greyed out and not scored.</span></div>
+    <div id="themesGrid"></div>
     <div class="leader-controls">
       <label>Dimension:
         <select id="breakdownDim">
@@ -626,7 +655,11 @@ tr.clickable:hover td{background:#f0f9f3;}
           <option value="adSet">Ad Set</option>
         </select>
       </label>
+      <label>Compare with:
+        <select id="breakdownDim2"><option value="">None</option></select>
+      </label>
     </div>
+    <div id="pairMatrix"></div>
     <div class="chart-row">
       <div class="chart-container">
         <div class="chart-title">Spend by Dimension</div>
@@ -1078,35 +1111,41 @@ function buildTagLookup(adPerfRows) {
 // AI creative tags live in a separate product sheet (keyed by Ad Name). Best-effort:
 // if it isn't shared/readable yet, the lookup is empty and the AI breakdown dims
 // simply show no data — nothing breaks.
+// Creative themes v2: theme list from the product sheet's Taxonomy tab, values per ad from
+// Ad Performance. Row keys are 'tag_' + slug of the theme name.
+let THEME_DEFS = [];   // [{dim, type, values, key}]
+function themeKey(dim) { return 'tag_' + String(dim).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); }
 async function loadAiTagLookup() {
   var AI_SHEET = '1vtKRPmM5A4WVkTIv4KsO2BSUeWhpVi9XDt3nN5Bkq0o';
-  var url = 'https://docs.google.com/spreadsheets/d/' + AI_SHEET +
-            '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent('Ad Performance');
-  try {
-    var resp = await fetch(url);
-    var text = await resp.text();
+  function gv(tab) { return 'https://docs.google.com/spreadsheets/d/' + AI_SHEET + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(tab) + '&t=' + Date.now(); }
+  function parse(text) {
     var json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
     var cols = (json.table.cols || []).map(function(c) { return c.label || ''; });
+    return (json.table.rows || []).filter(function(r) { return r.c; }).map(function(row) {
+      var o = {}; cols.forEach(function(label, i) { var cell = row.c[i]; o[label] = (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v) : ''; }); return o; });
+  }
+  try {
+    var res = await Promise.all([fetch(gv('Ad Performance')).then(function(r) { return r.text(); }), fetch(gv('Taxonomy')).then(function(r) { return r.text(); })]);
+    THEME_DEFS = parse(res[1]).map(function(t) {
+      return { dim: (t['Dimension'] || '').trim(), type: (t['Type'] || 'select').trim().toLowerCase(), key: themeKey(t['Dimension'] || ''),
+               values: (t['Values'] || '').split(',').map(function(v) { return v.trim(); }).filter(Boolean) };
+    }).filter(function(t) { return t.dim && ['select', 'auto', 'manual'].indexOf(t.type) >= 0; });
     var map = {};
-    (json.table.rows || []).forEach(function(row) {
-      if (!row.c) return;
-      var o = {};
-      cols.forEach(function(label, i) {
-        var cell = row.c[i];
-        o[label] = (cell && cell.v !== null && cell.v !== undefined) ? String(cell.v) : '';
-      });
-      var name = (o['Ad Name'] || '').trim();   // exact trim, matches buildTagLookup join
-      if (!name) return;
-      map[name] = {
-        tag_motivator: o['Message Motivator'] || '', tag_secondary: o['Secondary Motivator'] || '',
-        tag_production: o['Production Style'] || '', tag_subject: o['Subject'] || '',
-        tag_ratio: o['Aspect Ratio'] || '', tag_product: o['Product/Service'] || ''
-      };
+    parse(res[0]).forEach(function(o) {
+      var name = (o['Ad Name'] || '').trim(); if (!name) return;   // exact trim, matches buildTagLookup join
+      var tg = {}; THEME_DEFS.forEach(function(t) { tg[t.key] = o[t.dim] || ''; }); map[name] = tg;
     });
-    console.log('[Unsealed] AI tags loaded:', Object.keys(map).length);
+    // Breakdown pickers: swap the old AI options for the sheet's themes
+    var opts = THEME_DEFS.map(function(t) { return '<option value="' + t.key + '">' + t.dim + '</option>'; }).join('');
+    var sel = document.getElementById('breakdownDim');
+    if (sel) { Array.prototype.slice.call(sel.querySelectorAll('option[value^="tag_"]')).forEach(function(o) { o.remove(); });
+      var anchor = sel.querySelector('option[value="campaignTag"]'); if (anchor) anchor.insertAdjacentHTML('afterend', opts); else sel.insertAdjacentHTML('beforeend', opts); }
+    var sel2 = document.getElementById('breakdownDim2'); if (sel2) sel2.innerHTML = '<option value="">None</option>' + opts;
+    console.log('[Unsealed] Themes loaded:', Object.keys(map).length, 'ads,', THEME_DEFS.length, 'themes');
     return map;
   } catch (e) {
-    console.warn('[Unsealed] AI tags load failed (breakdowns still work without them):', e);
+    THEME_DEFS = [];
+    console.warn('[Unsealed] Themes load failed (breakdowns still work without them):', e);
     return {};
   }
 }
@@ -1129,12 +1168,7 @@ function enrichData(rows, lookup, aiLookup) {
     r.landingPage = tags.landingPage || '';
     r.campaignTag = tags.campaignTag || '';
     const ai = aiLookup[r.adName] || {};
-    r.tag_motivator = ai.tag_motivator || '';
-    r.tag_secondary = ai.tag_secondary || '';
-    r.tag_production = ai.tag_production || '';
-    r.tag_subject = ai.tag_subject || '';
-    r.tag_ratio = ai.tag_ratio || '';
-    r.tag_product = ai.tag_product || '';
+    Object.keys(ai).forEach(function(k) { r[k] = ai[k]; });
     return r;
   });
 }
@@ -2021,7 +2055,78 @@ function closeAdModal() {
 // ========================================================================
 // TAB: BREAKDOWNS
 // ========================================================================
+let bdView = 'themes', bdMin = 500;
+const THEME_NEUTRAL = { 'None': 1, 'No one': 1, 'Varies': 1, 'Not a video': 1, 'No': 1, 'No product shown': 1 };
+const THEME_Q = { 'Selling angle': 'The main reason the creative gives someone to act', 'Look': 'How the creative was made',
+  "What's shown": 'Who or what is in the frame', 'Text on the creative': 'Strongest text element on the image or video',
+  'AI-made': 'Whether the image or video is AI-generated', "Who's talking": 'Whose voice carries the message',
+  'Shape': "From the file's pixel size", 'Video length': 'From the video file', 'Contest type': 'Read from the image',
+  'Prompt': 'The writing prompt on the image', 'Prize shown': 'Is the cash prize printed on the creative',
+  'Deadline shown': 'Is the due date printed on the creative',
+  'Brand in first 3 sec': 'Videos only', 'Works with sound off': 'Videos only', 'Audio': 'Videos only' };
+function cppCls(x, base) { if (!x.purchases || !base) return ''; return x.costPerPurchase <= base * 0.9 ? 'good' : x.costPerPurchase >= base * 1.25 ? 'bad' : ''; }
+function cppTxt(x) { return x.purchases ? formatCurrency(x.costPerPurchase) : 'no purchases'; }
+function renderThemesGrid() {
+  var el = document.getElementById('themesGrid'); if (!el) return;
+  var rows = getFilteredData(), tot = aggregateRows(rows);
+  if (!THEME_DEFS.length) { el.innerHTML = '<div class="cov-card"><div class="cov-note" style="margin:0;">Creative themes could not be loaded.</div></div>'; return; }
+  function box(v, rs) { var x = aggregateRows(rs || []);
+    if (!x.spend) return THEME_NEUTRAL[v] ? '' : '<div class="cov-box gap"><div class="l">' + v + '</div><div class="n">Nothing running here.</div></div>';
+    if (x.spend < bdMin) return '<div class="cov-box low"><div class="l">' + v + '</div><div class="n">' + formatCurrency(x.spend) + ' spent. Too little to judge.</div></div>';
+    var share = tot.spend ? x.spend / tot.spend * 100 : 0, ads = {}; rs.forEach(function(r) { ads[r.adName] = 1; });
+    return '<div class="cov-box"><div class="l">' + v + '</div><div class="t"><i style="width:' + share.toFixed(0) + '%"></i></div>' +
+      '<div class="r"><span>' + share.toFixed(0) + '% of spend</span><span class="v ' + cppCls(x, tot.costPerPurchase) + '">' + cppTxt(x) + '</span></div>' +
+      '<div class="n">' + formatCurrency(x.spend) + ' · ' + formatNumber(x.purchases) + ' purchases · ' + Object.keys(ads).length + ' ads</div></div>'; }
+  function theme(t, src) {
+    var g = {}; src.forEach(function(r) { var k = (r[t.key] || '').trim() || '(none)'; (g[k] = g[k] || []).push(r); });
+    var seen = Object.keys(g).filter(function(k) { return k !== '(none)'; });
+    var vals = t.values.length ? t.values.concat(seen.filter(function(k) { return t.values.indexOf(k) < 0; })) : seen;
+    var un = aggregateRows(g['(none)'] || []);
+    return '<div class="cov-theme"><h3>' + t.dim + '</h3><div class="q">' + (THEME_Q[t.dim] || '') + '</div><div class="cov-grid">' + vals.map(function(v) { return box(v, g[v]); }).join('') + '</div>' +
+      (un.spend ? '<div class="cov-note" style="margin:8px 0 0;">' + formatCurrency(un.spend) + ' of spend is on ads not tagged for this theme yet.</div>' : '') + '</div>'; }
+  var manual = THEME_DEFS.filter(function(t) { return t.type === 'manual'; }), main = THEME_DEFS.filter(function(t) { return t.type !== 'manual'; });
+  var vk = themeKey('Video length'), vids = rows.filter(function(r) { return r[vk] && r[vk] !== 'Not a video'; });
+  var manHtml = manual.filter(function(t) { return vids.some(function(r) { return (r[t.key] || '').trim(); }); }).map(function(t) { return theme(t, vids); }).join('');
+  el.innerHTML = '<div class="cov-note">Cost per purchase for these dates: <b>' + cppTxt(tot) + '</b> on ' + formatCurrency(tot.spend) +
+    '. Green = at least 10% cheaper than that, red = at least 25% more expensive.</div>' +
+    '<div class="cov-card">' + main.map(function(t) { return theme(t, rows); }).join('') + '</div>' +
+    (manHtml ? '<div class="cov-card"><div class="q" style="font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Video details</div>' + manHtml + '</div>' : '');
+}
+// A second theme picked under "Compare with": grid of first (rows) x second (columns) + ranked pairs.
+function renderPairMatrix(data, dim) {
+  var el = document.getElementById('pairMatrix'); if (!el) return;
+  var d2el = document.getElementById('breakdownDim2'), dim2 = d2el ? d2el.value : '';
+  if (!dim2 || dim2 === dim || dim === 'age' || dim === 'gender' || dim === 'hour') { el.innerHTML = ''; return; }
+  var lab = {}; THEME_DEFS.forEach(function(t) { lab[t.key] = t.dim; });
+  var sel = document.getElementById('breakdownDim'), o1 = sel.options[sel.selectedIndex]; var l1 = lab[dim] || (o1 ? o1.text : dim), l2 = lab[dim2] || dim2;
+  var use = data.filter(function(r) { return r[dim] && r[dim2]; }), tot = aggregateRows(use), cell = {}, rowT = {}, colT = {};
+  use.forEach(function(r) { var a = r[dim], b = r[dim2]; (cell[a + '|' + b] = cell[a + '|' + b] || []).push(r); (rowT[a] = rowT[a] || []).push(r); (colT[b] = colT[b] || []).push(r); });
+  function bySpend(o) { return Object.keys(o).sort(function(x, y) { return aggregateRows(o[y]).spend - aggregateRows(o[x]).spend; }); }
+  var rk = bySpend(rowT).slice(0, 15), ck = bySpend(colT).slice(0, 8);
+  function td(rs) { var x = aggregateRows(rs || []);
+    if (!x.spend) return '<td class="gap">not tested</td>';
+    if (x.spend < bdMin) return '<td class="low"><span class="s">' + formatCurrency(x.spend) + '<br>too little</span></td>';
+    return '<td><span class="v ' + cppCls(x, tot.costPerPurchase) + '">' + cppTxt(x) + '</span><span class="s">' + formatCurrency(x.spend) + ' · ' + formatNumber(x.purchases) + ' purch</span></td>'; }
+  var pairs = Object.keys(cell).map(function(k) { var x = aggregateRows(cell[k]); x.k = k.replace('|', ' + '); return x; }).filter(function(x) { return x.spend >= bdMin && x.purchases; }).sort(function(a, b) { return a.costPerPurchase - b.costPerPurchase; });
+  el.innerHTML = '<div class="cov-card"><h3 style="font-size:15px;margin-bottom:4px;">' + l1 + ' and ' + l2 + ' together</h3>' +
+    '<div class="cov-note" style="margin:0 0 12px;">Each cell is cost per purchase for ads that are both. Overall: <b>' + cppTxt(tot) + '</b>.</div>' +
+    '<div style="overflow-x:auto"><table class="mx"><thead><tr><th>' + l1 + ' ↓ &nbsp; ' + l2 + ' →</th>' + ck.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '<th>All</th></tr></thead><tbody>' +
+    rk.map(function(a) { return '<tr><td>' + a + '</td>' + ck.map(function(b) { return td(cell[a + '|' + b]); }).join('') + td(rowT[a]) + '</tr>'; }).join('') + '</tbody></table></div>' +
+    '<h3 style="font-size:14px;margin:16px 0 6px;">Pairs ranked by cost per purchase</h3><div style="overflow-x:auto"><table class="mx"><thead><tr><th>' + l1 + ' + ' + l2 + '</th><th>Spend</th><th>Purchases</th><th>Cost / purchase</th></tr></thead><tbody>' +
+    (pairs.map(function(x) { return '<tr><td>' + x.k + '</td><td>' + formatCurrency(x.spend) + '</td><td>' + formatNumber(x.purchases) + '</td><td><span class="v ' + cppCls(x, tot.costPerPurchase) + '" style="font-size:13px;">' + formatCurrency(x.costPerPurchase) + '</span></td></tr>'; }).join('') || '<tr><td colspan="4">No pair has reached the minimum spend with a purchase in these dates.</td></tr>') +
+    '</tbody></table></div></div>';
+}
+function wireBdSwitch() {
+  var tab = document.getElementById('tab-breakdowns'); if (!tab || tab._bdWired) return; tab._bdWired = true;
+  tab.querySelectorAll('[data-bdv]').forEach(function(b) { b.addEventListener('click', function() {
+    bdView = b.dataset.bdv; tab.querySelectorAll('[data-bdv]').forEach(function(x) { x.classList.toggle('on', x === b); });
+    tab.classList.toggle('bd-themes-mode', bdView === 'themes'); renderBreakdowns(); }); });
+  document.getElementById('bdMinIn').addEventListener('change', function(e) { bdMin = Math.max(0, +e.target.value || 0); renderBreakdowns(); });
+  var d2 = document.getElementById('breakdownDim2'); if (d2) d2.addEventListener('change', function() { renderBreakdowns(); });
+}
 function renderBreakdowns() {
+  wireBdSwitch();
+  if (bdView === 'themes') { renderThemesGrid(); return; }
   var filtered = getFilteredData();
   var dim = document.getElementById('breakdownDim').value;
 
@@ -2061,7 +2166,9 @@ function renderBreakdowns() {
     adSet:       function(r) { return r.adSet || '(none)'; }
   };
 
-  var grouped = groupBy(filtered, dimKeyFns[dim] || dimKeyFns.color);
+  var themeFn = dim.indexOf('tag_') === 0 ? function(r) { return r[dim] || '(none)'; } : null;
+  var grouped = groupBy(filtered, dimKeyFns[dim] || themeFn || dimKeyFns.color);
+  renderPairMatrix(filtered, dim);
 
   // Sort for charts by spend desc, limit to top 15
   var chartSorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; }).slice(0, 15);
@@ -2135,6 +2242,7 @@ function renderBreakdowns() {
     tag_production: 'Production Style (AI)', tag_subject: 'Subject (AI)',
     tag_ratio: 'Aspect Ratio (AI)', tag_product: 'Product/Service (AI)'
   };
+  THEME_DEFS.forEach(function(t) { dimLabels[t.key] = t.dim; });
   var dimLabel = dimLabels[dim] || dim;
 
   // Table header
