@@ -689,7 +689,7 @@ function specialBrkRows(dim){
 }
 const roasCls=(x,base)=>!x.rev?"":(x.roas>=base*1.1?"good":x.roas<base*0.8?"bad":"");
 function bdBar(extra){
-  const seg=[["coverage","Coverage"],["one","One theme"],["combo","Combine two"]]
+  const seg=[["coverage","All themes"],["one","One theme"],["combo","Two themes"]]
     .map(([k,l])=>`<button data-bdv="${k}" class="${bdView===k?"on":""}">${l}</button>`).join("");
   return `<div class="bd-bar"><span class="seg">${seg}</span>${extra||""}
     <label>Min spend $ <input type="number" id="bdMinIn" value="${bdMin}" style="width:80px;"></label>
@@ -765,7 +765,7 @@ function renderCombo(f){
   const under=Object.keys(cell).length-pairs.length;
   document.getElementById("tab-breakdowns").innerHTML=
     bdBar(`<label>Combine <select id="bdA">${opt(bdA)}</select></label><label>with <select id="bdB">${opt(bdB)}</select></label>`)+
-    `<div class="card"><h2>${bdA} combined with ${bdB}</h2>
+    `<div class="card"><h2>${bdA} and ${bdB} together</h2>
        <div class="note" style="margin:-8px 0 12px;">Each cell is ROAS for ads that are both. Account ROAS for these dates: <b>${tot.roas.toFixed(2)}x</b>.</div>
        <div style="overflow-x:auto"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
      <div class="card"><h2>Pairs ranked by ROAS</h2>
