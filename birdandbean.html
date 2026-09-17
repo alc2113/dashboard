@@ -220,7 +220,7 @@ const THEME_Q={"Selling angle":"The main reason the creative gives someone to bu
   "AI-made":"Whether the image or video is AI-generated","Who's talking":"Whose voice carries the message",
   "Shape":"From the file's pixel size","Video length":"From the video file","Hook":"The specific claim the creative leads with",
   "Product line":"Which product family is shown","Background color":"Dominant backdrop","Offer type":"The offer attached to the ad",
-  "Brand in first 3 sec":"Answered by Amy, videos only","Works with sound off":"Answered by Amy, videos only","Audio":"Answered by Amy, videos only"};
+  "Brand in first 3 sec":"Videos only","Works with sound off":"Videos only","Audio":"Videos only"};
 // Values that are not a "gap" when nothing is running there.
 const NEUTRAL=new Set(["None","No one","Varies","Not a video","No"]);
 const CREATIVE_COLS=["Selling angle","Hook","Look","What's shown","Text on the creative","Who's talking","Product line","Offer type",
@@ -299,8 +299,8 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
    if(!THEMES.length) THEMES=AI_DIMS.map(d=>({dim:d,type:"select",values:[],hint:""}));
    AI_DIMS=THEMES.map(t=>t.dim);
    EDIT_OPTIONS={}; THEMES.forEach(t=>{ if(t.type!=="auto" && t.values.length) EDIT_OPTIONS[t.dim]=t.values; });
-   BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS); bdDim=BREAKDOWN_DIMS.includes(bdDim)?bdDim:AI_DIMS[0]||BREAKDOWN_DIMS[0];
-   bdA=AI_DIMS[0]||BREAKDOWN_DIMS[0]; bdB=AI_DIMS.includes("What's shown")?"What's shown":(AI_DIMS[1]||BREAKDOWN_DIMS[1]);
+   BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS); bdDim=AI_DIMS[0]||BREAKDOWN_DIMS[0];
+   bdA=bdDim; bdB="";
    try{ parseGviz(budgetT).rows.forEach(r=>{
      const m=String(r["Month"]||"").slice(0,7);
      const b=parseFloat(String(r["Budget"]||"").replace(/[$,]/g,""));
@@ -689,11 +689,21 @@ function specialBrkRows(dim){
 }
 const roasCls=(x,base)=>!x.rev?"":(x.roas>=base*1.1?"good":x.roas<base*0.8?"bad":"");
 function bdBar(extra){
-  const seg=[["coverage","All themes"],["one","One theme"],["combo","Two themes"]]
+  const seg=[["coverage","Themes"],["detail","Theme detail"]]
     .map(([k,l])=>`<button data-bdv="${k}" class="${bdView===k?"on":""}">${l}</button>`).join("");
   return `<div class="bd-bar"><span class="seg">${seg}</span>${extra||""}
     <label>Min spend $ <input type="number" id="bdMinIn" value="${bdMin}" style="width:80px;"></label>
-    <span>Boxes under the minimum are dashed and not scored.</span></div>`;
+    <span>Anything under the minimum is greyed out and not scored.</span></div>`;
+}
+function detailPickers(){
+  const special=!!specialBrkRows(bdDim);
+  const o1=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}</option>`).join("");
+  const o2=`<option value="">None</option>`+BREAKDOWN_DIMS.filter(d=>!specialBrkRows(d)&&d!==bdDim).map(d=>`<option value="${d}"${d===bdB?" selected":""}>${d}</option>`).join("");
+  return `<label>Theme <select id="bdSel">${o1}</select></label><label>Compare with <select id="bdB"${special?" disabled":""}>${o2}</select></label>`;
+}
+function wireDetailPickers(){
+  document.getElementById("bdSel").addEventListener("change",e=>{bdDim=e.target.value; if(bdB===bdDim) bdB=""; renderBreakdowns(filtered());});
+  document.getElementById("bdB").addEventListener("change",e=>{bdB=e.target.value; renderBreakdowns(filtered());});
 }
 function wireBdBar(){
   document.querySelectorAll("#tab-breakdowns [data-bdv]").forEach(b=>b.addEventListener("click",()=>{bdView=b.dataset.bdv; renderBreakdowns(filtered());}));
@@ -701,22 +711,20 @@ function wireBdBar(){
 }
 function renderBreakdowns(f){
   if(bdView==="coverage") return renderCoverage(f);
-  if(bdView==="combo") return renderCombo(f);
+  if(bdB && bdB!==bdDim && !specialBrkRows(bdDim)){ bdA=bdDim; return renderCombo(f); }
   const sp=specialBrkRows(bdDim);
   if(sp) f=sp.filter(r=>r._date>=state.from && r._date<=state.to);
-  const opts=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}</option>`).join("");
   const g=groupBy(f,bdDim);
   let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows)}));
   out=out.filter(x=>x.k!=="(none)" || out.length===1);
   if(bdDim==="Hour of Day") out.sort((a,b)=>a.k<b.k?-1:1); else out.sort(rankRoas);
   const body=out.map(x=>`<tr${x.spend<bdMin?' style="color:var(--muted)"':""}><td>${x.k}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCells(x)}</tr>`).join("");
   document.getElementById("tab-breakdowns").innerHTML=
-    bdBar(`<label>Theme <select id="bdSel">${opts}</select></label>`)+
+    bdBar(detailPickers())+
     `<div class="card"><h2>${bdDim} — spend vs revenue</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||""}</div>
        <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
      <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${RES_HEAD}</tr></thead><tbody>${body}</tbody></table></div></div>`;
-  document.getElementById("bdSel").addEventListener("change",e=>{bdDim=e.target.value; renderBreakdowns(filtered());});
-  wireBdBar(); dimChart("bdChart",out);
+  wireDetailPickers(); wireBdBar(); dimChart("bdChart",out);
 }
 /* Coverage: every allowed value of every theme as a box. Spend share + ROAS, dashed when under
    the minimum spend, yellow when nothing ran there in the selected dates. */
@@ -741,15 +749,14 @@ function renderCoverage(f){
   const manHtml=man.map(t=>{ const g=groupBy(vid,t.dim); return Object.keys(g).some(k=>k!=="(none)")?themeHtml({...t}):""; }).join("");
   document.getElementById("tab-breakdowns").innerHTML=bdBar()+
     `<div class="note" style="margin:-6px 0 14px;">Account ROAS for these dates: <b>${tot.roas.toFixed(2)}x</b> on ${money(tot.spend)}. Green = at least 10% above it, red = more than 20% below.</div>
-     <div class="card"><div class="cov-group">Every client</div>${uni.map(themeHtml).join("")}</div>
-     ${cli.length?`<div class="card"><div class="cov-group">Bird &amp; Bean only</div>${cli.map(themeHtml).join("")}</div>`:""}
-     ${manHtml?`<div class="card"><div class="cov-group">Video details (answered by Amy)</div>${manHtml}</div>`:""}`;
+     <div class="card">${uni.map(themeHtml).join("")}</div>
+     ${cli.length?`<div class="card">${cli.map(themeHtml).join("")}</div>`:""}
+     ${manHtml?`<div class="card"><div class="cov-group">Video details</div>${manHtml}</div>`:""}`;
   wireBdBar();
 }
 /* Combine two themes: grid of A (rows) x B (columns) + every pair ranked. */
 function renderCombo(f){
   const tot=agg(f);
-  const opt=sel=>BREAKDOWN_DIMS.filter(d=>!specialBrkRows(d)).map(d=>`<option value="${d}"${d===sel?" selected":""}>${d}</option>`).join("");
   const key=(r,d)=>(r[d]||"").toString().trim()||"(none)";
   const cell={}, rowT={}, colT={};
   f.forEach(r=>{ const a=key(r,bdA), b=key(r,bdB); if(a==="(none)"||b==="(none)") return;
@@ -764,7 +771,7 @@ function renderCombo(f){
   const pairs=Object.entries(cell).map(([k,rs])=>({k:k.replace("|"," + "),...agg(rs)})).filter(x=>x.spend>=bdMin).sort(rankRoas);
   const under=Object.keys(cell).length-pairs.length;
   document.getElementById("tab-breakdowns").innerHTML=
-    bdBar(`<label>Combine <select id="bdA">${opt(bdA)}</select></label><label>with <select id="bdB">${opt(bdB)}</select></label>`)+
+    bdBar(detailPickers())+
     `<div class="card"><h2>${bdA} and ${bdB} together</h2>
        <div class="note" style="margin:-8px 0 12px;">Each cell is ROAS for ads that are both. Account ROAS for these dates: <b>${tot.roas.toFixed(2)}x</b>.</div>
        <div style="overflow-x:auto"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
@@ -772,9 +779,7 @@ function renderCombo(f){
        <div style="overflow-x:auto"><table><thead><tr><th>${bdA} + ${bdB}</th><th class="num">Spend</th>${RES_HEAD}</tr></thead><tbody>${
          pairs.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>${resCells(x)}</tr>`).join("")||`<tr><td colspan="7" class="note">No pair has reached the minimum spend in these dates.</td></tr>`}</tbody></table></div>
        ${under?`<div class="note">${under} more pair${under===1?"":"s"} ran under the ${money(bdMin)} minimum and are left out of the ranking.</div>`:""}</div>`;
-  document.getElementById("bdA").addEventListener("change",e=>{bdA=e.target.value; renderBreakdowns(filtered());});
-  document.getElementById("bdB").addEventListener("change",e=>{bdB=e.target.value; renderBreakdowns(filtered());});
-  wireBdBar();
+  wireDetailPickers(); wireBdBar();
 }
 
 let crSort={col:null,asc:true}, crNeeds=false;
@@ -798,13 +803,13 @@ function renderCreative(f){
   const rows=ads.map(a=>{
     return `<tr><td>${a.thumb?`<img class="thumb" src="${a.thumb}" alt="" onerror="this.style.display='none'" style="width:42px;height:42px;border-radius:6px;object-fit:cover;display:block;">`:""}</td><td class="adname">${a.name||""}</td><td><span class="pill">${a.format||"—"}</span></td><td>${a.funnel||"—"}</td>`+
       aiCols.map(d=>(MAN.includes(d)&&!isVideoRow(a.tags))?`<td class="ai na">n/a</td>`
-        :`<td class="ai edit" data-adid="${a.id}" data-field="${d}">${d===aiCols[0]?'<span class="ai-pill">'+(a.tags[d]||"—")+'</span>':(a.tags[d]||(MAN.includes(d)?'<span class="pill">needs Amy</span>':"—"))}</td>`).join("")+
+        :`<td class="ai edit" data-adid="${a.id}" data-field="${d}">${d===aiCols[0]?'<span class="ai-pill">'+(a.tags[d]||"—")+'</span>':(a.tags[d]||(MAN.includes(d)?'<span class="pill">not reviewed</span>':"—"))}</td>`).join("")+
       `<td class="num">${money(a.spend)}</td>${resCells(a)}</tr>`;
   }).join("");
   document.getElementById("tab-creative").innerHTML=kpiHtml(f)+
     `<div class="card"><h2>Ads — ranked by ROAS
        <span class="aimark">✨ themes tagged by Claude</span></h2>
-       ${MAN.length&&(needN||crNeeds)?`<div class="needs-bar"><span><b>${needN}</b> video${needN===1?"":"s"} still need your answers: ${MAN.join(", ")}.</span><button id="crNeedsBtn">${crNeeds?"Show all ads":"Show only these"}</button></div>`:""}
+       ${MAN.length&&(needN||crNeeds)?`<div class="needs-bar"><span><b>${needN}</b> video${needN===1?"":"s"} not yet reviewed for: ${MAN.join(", ")}.</span><button id="crNeedsBtn">${crNeeds?"Show all ads":"Show only these"}</button></div>`:""}
        <div class="warn-bar">✎ Click any tag to edit it. Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL?"":" (saving not configured for this client yet)"}.</div>
        <div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
   document.querySelectorAll("#tab-creative th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
