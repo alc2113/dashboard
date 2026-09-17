@@ -33,6 +33,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   background:#fff; cursor:pointer;}
 .preset.active{background:var(--primary); color:#fff; border-color:var(--primary);}
 .spacer{flex:1;}
+/* creative themes: coverage grid + combinations */
+.seg{display:inline-flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; margin-right:12px;}
+.seg button{font:inherit; font-size:13px; font-weight:600; padding:6px 14px; border:0; background:#fff; color:var(--muted); cursor:pointer;}
+.seg button.on{background:var(--primary); color:#fff;}
+.bd-bar{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:16px; font-size:13px; color:var(--muted);}
+.bd-bar select,.bd-bar input{font:inherit; font-size:13px; padding:4px 7px; border:1px solid var(--border); border-radius:7px; background:#fff;}
+.cov-group{font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); font-weight:700; margin:6px 0 10px;}
+.cov-theme{margin-bottom:20px;}
+.cov-theme h3{font-size:15px; font-weight:700;}
+.cov-theme .q{font-size:12px; color:var(--muted); margin-bottom:8px;}
+.cov-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px;}
+.cov-box{background:#fff; border:1px solid var(--border); border-radius:10px; padding:10px 12px;}
+.cov-box.low{background:var(--header-bg); border-style:dashed;}
+.cov-box.gap{background:#FFF7E6; border-color:#F0C36D;}
+.cov-box .l{font-size:13px; font-weight:600;}
+.cov-box .t{height:4px; border-radius:2px; background:var(--header-bg); margin-top:7px; overflow:hidden;}
+.cov-box .t i{display:block; height:100%; background:var(--primary);}
+.cov-box .r{display:flex; justify-content:space-between; align-items:baseline; margin-top:6px; font-size:12px; color:var(--muted);}
+.cov-box .v{font-size:16px; font-weight:700; color:var(--text);}
+.cov-box .n{font-size:11.5px; color:var(--muted); margin-top:6px;}
+.cov-box .v.good, table.mx td .v.good{color:var(--good);} .cov-box .v.bad, table.mx td .v.bad{color:var(--bad);}
+table.mx th, table.mx td{text-align:center; white-space:normal; min-width:96px; vertical-align:middle;}
+table.mx th:first-child, table.mx td:first-child{text-align:left; font-weight:600; min-width:150px;}
+table.mx td .v{font-size:15px; font-weight:700; display:block;}
+table.mx td .s{font-size:11px; color:var(--muted);}
+table.mx td.low{background:var(--header-bg); color:var(--muted);}
+table.mx td.gap{background:#FFFBF0; color:#C9A24D;}
+.needs-bar{background:#EAF3F5; border:1px solid var(--border); color:var(--text); font-size:13px; padding:9px 12px; border-radius:8px; margin-bottom:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+.needs-bar button{font:inherit; font-size:12.5px; padding:4px 10px; border-radius:7px; border:1px solid var(--primary); background:#fff; color:var(--primary); cursor:pointer;}
+td.na{color:var(--muted); font-size:12px;}
 /* Optional login gate (registry `password`) */
 .login-wrap{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 48px);}
 .login-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:48px 40px;width:400px;max-width:90vw;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.08);}
@@ -159,14 +189,24 @@ if(!CFG){
 const BRAND=CFG.brand, SHEET_ID=CFG.sheetId;
 const DAILY_TAB=CFG.dailyTab||"Ad Daily", TAG_TAB=CFG.tagTab||"Tagging", PERF_TAB=CFG.tab||"Ad Performance";
 const IS_ROAS=CFG.resultMetric==="roas";
-const AI_DIMS=CFG.aiDims||[];
-const EDIT_OPTIONS=CFG.editOptions||{};   // controlled-dim dropdown values; others edit as text
+let AI_DIMS=CFG.aiDims||[];
+let EDIT_OPTIONS=CFG.editOptions||{};   // controlled-dim dropdown values; others edit as text
 const WEBHOOK_URL=CFG.webhookUrl||"";     // Apps Script /exec to save tag edits back
 const MODELED=CFG.modeled||null;          // CRM truth layer config (optional)
 const SPARKLOOP=CFG.sparkloop||null;      // SparkLoop Earn tabs config (optional)
 const DEALS=CFG.deals||null;              // CRM pipeline + revenue config (optional)
 const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
-let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);   // special dims appended after load when their tabs have data
+let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);
+// Creative themes v2: the live theme list (names, allowed values, who fills them) comes from the
+// sheet's Taxonomy tab; the registry's aiDims/editOptions are only the fallback.
+let THEMES=[];   // [{dim, type: select|auto|manual, values[], hint}]
+const NEUTRAL=new Set(["None","No one","Varies","Not a video","No","No product shown"]);
+const THEME_Q={"Selling angle":"The main reason the creative gives someone to act","Look":"How the creative was made",
+  "What's shown":"Who or what is in the frame","Text on the creative":"Strongest text element on the image or video",
+  "AI-made":"Whether the image or video is AI-generated","Who's talking":"Whose voice carries the message",
+  "Shape":"From the file's pixel size","Video length":"From the video file",
+  "Brand in first 3 sec":"Videos only","Works with sound off":"Videos only","Audio":"Videos only"};
+const isVideoRow=r=>{ const v=(r["Video length"]||"").toString(); return v && v!=="Not a video"; };   // special dims appended after load when their tabs have data
 const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Revenue":"Leads");
 const RESULT_ONE=RESULT_LABEL.replace(/s$/,"").toLowerCase();   // "lead" / "purchase"
 
@@ -196,7 +236,7 @@ function parseGviz(text){
   return {cols, rows};
 }
 
-let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
+let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview",campaign:"",adset:"",cmp:true}, charts={};
 // Optional breakdown tabs (Device Detail / Demographics / Hourly / PMax Channels).
 // Rows carry the dim value under the dim's display name so aggByDim works as-is.
 let BRK={device:[],demo:[],hourly:[],pmax:[]};
@@ -251,8 +291,16 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.payoutsTab||"SparkLoop Payouts")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
              SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.partnersTab||"SparkLoop Partners")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
              DEALS?fetch(gvizUrlFor(DEALS.sheetId||SHEET_ID,DEALS.dealsTab||"HS Deals")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             DEALS?fetch(gvizUrlFor(DEALS.sheetId||SHEET_ID,DEALS.changesTab||"HS Deal Changes")).then(r=>r.text()).catch(()=>""):Promise.resolve("")])
- .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT, dealsT, dealChgT])=>{
+             DEALS?fetch(gvizUrlFor(DEALS.sheetId||SHEET_ID,DEALS.changesTab||"HS Deal Changes")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
+             fetch(gvizUrl("Taxonomy")).then(r=>r.text()).catch(()=>"")])
+ .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT, dealsT, dealChgT, taxT])=>{
+   try{ THEMES=parseGviz(taxT).rows.map(r=>({dim:String(r["Dimension"]||"").trim(), type:String(r["Type"]||"select").trim().toLowerCase(),
+       values:String(r["Values"]||"").split(",").map(v=>v.trim()).filter(Boolean), hint:String(r["Hint"]||"")}))
+     .filter(t=>t.dim && ["select","auto","manual"].includes(t.type)); }catch(e){ THEMES=[]; }
+   if(!THEMES.length) THEMES=AI_DIMS.map(d=>({dim:d,type:"select",values:EDIT_OPTIONS[d]||[],hint:""}));
+   AI_DIMS=THEMES.map(t=>t.dim);
+   EDIT_OPTIONS={}; THEMES.forEach(t=>{ if(t.type!=="auto" && t.values.length) EDIT_OPTIONS[t.dim]=t.values; });
+   BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS); bdDim=AI_DIMS[0]||BREAKDOWN_DIMS[0];
    // CRM deal snapshot + change log (optional; Pipeline & Revenue tab)
    dealsData=[]; dealChangesData=[];
    try{ parseGviz(dealsT).rows.forEach(dl=>{ if(!dl["Deal ID"]) return;
@@ -335,7 +383,8 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
 }
 
 /* ── Aggregation helpers ─────────────────────────────────────────── */
-function filtered(){ return ROWS.filter(r=>r._date>=state.from && r._date<=state.to); }
+function scoped(){ return ROWS.filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)); }
+function filtered(){ return scoped().filter(r=>r._date>=state.from && r._date<=state.to); }
 function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0;
   rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;});
   return {spend,leads,rev,imp,clicks,cpa:leads?spend/leads:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,ads:new Set(rows.map(r=>r["Ad ID"])).size};
@@ -344,12 +393,18 @@ function groupBy(rows,key){ const g={}; rows.forEach(r=>{ const k=(r[key]||"").t
 
 /* ── Shell (controls + tabs) ─────────────────────────────────────── */
 function buildShell(){
-  const presets=["7d","14d","30d","All"].map(p=>`<button class="preset" data-preset="${p}">${p}</button>`).join("");
+  const presets=["7d","14d","30d","This Mo","Last Mo","All"].map(p=>`<button class="preset" data-preset="${p}">${p}</button>`).join("");
+  const bySpendKey=key=>{ const m={}; ROWS.forEach(r=>{ const k=(r[key]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; }); return Object.keys(m).sort((x,y)=>m[y]-m[x]); };
+  const campOpts=`<option value="">All Campaigns</option>`+bySpendKey("Campaign").map(c=>`<option>${c}</option>`).join("");
   document.getElementById("content").innerHTML=`
     <div class="controls">
       <label>From <input type="date" id="cFrom" value="${state.from}" min="${DMIN}" max="${DMAX}"></label>
       <label>To <input type="date" id="cTo" value="${state.to}" min="${DMIN}" max="${DMAX}"></label>
       ${presets}
+      <label style="font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" id="cCmp"${state.cmp?" checked":""}> vs Previous Period</label>
+      <select id="cCamp" style="max-width:230px;">${campOpts}</select>
+      <select id="cAdset" style="max-width:230px;"></select>
+      <button class="preset" id="cReset" style="border-color:var(--bad);color:var(--bad);">Reset All</button>
       <span class="spacer"></span>
       <span class="note" id="rowNote"></span>
     </div>
@@ -382,9 +437,15 @@ function buildShell(){
     <div id="tab-pacing" class="tab-content"></div>
     <div id="tab-creative" class="tab-content"></div>`;
 
+  fillAdsets();
+  document.getElementById("cCmp").addEventListener("change",e=>{state.cmp=e.target.checked; render();});
+  document.getElementById("cCamp").addEventListener("change",e=>{state.campaign=e.target.value; state.adset=""; fillAdsets(); render();});
+  document.getElementById("cAdset").addEventListener("change",e=>{state.adset=e.target.value; render();});
+  document.getElementById("cReset").addEventListener("click",()=>{ state.campaign=""; state.adset=""; state.cmp=true;
+    document.getElementById("cCamp").value=""; document.getElementById("cCmp").checked=true; fillAdsets(); applyPreset("All",document.querySelector('.preset[data-preset="All"]')); });
   document.getElementById("cFrom").addEventListener("change",e=>{state.from=e.target.value; clearPreset(); render();});
   document.getElementById("cTo").addEventListener("change",e=>{state.to=e.target.value; clearPreset(); render();});
-  document.querySelectorAll(".preset").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset,b)));
+  document.querySelectorAll(".preset[data-preset]").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset,b)));
   document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>{
     document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
@@ -392,11 +453,18 @@ function buildShell(){
     state.tab=b.dataset.tab; render();
   }));
 }
-function clearPreset(){ document.querySelectorAll(".preset").forEach(b=>b.classList.remove("active")); }
+function clearPreset(){ document.querySelectorAll(".preset[data-preset]").forEach(b=>b.classList.remove("active")); }
+function fillAdsets(){
+  const m={}; ROWS.forEach(r=>{ if(state.campaign&&r["Campaign"]!==state.campaign) return; const k=(r["Ad Set"]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; });
+  const el=document.getElementById("cAdset"); if(!el) return;
+  el.innerHTML=`<option value="">All Ad Sets</option>`+Object.keys(m).sort((x,y)=>m[y]-m[x]).map(a=>`<option${a===state.adset?" selected":""}>${a}</option>`).join("");
+}
 function shiftDays(d,n){ const x=new Date(d+"T00:00:00"); x.setDate(x.getDate()-n); return x.toISOString().slice(0,10); }
 function applyPreset(p,btn){
   clearPreset(); if(btn)btn.classList.add("active");
   if(p==="All"){ state.from=DMIN; state.to=DMAX; }
+  else if(p==="This Mo"){ state.to=DMAX; state.from=DMAX.slice(0,7)+"-01"; }
+  else if(p==="Last Mo"){ const d=new Date(DMAX.slice(0,7)+"-01T00:00:00"); d.setDate(0); state.to=fmtDate(d); state.from=state.to.slice(0,7)+"-01"; if(state.from<DMIN)state.from=DMIN; }
   else { const n={"7d":6,"14d":13,"30d":29}[p]; state.to=DMAX; state.from=shiftDays(DMAX,n); if(state.from<DMIN)state.from=DMIN; }
   document.getElementById("cFrom").value=state.from; document.getElementById("cTo").value=state.to;
   render();
@@ -1115,7 +1183,7 @@ function kpiHtml(f){
   // previous window of equal length, immediately before the selected range
   const spanDays=Math.round((new Date(state.to+"T00:00:00")-new Date(state.from+"T00:00:00"))/86400000)+1;
   const pTo=shiftDays(state.from,1), pFrom=shiftDays(state.from,spanDays);
-  const pRows=ROWS.filter(r=>r._date>=pFrom&&r._date<=pTo);
+  const pRows=state.cmp?scoped().filter(r=>r._date>=pFrom&&r._date<=pTo):[];
   const pAgg=pRows.length?agg(pRows):null;
   function kd(cur,prev,invert,absFmt){
     if(!pAgg||prev==null||!isFinite(prev)||prev===0) return "";
@@ -1228,8 +1296,7 @@ function renderTrends(f){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>IS_ROAS?v.toFixed(2)+"x":"$"+v.toFixed(0)}}}}});
 }
 
-let bdDim=BREAKDOWN_DIMS[0];
-// Special dims live in their own tabs (account/campaign level, not ad-keyed).
+let bdDim=BREAKDOWN_DIMS[0], bdView="coverage", bdMin=500, bdA="", bdB="";
 function specialBrkRows(dim){
   if(dim==="Device") return BRK.device;
   if(dim==="Age"||dim==="Gender") return BRK.demo.filter(r=>r[dim] && r[dim]!=="(all)");
@@ -1237,29 +1304,97 @@ function specialBrkRows(dim){
   if(dim==="PMax Channel") return BRK.pmax;
   return null;
 }
+// Scoring follows the client's metric: ROAS (higher is better) or cost per result (lower is better).
+const resHeadHtml=()=>IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+const resCellsHtml=x=>IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td><td class="num">${x.leads?money(x.aov):"—"}</td>`
+  :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`;
+const scoreTxt=x=>IS_ROAS?(x.rev?x.roas.toFixed(2)+"x":"—"):(x.leads?money(x.cpa):"no "+RESULT_LABEL.toLowerCase());
+const scoreCls=(x,t)=>IS_ROAS?(!x.rev?"":x.roas>=t.roas*1.1?"good":x.roas<t.roas*0.8?"bad":""):(!x.leads||!t.cpa?"":x.cpa<=t.cpa*0.9?"good":x.cpa>=t.cpa*1.25?"bad":"");
+const rankBest=(a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:(a.rev?-1:b.rev?1:b.spend-a.spend)):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend));
+const SCORE_NAME=IS_ROAS?"ROAS":"cost per "+RESULT_ONE;
+const SCORE_RULE=IS_ROAS?"Green = at least 10% above it, red = more than 20% below.":"Green = at least 10% cheaper than that, red = at least 25% more expensive.";
+function bdBar(extra){
+  const seg=[["coverage","Themes"],["detail","Theme detail"]].map(([k,l])=>`<button data-bdv="${k}" class="${bdView===k?"on":""}">${l}</button>`).join("");
+  return `<div class="bd-bar"><span class="seg">${seg}</span>${extra||""}
+    <label>Min spend $ <input type="number" id="bdMinIn" value="${bdMin}" style="width:80px;"></label>
+    <span>Anything under the minimum is greyed out and not scored.</span></div>`;
+}
+function detailPickers(){
+  const special=!!specialBrkRows(bdDim);
+  const o1=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}</option>`).join("");
+  const o2=`<option value="">None</option>`+BREAKDOWN_DIMS.filter(d=>!specialBrkRows(d)&&d!==bdDim).map(d=>`<option value="${d}"${d===bdB?" selected":""}>${d}</option>`).join("");
+  return `<label>Theme <select id="bdSel">${o1}</select></label><label>Compare with <select id="bdB"${special?" disabled":""}>${o2}</select></label>`;
+}
+function wireDetailPickers(){
+  document.getElementById("bdSel").addEventListener("change",e=>{bdDim=e.target.value; if(bdB===bdDim) bdB=""; renderBreakdowns(filtered());});
+  document.getElementById("bdB").addEventListener("change",e=>{bdB=e.target.value; renderBreakdowns(filtered());});
+}
+function wireBdBar(){
+  document.querySelectorAll("#tab-breakdowns [data-bdv]").forEach(b=>b.addEventListener("click",()=>{bdView=b.dataset.bdv; renderBreakdowns(filtered());}));
+  const m=document.getElementById("bdMinIn"); if(m) m.addEventListener("change",e=>{bdMin=Math.max(0,+e.target.value||0); renderBreakdowns(filtered());});
+}
 function renderBreakdowns(f){
-  const sp=specialBrkRows(bdDim);
-  if(sp) f=sp.filter(r=>r._date>=state.from && r._date<=state.to);
-  const opts=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}${AI_DIMS.includes(d)?" (AI)":""}</option>`).join("");
+  if(bdView==="coverage") return renderCoverage(f);
+  if(bdB && bdB!==bdDim && !specialBrkRows(bdDim)){ bdA=bdDim; return renderCombo(f); }
+  const sp=specialBrkRows(bdDim); let spNote="";
+  if(sp){ f=sp.filter(r=>r._date>=state.from && r._date<=state.to && (!state.campaign||!r.Campaign||r.Campaign===state.campaign));
+    if(state.adset||(state.campaign&&bdDim==="Hour of Day")) spNote=`<div class="note" style="margin:-4px 0 12px;">${bdDim} is not available by ${bdDim==="Hour of Day"&&state.campaign?"campaign or ad set":"ad set"}, so that filter does not apply to it.</div>`; }
   const g=groupBy(f,bdDim);
   let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows)}));
   out=out.filter(x=>x.k!=="(none)" || out.length===1);
-  out.sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend));
-  const top=out.slice().sort((a,b)=>b.spend-a.spend).slice(0,12);
-  const resultHead=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
-  const body=out.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>`+
-     (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td><td class="num">${x.leads?money(x.aov):"—"}</td>`
-             :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("");
-  document.getElementById("tab-breakdowns").innerHTML=
-    `<div class="card"><h2>Breakdown by
-       <select id="bdSel" style="font:inherit;font-size:14px;padding:3px 7px;border:1px solid var(--border);border-radius:7px;">${opts}</select>
-       ${AI_DIMS.includes(bdDim)?'<span class="aimark">✨ AI</span>':''}</h2>
+  if(bdDim==="Hour of Day") out.sort((a,b)=>a.k<b.k?-1:1); else out.sort(rankBest);
+  const body=out.map(x=>`<tr${x.spend<bdMin?' style="color:var(--muted)"':""}><td>${x.k}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}</tr>`).join("");
+  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+spNote+
+    `<div class="card"><h2>${bdDim}</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||(THEMES.find(t=>t.dim===bdDim)||{}).hint||""}</div>
        <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
-     <div class="card"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${resultHead}</tr></thead><tbody>${body}</tbody></table></div>`;
-  document.getElementById("bdSel").addEventListener("change",e=>{bdDim=e.target.value; renderBreakdowns(filtered());});
-  makeChart("bdChart",{type:"bar",
-    data:{labels:top.map(x=>x.k),datasets:[{label:"Spend",data:top.map(x=>x.spend),backgroundColor:top.map((_,i)=>COLORS[i%COLORS.length])}]},
-    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+     <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${resHeadHtml()}</tr></thead><tbody>${body}</tbody></table></div></div>`;
+  wireDetailPickers(); wireBdBar(); dimChart("bdChart",out);
+}
+function renderCoverage(f){
+  const tot=agg(f);
+  const themeHtml=(t,src)=>{
+    const g=groupBy(src,t.dim); const seen=Object.keys(g).filter(k=>k!=="(none)");
+    const vals=t.values.length?t.values.concat(seen.filter(k=>!t.values.includes(k))):seen;
+    const boxes=vals.map(v=>{ const x=agg(g[v]||[]);
+      if(!x.spend) return NEUTRAL.has(v)?"":`<div class="cov-box gap"><div class="l">${v}</div><div class="n">Nothing running here.</div></div>`;
+      if(x.spend<bdMin) return `<div class="cov-box low"><div class="l">${v}</div><div class="n">${money(x.spend)} spent. Too little to judge.</div></div>`;
+      const share=tot.spend?x.spend/tot.spend*100:0;
+      return `<div class="cov-box"><div class="l">${v}</div><div class="t"><i style="width:${share.toFixed(0)}%"></i></div>
+        <div class="r"><span>${share.toFixed(0)}% of spend</span><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span></div>
+        <div class="n">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()} · ${x.ads} ad${x.ads===1?"":"s"}</div></div>`; }).join("");
+    const un=agg(g["(none)"]||[]);
+    return `<div class="cov-theme"><h3>${t.dim}</h3><div class="q">${THEME_Q[t.dim]||t.hint||""}</div><div class="cov-grid">${boxes}</div>
+      ${un.spend?`<div class="note">${money(un.spend)} of spend is on ads not tagged for this theme yet.</div>`:""}</div>`; };
+  const main=THEMES.filter(t=>t.type!=="manual"), vid=f.filter(isVideoRow);
+  const manHtml=THEMES.filter(t=>t.type==="manual"&&vid.some(r=>(r[t.dim]||"").toString().trim())).map(t=>themeHtml(t,vid)).join("");
+  document.getElementById("tab-breakdowns").innerHTML=bdBar()+
+    `<div class="note" style="margin:-6px 0 14px;">Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b> on ${money(tot.spend)}. ${SCORE_RULE}</div>
+     ${main.length?`<div class="card">${main.map(t=>themeHtml(t,f)).join("")}</div>`:`<div class="card"><div class="note">No creative themes are set up for this client yet.</div></div>`}
+     ${manHtml?`<div class="card"><div class="cov-group">Video details</div>${manHtml}</div>`:""}`;
+  wireBdBar();
+}
+function renderCombo(f){
+  const tot=agg(f), key=(r,d)=>(r[d]||"").toString().trim()||"(none)", cell={}, rowT={}, colT={};
+  f.forEach(r=>{ const a=key(r,bdA), b=key(r,bdB); if(a==="(none)"||b==="(none)") return;
+    (cell[a+"|"+b]=cell[a+"|"+b]||[]).push(r); (rowT[a]=rowT[a]||[]).push(r); (colT[b]=colT[b]||[]).push(r); });
+  const bySpend=o=>Object.keys(o).sort((x,y)=>agg(o[y]).spend-agg(o[x]).spend);
+  const rowsK=bySpend(rowT), colsK=bySpend(colT).slice(0,8);
+  const td=x=>!x.spend?`<td class="gap">not tested</td>`:x.spend<bdMin?`<td class="low"><span class="s">${money(x.spend)}<br>too little</span></td>`
+     :`<td><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span><span class="s">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()}</span></td>`;
+  const head=`<tr><th>${bdA} ↓ &nbsp; ${bdB} →</th>${colsK.map(c=>`<th>${c}</th>`).join("")}<th>All</th></tr>`;
+  const body=rowsK.map(a=>`<tr><td>${a}</td>${colsK.map(b=>td(agg(cell[a+"|"+b]||[]))).join("")}${td(agg(rowT[a]))}</tr>`).join("")+
+    `<tr><td>All</td>${colsK.map(b=>td(agg(colT[b]))).join("")}${td(tot)}</tr>`;
+  const pairs=Object.entries(cell).map(([k,rs])=>({k:k.replace("|"," + "),...agg(rs)})).filter(x=>x.spend>=bdMin).sort(rankBest);
+  const under=Object.keys(cell).length-pairs.length;
+  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+
+    `<div class="card"><h2>${bdA} and ${bdB} together</h2>
+       <div class="note" style="margin:-8px 0 12px;">Each cell is ${SCORE_NAME} for ads that are both. Account: <b>${scoreTxt(tot)}</b>.</div>
+       <div style="overflow-x:auto"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
+     <div class="card"><h2>Pairs ranked by ${SCORE_NAME}</h2>
+       <div style="overflow-x:auto"><table><thead><tr><th>${bdA} + ${bdB}</th><th class="num">Spend</th>${resHeadHtml()}</tr></thead><tbody>${
+         pairs.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}</tr>`).join("")||`<tr><td colspan="6" class="note">No pair has reached the minimum spend in these dates.</td></tr>`}</tbody></table></div>
+       ${under?`<div class="note">${under} more pair${under===1?"":"s"} ran under the ${money(bdMin)} minimum and are left out of the ranking.</div>`:""}</div>`;
+  wireDetailPickers(); wireBdBar();
 }
 
 let crSort={col:null,asc:true};
