@@ -1842,6 +1842,18 @@ function monthKeyLabel(key) {
   return (MONTH_NAMES[mi] || parts[1]) + ' ' + parts[0];
 }
 
+// Like-for-like period comparison (Amy, 2026-09-17): a partial period (this week so far, month to
+// date, or a period clipped by the date filter) is compared with the SAME days of the previous
+// period, never with the whole previous period.
+function periodStart(key, isMonth) { return isMonth ? key + '-01' : key; }
+function dayDiff(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
+function periodOffset(key, isMonth, ds) { return dayDiff(periodStart(key, isMonth), ds); }
+function periodWindow(key, isMonth, fMin, fMax) {
+  const s = periodStart(key, isMonth);
+  const len = isMonth ? new Date(+key.slice(0, 4), +key.slice(5, 7), 0).getDate() : 7;
+  const lo = Math.max(0, dayDiff(s, fMin)), hi = Math.min(len - 1, dayDiff(s, fMax));
+  return { lo: lo, hi: hi, len: len, days: hi - lo + 1, partial: (hi - lo + 1) < len };
+}
 function renderOverviewPeriodTables(filtered) {
   function fill(tbodyId, keyFn, labelFn) {
     const tbody = document.getElementById(tbodyId);
@@ -1849,8 +1861,24 @@ function renderOverviewPeriodTables(filtered) {
     const groups = groupBy(filtered, function(r) { return keyFn(r.date); })
       .sort(function(a, b) { return b.key.localeCompare(a.key); });
     tbody.innerHTML = '';
+    const isMonth = keyFn === getMonthKey;
+    function _ds(r) { const dd = parseDate(r.date); return dd ? formatDateStr(dd) : ''; }
+    const byKey = {}; let fMin = null, fMax = null;
+    filtered.forEach(function(r) {
+      const ds = _ds(r); if (!ds) return;
+      const k = keyFn(r.date); (byKey[k] = byKey[k] || []).push(r);
+      if (!fMin || ds < fMin) fMin = ds; if (!fMax || ds > fMax) fMax = ds;
+    });
     groups.forEach(function(g, i) {
-      const p = groups[i + 1];   // previous (older) period; last row has none
+      let p = groups[i + 1];   // previous (older) period; last row has none
+      let lfl = '';
+      const w = (p && fMin) ? periodWindow(g.key, isMonth, fMin, fMax) : null;
+      if (w && w.partial) {
+        const pk = p.key;
+        const slice = (byKey[pk] || []).filter(function(r) { const o = periodOffset(pk, isMonth, _ds(r)); return o >= w.lo && o <= w.hi; });
+        p = aggregateRows(slice); p.key = pk;
+        lfl = '<span class="tbl-delta neutral">' + w.days + ' of ' + w.len + ' days, vs same days prior ' + (isMonth ? 'month' : 'week') + '</span>';
+      }
       function d(cur, prevVal, invert, absFmt) {
         if (!p) return '';
         const del = formatDelta(cur, prevVal, invert, absFmt);
@@ -1858,7 +1886,7 @@ function renderOverviewPeriodTables(filtered) {
       }
       const tr = document.createElement('tr');
       tr.innerHTML =
-        '<td>' + labelFn(g.key) + '</td>' +
+        '<td>' + labelFn(g.key) + lfl + '</td>' +
         '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false, formatCurrency) + '</td>' +
         '<td>' + formatNumber(g.impressions) + '</td>' +
         '<td>' + formatNumber(g.reach) + '</td>' +

@@ -4,32 +4,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shades of Green — Ads Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 /* ===== RESET & BASE ===== */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-  background:#E1DFD9;
-  color:#1a1a1a;
+  font-family:'Montserrat',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  background:#F1F4EF;
+  color:#2A2A3C;
   min-height:100vh;
   line-height:1.5;
 }
 :root{
-  --primary:#209D50;
-  --primary-dark:#1a8a44;
-  --bg:#E1DFD9;
+  /* Shades of Green brand (style sheet by figdesign): primary greens + navy / coral / teal */
+  --primary:#20534b;
+  --primary-dark:#173d37;
+  --brand-green:#83c48c;
+  --brand-mint:#c3e1b4;
+  --navy:#34344a;
+  --coral:#f26b6c;
+  --teal:#65c8d0;
+  --bg:#F1F4EF;
   --card:#ffffff;
-  --border:#C8C5BE;
-  --header-bg:#F5F4F1;
-  --text:#1a1a1a;
-  --text-muted:#666;
-  --green:#209D50;
-  --red:#E53935;
-  --blue:#4A90D9;
-  --orange:#FFA500;
-  --purple:#9D50D9;
+  --border:#CDD6CE;
+  --header-bg:#F7F9F6;
+  --text:#2A2A3C;
+  --text-muted:#6A7080;
+  --green:#2E8B57;
+  --red:#E5484D;
+  --blue:#3FA9B3;
+  --orange:#E8963A;
+  --purple:#7E6BB5;
 }
+
+.login-wordmark{width:300px;max-width:82%;height:auto;display:block;margin:0 auto 6px;}
+.header-badge{width:38px;height:38px;border-radius:50%;display:block;}
+.login-foot{font-size:11px;color:var(--text-muted);margin-top:22px;letter-spacing:.5px;}
 
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar{width:8px;height:8px;}
@@ -40,7 +52,7 @@ body{
 /* ===== LOGIN PAGE ===== */
 .login-wrap{
   display:flex;align-items:center;justify-content:center;
-  min-height:100vh;background:#E1DFD9;
+  min-height:100vh;background:#F1F4EF;
 }
 .login-card{
   background:#fff;border:1px solid var(--border);border-radius:12px;
@@ -343,20 +355,14 @@ tr:hover td{background:#fafaf8;}
 <div id="loginWrap" class="login-wrap">
   <div class="login-card">
     <div class="login-logo">
-      <svg viewBox="0 0 36 36" fill="none">
-        <rect x="2" y="24" width="6" height="10" rx="1" fill="#209D50"/>
-        <rect x="11" y="18" width="6" height="16" rx="1" fill="#209D50" opacity="0.8"/>
-        <rect x="20" y="12" width="6" height="22" rx="1" fill="#209D50" opacity="0.6"/>
-        <rect x="29" y="4" width="6" height="30" rx="1" fill="#209D50" opacity="0.4"/>
-        <line x1="1" y1="35" x2="36" y2="35" stroke="#209D50" stroke-width="1.5"/>
-      </svg>
-      <span class="login-brand">CASSA STRATEGY</span>
+      <img src="assets/sog-wordmark.png" alt="Shades of Green Permaculture" class="login-wordmark">
     </div>
     <div class="login-sub">Ads Dashboard</div>
-    <div class="login-client">Shades of Green</div>
+    <div class="login-client">Sign in to view performance</div>
     <input type="password" id="loginPw" class="login-input" placeholder="Enter password" autofocus>
     <button id="loginBtn" class="login-btn">Sign In</button>
     <div id="loginErr" class="login-err"></div>
+    <div class="login-foot">Prepared by CASSA STRATEGY</div>
   </div>
 </div>
 
@@ -372,15 +378,9 @@ tr:hover td{background:#fafaf8;}
 <div id="headerBar" class="header">
   <div class="header-inner">
     <div class="header-left">
-      <svg viewBox="0 0 36 36" fill="none">
-        <rect x="2" y="24" width="6" height="10" rx="1" fill="#209D50"/>
-        <rect x="11" y="18" width="6" height="16" rx="1" fill="#209D50" opacity="0.8"/>
-        <rect x="20" y="12" width="6" height="22" rx="1" fill="#209D50" opacity="0.6"/>
-        <rect x="29" y="4" width="6" height="30" rx="1" fill="#209D50" opacity="0.4"/>
-        <line x1="1" y1="35" x2="36" y2="35" stroke="#209D50" stroke-width="1.5"/>
-      </svg>
-      <span class="header-brand">CASSA STRATEGY</span>
-      <span class="header-client">Shades of Green</span>
+      <img src="assets/sog-badge.png" alt="" class="header-badge">
+      <span class="header-brand">SHADES OF GREEN</span>
+      <span class="header-client">Ads Dashboard</span>
     </div>
     <div class="header-right" id="headerDateRange"></div>
   </div>
@@ -1064,8 +1064,8 @@ tr:hover td{background:#fafaf8;}
 // ========================================================================
 const SHEET_ID = '19X1yl62Z_xSRic4Xz8JTurKjNNgcmRWuXNRYM5zYnfA';
 const COLORS = [
-  '#209D50','#4A90D9','#FF6B6B','#FFA500','#9D50D9',
-  '#50C8D9','#D4A843','#E8527A','#7BC67E','#6B8DE3'
+  '#20534b','#65c8d0','#f26b6c','#83c48c','#34344a',
+  '#E8963A','#7E6BB5','#c3e1b4','#4F8F86','#F4A6A6'
 ];
 const PASSWORD = 'sog2026';
 
@@ -1811,6 +1811,18 @@ function monthKeyLabel(key) {
   return (MONTH_NAMES[mi] || parts[1]) + ' ' + parts[0];
 }
 
+// Like-for-like period comparison (Amy, 2026-09-17): a partial period (this week so far, month to
+// date, or a period clipped by the date filter) is compared with the SAME days of the previous
+// period, never with the whole previous period.
+function periodStart(key, isMonth) { return isMonth ? key + '-01' : key; }
+function dayDiff(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
+function periodOffset(key, isMonth, ds) { return dayDiff(periodStart(key, isMonth), ds); }
+function periodWindow(key, isMonth, fMin, fMax) {
+  const s = periodStart(key, isMonth);
+  const len = isMonth ? new Date(+key.slice(0, 4), +key.slice(5, 7), 0).getDate() : 7;
+  const lo = Math.max(0, dayDiff(s, fMin)), hi = Math.min(len - 1, dayDiff(s, fMax));
+  return { lo: lo, hi: hi, len: len, days: hi - lo + 1, partial: (hi - lo + 1) < len };
+}
 function renderOverviewPeriodTables(filtered) {
   function fill(tbodyId, keyFn, labelFn) {
     const tbody = document.getElementById(tbodyId);
@@ -1818,8 +1830,24 @@ function renderOverviewPeriodTables(filtered) {
     const groups = groupBy(filtered, function(r) { return keyFn(r.date); })
       .sort(function(a, b) { return b.key.localeCompare(a.key); });
     tbody.innerHTML = '';
+    const isMonth = keyFn === getMonthKey;
+    function _ds(r) { const dd = parseDate(r.date); return dd ? formatDateStr(dd) : ''; }
+    const byKey = {}; let fMin = null, fMax = null;
+    filtered.forEach(function(r) {
+      const ds = _ds(r); if (!ds) return;
+      const k = keyFn(r.date); (byKey[k] = byKey[k] || []).push(r);
+      if (!fMin || ds < fMin) fMin = ds; if (!fMax || ds > fMax) fMax = ds;
+    });
     groups.forEach(function(g, i) {
-      const p = groups[i + 1];   // previous (older) period; last row has none
+      let p = groups[i + 1];   // previous (older) period; last row has none
+      let lfl = '';
+      const w = (p && fMin) ? periodWindow(g.key, isMonth, fMin, fMax) : null;
+      if (w && w.partial) {
+        const pk = p.key;
+        const slice = (byKey[pk] || []).filter(function(r) { const o = periodOffset(pk, isMonth, _ds(r)); return o >= w.lo && o <= w.hi; });
+        p = aggregateRows(slice); p.key = pk;
+        lfl = '<span class="tbl-delta neutral">' + w.days + ' of ' + w.len + ' days, vs same days prior ' + (isMonth ? 'month' : 'week') + '</span>';
+      }
       function d(cur, prevVal, invert, absFmt) {
         if (!p) return '';
         const del = formatDelta(cur, prevVal, invert, absFmt);
@@ -1827,7 +1855,7 @@ function renderOverviewPeriodTables(filtered) {
       }
       const tr = document.createElement('tr');
       tr.innerHTML =
-        '<td>' + labelFn(g.key) + '</td>' +
+        '<td>' + labelFn(g.key) + lfl + '</td>' +
         '<td>' + formatCurrency(g.spend) + d(g.spend, p && p.spend, false, formatCurrency) + '</td>' +
         '<td>' + formatNumber(g.impressions) + '</td>' +
         '<td>' + formatNumber(g.reach) + '</td>' +
@@ -1926,8 +1954,8 @@ function renderTrends() {
         {
           label: 'Combined Cost/Call',
           data: labels.map(function(k) { return allMap[k] ? allMap[k].costPerLead : 0; }),
-          borderColor: '#209D50',
-          backgroundColor: 'rgba(32,157,80,0.08)',
+          borderColor: '#20534b',
+          backgroundColor: 'rgba(32,83,75,0.08)',
           fill: true,
           tension: 0.3,
           pointRadius: pointRadius
@@ -2128,8 +2156,8 @@ function renderLeaderboard() {
       datasets: [{
         label: 'Campaigns',
         data: scatterData,
-        backgroundColor: scatterData.map(function(d) { return d.callsBooked > 0 ? 'rgba(32,157,80,0.45)' : 'rgba(229,57,53,0.45)'; }),
-        borderColor: scatterData.map(function(d) { return d.callsBooked > 0 ? '#209D50' : '#E53935'; }),
+        backgroundColor: scatterData.map(function(d) { return d.callsBooked > 0 ? 'rgba(32,83,75,0.45)' : 'rgba(229,57,53,0.45)'; }),
+        borderColor: scatterData.map(function(d) { return d.callsBooked > 0 ? '#20534b' : '#E53935'; }),
         borderWidth: 1
       }]
     },
@@ -3175,7 +3203,7 @@ function renderFunnel() {
     wrap.appendChild(div);
   });
 
-  var funnelColors = ['#209D50', '#4A90D9', '#FF6B6B'];
+  var funnelColors = ['#20534b', '#4A90D9', '#FF6B6B'];
   createChart('chartFunnel', {
     type: 'bar',
     data: {
@@ -3329,7 +3357,7 @@ function renderSiteEvents() {
   inRange.forEach(function(r) { if (!seenDate[r.date]) { seenDate[r.date] = 1; dates.push(r.date); } });
   dates.sort();
   var groups = kpiOrder.filter(function(g) { return totals[g]; });
-  var palette = ['#209D50', '#4A90D9', '#F5A623', '#9B59B6', '#E74C3C', '#1ABC9C', '#34495E', '#D35400', '#7F8C8D', '#2C3E50'];
+  var palette = ['#20534b', '#4A90D9', '#F5A623', '#9B59B6', '#E74C3C', '#1ABC9C', '#34495E', '#D35400', '#7F8C8D', '#2C3E50'];
   var byDateGroup = {};
   inRange.forEach(function(r) {
     var k = r.date + '|' + siteEventGroup(r);
@@ -3470,8 +3498,8 @@ function renderPacing() {
         {
           label: 'Cumulative Spend',
           data: cumSpend,
-          borderColor: '#209D50',
-          backgroundColor: 'rgba(32,157,80,0.08)',
+          borderColor: '#20534b',
+          backgroundColor: 'rgba(32,83,75,0.08)',
           fill: true,
           tension: 0.3,
           pointRadius: pointRadius
@@ -3524,7 +3552,7 @@ function renderPacing() {
         {
           label: 'Daily Spend',
           data: dailySpend,
-          backgroundColor: '#209D50',
+          backgroundColor: '#20534b',
           borderRadius: 2
         }
       ].concat(hasTarget ? [{
@@ -3612,7 +3640,7 @@ function renderModeled() {
     }
   }
 
-  var palette = ['#209D50', '#4A90D9', '#F5A623', '#9B59B6', '#E74C3C', '#1ABC9C', '#34495E', '#D35400', '#7F8C8D', '#2C3E50'];
+  var palette = ['#20534b', '#4A90D9', '#F5A623', '#9B59B6', '#E74C3C', '#1ABC9C', '#34495E', '#D35400', '#7F8C8D', '#2C3E50'];
 
   // Cost per booking trend (paid sources, gaps where a month has no bookings)
   createChart('chartModeledCpb', {
@@ -3740,7 +3768,7 @@ var DEALS_LINES = ['Design', 'Install', 'Caretaking', 'Eco Lawns'];
 var DEALS_SHORT_LADDER = { 'Caretaking': true, 'Eco Lawns': true };   // Created / Won / Complete only
 var DEALS_STALL_DAYS = 30;
 var DEALS_MATURING_MONTHS = 3;
-var DEALS_COLORS = { google: '#4A90D9', meta: '#209D50' };
+var DEALS_COLORS = { google: '#4A90D9', meta: '#20534b' };
 // HubSpot records utm_campaign for Google; the ad platform uses its own names.
 var DEALS_GOOGLE_ALIAS = {
   'pmax_callsbooked': 'PMax_Leads_CallsBooked',
@@ -4540,22 +4568,22 @@ document.addEventListener('DOMContentLoaded', function() {
 #tab-creative .cr-kpi .v{font-size:24px;font-weight:700;margin-top:4px;}
 #tab-creative .cr-card{background:#fff;border:1px solid var(--border,#C8C5BE);border-radius:12px;padding:16px 18px;margin-bottom:20px;}
 #tab-creative .cr-card h3{font-size:15px;font-weight:700;margin-bottom:12px;}
-#tab-creative .cr-aimark{font-size:10px;font-weight:700;color:var(--primary,#209D50);background:rgba(32,157,80,.12);padding:1px 7px;border-radius:20px;margin-left:6px;}
+#tab-creative .cr-aimark{font-size:10px;font-weight:700;color:var(--primary,#20534b);background:rgba(32,83,75,.12);padding:1px 7px;border-radius:20px;margin-left:6px;}
 #tab-creative table.cr-tbl{width:100%;border-collapse:collapse;font-size:13px;}
 #tab-creative table.cr-tbl th,#tab-creative table.cr-tbl td{text-align:left;padding:8px 9px;border-bottom:1px solid var(--border,#eee);white-space:nowrap;}
 #tab-creative table.cr-tbl th{font-size:10.5px;text-transform:uppercase;color:var(--text-muted,#666);}
 #tab-creative .cr-num{text-align:right;}
 #tab-creative .cr-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;background:#eee;display:block;}
 #tab-creative .cr-pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:var(--header-bg,#eef);color:#555;}
-#tab-creative .cr-ai{background:rgba(32,157,80,.05);}
-#tab-creative .cr-aipill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(32,157,80,.12);color:#1a8a44;font-weight:600;}
+#tab-creative .cr-ai{background:rgba(32,83,75,.05);}
+#tab-creative .cr-aipill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;background:rgba(32,83,75,.12);color:#173d37;font-weight:600;}
 #tab-creative .cr-adname{font-weight:600;white-space:normal;min-width:190px;}
 #tab-creative .cr-note{font-size:11px;color:var(--text-muted,#666);white-space:normal;}
 #tab-creative td.cr-edit,#tab-creative .cr-note.cr-edit{cursor:text;}
-#tab-creative td.cr-edit:hover,#tab-creative .cr-note.cr-edit:hover{outline:1px dashed var(--primary,#209D50);outline-offset:-2px;}
+#tab-creative td.cr-edit:hover,#tab-creative .cr-note.cr-edit:hover{outline:1px dashed var(--primary,#20534b);outline-offset:-2px;}
 #tab-creative td.cr-unsaved,#tab-creative .cr-unsaved{background:rgba(255,193,7,.22);}
-#tab-creative td.cr-saved,#tab-creative .cr-saved{background:rgba(32,157,80,.14);}
-#tab-creative select.cr-cell,#tab-creative input.cr-cell{font:inherit;padding:2px 4px;border:1px solid var(--primary,#209D50);border-radius:5px;max-width:190px;}
+#tab-creative td.cr-saved,#tab-creative .cr-saved{background:rgba(32,83,75,.14);}
+#tab-creative select.cr-cell,#tab-creative input.cr-cell{font:inherit;padding:2px 4px;border:1px solid var(--primary,#20534b);border-radius:5px;max-width:190px;}
 #tab-creative .cr-bdgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
 #tab-creative .cr-bd h4{font-size:12.5px;margin-bottom:6px;font-weight:700;}
 #tab-creative .cr-untag{color:#aaa;font-style:italic;}
@@ -4567,10 +4595,10 @@ document.addEventListener('DOMContentLoaded', function() {
 .cr-modal label{font-size:12px;display:block;margin:10px 0;}
 .cr-modal .r{display:flex;gap:10px;justify-content:flex-end;}
 .cr-modal button{padding:8px 16px;border-radius:8px;border:1px solid #ccc;background:#fff;cursor:pointer;font-size:13px;}
-.cr-modal button.p{background:var(--primary,#209D50);color:#fff;border-color:var(--primary,#209D50);}
+.cr-modal button.p{background:var(--primary,#20534b);color:#fff;border-color:var(--primary,#20534b);}
 #tab-creative .cr-bulk{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--header-bg,#F5F4F1);border:1px solid var(--border,#C8C5BE);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13px;}
 #tab-creative .cr-bulk select{font:inherit;padding:3px 6px;border:1px solid var(--border,#ccc);border-radius:6px;}
-#tab-creative .cr-bulk button{padding:5px 12px;border-radius:6px;border:1px solid var(--primary,#209D50);background:var(--primary,#209D50);color:#fff;cursor:pointer;font-size:12.5px;}
+#tab-creative .cr-bulk button{padding:5px 12px;border-radius:6px;border:1px solid var(--primary,#20534b);background:var(--primary,#20534b);color:#fff;cursor:pointer;font-size:12.5px;}
 #tab-creative .cr-bulk button.sec{background:#fff;color:var(--text-muted,#666);border-color:var(--border,#ccc);}
 #tab-creative .cr-chk,#tab-creative #cr-selall{cursor:pointer;width:15px;height:15px;}
 #tab-creative .cr-managebtn{float:right;font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--border,#ccc);background:#fff;cursor:pointer;}
@@ -4580,7 +4608,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .cr-mtbl input,.cr-mtbl select{font:inherit;padding:3px 5px;border:1px solid #ccc;border-radius:5px;width:100%;}
 .cr-mtbl .cr-mdel{width:auto;color:#c00;border:1px solid #eccccc;cursor:pointer;background:#fff;border-radius:5px;padding:2px 8px;}
 #tab-creative .cr-tbl th.cr-sort{cursor:pointer;user-select:none;white-space:nowrap;}
-#tab-creative .cr-tbl th.cr-sort:hover{color:var(--primary,#209D50);}
+#tab-creative .cr-tbl th.cr-sort:hover{color:var(--primary,#20534b);}
 </style>
 <script>
 (function(){

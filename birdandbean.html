@@ -251,7 +251,7 @@ function parseGviz(text){
   return {cols, rows};
 }
 
-let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview"}, charts={};
+let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview",campaign:"",adset:"",cmp:true}, charts={};
 let BRK={device:[],demo:[],hourly:[]};
 let BUDGETS={};   // {'YYYY-MM': monthly budget} from the sheet's Budgets tab
 function parseBrkTab(text, build){
@@ -348,7 +348,8 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
 }
 
 /* ── Aggregation helpers ─────────────────────────────────────────── */
-function filtered(){ return ROWS.filter(r=>r._date>=state.from && r._date<=state.to); }
+function scoped(){ return ROWS.filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)); }
+function filtered(){ return scoped().filter(r=>r._date>=state.from && r._date<=state.to); }
 function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0;
   rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;});
   return {spend,leads,rev,imp,clicks,cpa:leads?spend/leads:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,
@@ -364,12 +365,18 @@ const rankRoas=(a,b)=>(a.rev&&b.rev)?b.roas-a.roas:(a.rev?-1:b.rev?1:b.spend-a.s
 
 /* ── Shell (controls + tabs) ─────────────────────────────────────── */
 function buildShell(){
-  const presets=["7d","14d","30d","All"].map(p=>`<button class="preset${p==="30d"?" active":""}" data-preset="${p}">${p}</button>`).join("");
+  const presets=["7d","14d","30d","This Mo","Last Mo","All"].map(p=>`<button class="preset${p==="30d"?" active":""}" data-preset="${p}">${p}</button>`).join("");
+  const bySpend=key=>{ const m={}; ROWS.forEach(r=>{ const k=(r[key]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; }); return Object.keys(m).sort((x,y)=>m[y]-m[x]); };
+  const campOpts=`<option value="">All Campaigns</option>`+bySpend("Campaign").map(c=>`<option>${c}</option>`).join("");
   document.getElementById("content").innerHTML=`
     <div class="controls">
       <label>From <input type="date" id="cFrom" value="${state.from}" min="${DMIN}" max="${DMAX}"></label>
       <label>To <input type="date" id="cTo" value="${state.to}" min="${DMIN}" max="${DMAX}"></label>
       ${presets}
+      <label style="font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" id="cCmp"${state.cmp?" checked":""}> vs Previous Period</label>
+      <select id="cCamp" style="max-width:230px;">${campOpts}</select>
+      <select id="cAdset" style="max-width:230px;"></select>
+      <button class="preset" id="cReset" style="border-color:var(--bad);color:var(--bad);">Reset All</button>
       <span class="spacer"></span>
       <span class="note" id="rowNote"></span>
     </div>
@@ -396,9 +403,16 @@ function buildShell(){
     <div id="tab-pacing" class="tab-content"></div>
     <div id="tab-creative" class="tab-content"></div>`;
 
+  fillAdsets();
+  document.getElementById("cCmp").addEventListener("change",e=>{state.cmp=e.target.checked; render();});
+  document.getElementById("cCamp").addEventListener("change",e=>{state.campaign=e.target.value; state.adset=""; fillAdsets(); render();});
+  document.getElementById("cAdset").addEventListener("change",e=>{state.adset=e.target.value; render();});
+  document.getElementById("cReset").addEventListener("click",()=>{ state.campaign=""; state.adset=""; state.cmp=true;
+    document.getElementById("cCamp").value=""; document.getElementById("cCmp").checked=true; fillAdsets();
+    applyPreset("30d",document.querySelector('.preset[data-preset="30d"]')); });
   document.getElementById("cFrom").addEventListener("change",e=>{state.from=e.target.value; clearPreset(); render();});
   document.getElementById("cTo").addEventListener("change",e=>{state.to=e.target.value; clearPreset(); render();});
-  document.querySelectorAll(".preset").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset,b)));
+  document.querySelectorAll(".preset[data-preset]").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset,b)));
   document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>{
     document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("active"));
     document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
@@ -406,11 +420,19 @@ function buildShell(){
     state.tab=b.dataset.tab; render();
   }));
 }
-function clearPreset(){ document.querySelectorAll(".preset").forEach(b=>b.classList.remove("active")); }
+function clearPreset(){ document.querySelectorAll(".preset[data-preset]").forEach(b=>b.classList.remove("active")); }
+// Ad set list follows the chosen campaign (all ad sets when no campaign is picked), biggest spend first.
+function fillAdsets(){
+  const m={}; ROWS.forEach(r=>{ if(state.campaign&&r["Campaign"]!==state.campaign) return; const k=(r["Ad Set"]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; });
+  const el=document.getElementById("cAdset"); if(!el) return;
+  el.innerHTML=`<option value="">All Ad Sets</option>`+Object.keys(m).sort((x,y)=>m[y]-m[x]).map(a=>`<option${a===state.adset?" selected":""}>${a}</option>`).join("");
+}
 function shiftDays(d,n){ const x=new Date(d+"T00:00:00"); x.setDate(x.getDate()-n); return x.toISOString().slice(0,10); }
 function applyPreset(p,btn){
   clearPreset(); if(btn)btn.classList.add("active");
   if(p==="All"){ state.from=DMIN; state.to=DMAX; }
+  else if(p==="This Mo"){ state.to=DMAX; state.from=DMAX.slice(0,7)+"-01"; }
+  else if(p==="Last Mo"){ const d=new Date(DMAX.slice(0,7)+"-01T00:00:00"); d.setDate(0); state.to=fmtDate(d); state.from=state.to.slice(0,7)+"-01"; if(state.from<DMIN)state.from=DMIN; }
   else { const n={"7d":6,"14d":13,"30d":29}[p]; state.to=DMAX; state.from=shiftDays(DMAX,n); if(state.from<DMIN)state.from=DMIN; }
   const f=document.getElementById("cFrom"), t=document.getElementById("cTo");
   if(f){ f.value=state.from; t.value=state.to; render(); }
@@ -419,7 +441,7 @@ function applyPreset(p,btn){
 /* ── Render ──────────────────────────────────────────────────────── */
 function render(){
   const f=filtered();
-  document.getElementById("rowNote").textContent=`${f.length} rows · ${state.from} to ${state.to}`;
+  document.getElementById("rowNote").textContent=`${f.length} rows · ${state.from} to ${state.to}`+(state.campaign?` · ${state.campaign}`:"")+(state.adset?` · ${state.adset}`:"");
   document.getElementById("range").textContent=`${state.from}  to  ${state.to}`;
   if(state.tab==="overview") renderOverview(f);
   else if(state.tab==="trends") renderTrends(f);
@@ -577,7 +599,7 @@ function kpiHtml(f){
   // previous window of equal length, immediately before the selected range
   const spanDays=Math.round((new Date(state.to+"T00:00:00")-new Date(state.from+"T00:00:00"))/86400000)+1;
   const pTo=shiftDays(state.from,1), pFrom=shiftDays(state.from,spanDays);
-  const pRows=ROWS.filter(r=>r._date>=pFrom&&r._date<=pTo);
+  const pRows=state.cmp?scoped().filter(r=>r._date>=pFrom&&r._date<=pTo):[];
   const pAgg=pRows.length?agg(pRows):null;
   function kd(cur,prev,invert,absFmt){
     if(!pAgg||prev==null||!isFinite(prev)||prev===0) return "";
@@ -618,13 +640,32 @@ function periodDelta(cur,prev,invert,absFmt){
   const abs=absFmt?` (${diff>=0?"+":"−"}${absFmt(Math.abs(diff))})`:"";
   return `<span class="tbl-delta ${cls}">${pct>=0?"+":""}${(pct*100).toFixed(1)}% ${pct>=0?"↑":"↓"}${abs}</span>`;
 }
+// Like-for-like period comparison (Amy, 2026-09-17): a partial period (this week so far, month to
+// date, or a period clipped by the date filter) is compared with the SAME days of the previous
+// period, never with the whole previous period.
+function periodStart(key, isMonth) { return isMonth ? key + '-01' : key; }
+function dayDiff(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
+function periodOffset(key, isMonth, ds) { return dayDiff(periodStart(key, isMonth), ds); }
+function periodWindow(key, isMonth, fMin, fMax) {
+  const s = periodStart(key, isMonth);
+  const len = isMonth ? new Date(+key.slice(0, 4), +key.slice(5, 7), 0).getDate() : 7;
+  const lo = Math.max(0, dayDiff(s, fMin)), hi = Math.min(len - 1, dayDiff(s, fMax));
+  return { lo: lo, hi: hi, len: len, days: hi - lo + 1, partial: (hi - lo + 1) < len };
+}
 function periodTable(rows,keyFn,colLabel,labelFn){
+  const isMonth=keyFn===monthKey; let fMin=null,fMax=null; rows.forEach(r=>{ if(!fMin||r._date<fMin)fMin=r._date; if(!fMax||r._date>fMax)fMax=r._date; });
   const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
   const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)})).sort((a,b)=>b.k.localeCompare(a.k));
   const body=out.map((x,i)=>{
-    const p=out[i+1];   // previous (older) period; last row has none
+    let p=out[i+1];   // previous (older) period; last row has none
+    let lfl="";
+    const w=(p&&fMin)?periodWindow(x.k,isMonth,fMin,fMax):null;
+    if(w&&w.partial){ const pk=p.k;
+      const slice=(g[pk]||[]).filter(r=>{ const o=periodOffset(pk,isMonth,r._date); return o>=w.lo&&o<=w.hi; });
+      p={k:pk,...agg(slice)}; p.ctr=p.imp?p.clicks/p.imp*100:0;
+      lfl=`<span class="tbl-delta neutral">${w.days} of ${w.len} days, vs same days prior ${isMonth?"month":"week"}</span>`; }
     const d=(cur,prev,inv,absFmt)=>p?periodDelta(cur,prev,inv,absFmt):"";
-    return `<tr><td>${labelFn?labelFn(x.k):x.k}</td><td class="num">${money(x.spend)}${d(x.spend,p&&p.spend,false,money)}</td><td class="num">${num(x.imp)}</td>`+
+    return `<tr><td>${labelFn?labelFn(x.k):x.k}${lfl}</td><td class="num">${money(x.spend)}${d(x.spend,p&&p.spend,false,money)}</td><td class="num">${num(x.imp)}</td>`+
       `<td class="num">${num(x.clicks)}${d(x.clicks,p&&p.clicks,false,num)}</td><td class="num">${x.ctr.toFixed(2)}%${d(x.ctr,p&&p.ctr,false)}</td>`+
       `<td class="num">${num(x.leads)||"—"}${d(x.leads,p&&p.leads,false,num)}</td>`+
       `<td class="num">${money(x.rev)}${d(x.rev,p&&p.rev,false,money)}</td>`+
@@ -712,15 +753,16 @@ function wireBdBar(){
 function renderBreakdowns(f){
   if(bdView==="coverage") return renderCoverage(f);
   if(bdB && bdB!==bdDim && !specialBrkRows(bdDim)){ bdA=bdDim; return renderCombo(f); }
-  const sp=specialBrkRows(bdDim);
-  if(sp) f=sp.filter(r=>r._date>=state.from && r._date<=state.to);
+  const sp=specialBrkRows(bdDim); let spNote="";
+  if(sp){ f=sp.filter(r=>r._date>=state.from && r._date<=state.to && (!state.campaign||bdDim==="Hour of Day"||r.Campaign===state.campaign));
+    if(state.adset||(state.campaign&&bdDim==="Hour of Day")) spNote=`<div class="note" style="margin:-4px 0 12px;">${bdDim} comes from Meta at ${bdDim==="Hour of Day"?"account":"campaign"} level, so the ${bdDim==="Hour of Day"&&state.campaign?"campaign and ad set filters do":"ad set filter does"} not apply to it.</div>`; }
   const g=groupBy(f,bdDim);
   let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows)}));
   out=out.filter(x=>x.k!=="(none)" || out.length===1);
   if(bdDim==="Hour of Day") out.sort((a,b)=>a.k<b.k?-1:1); else out.sort(rankRoas);
   const body=out.map(x=>`<tr${x.spend<bdMin?' style="color:var(--muted)"':""}><td>${x.k}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCells(x)}</tr>`).join("");
   document.getElementById("tab-breakdowns").innerHTML=
-    bdBar(detailPickers())+
+    bdBar(detailPickers())+spNote+
     `<div class="card"><h2>${bdDim} — spend vs revenue</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||""}</div>
        <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
      <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${RES_HEAD}</tr></thead><tbody>${body}</tbody></table></div></div>`;
