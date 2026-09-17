@@ -103,6 +103,36 @@ th.ai,td.ai{background:rgba(169,203,208,.12);}
 .loading,.err{text-align:center; padding:60px 20px; color:var(--muted);}
 .err{color:var(--bad);}
 .note{font-size:12px; color:var(--muted); margin-top:4px;}
+/* creative themes: coverage grid + combinations */
+.seg{display:inline-flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; margin-right:12px;}
+.seg button{font:inherit; font-size:13px; font-weight:600; padding:6px 14px; border:0; background:#fff; color:var(--muted); cursor:pointer;}
+.seg button.on{background:var(--primary); color:#fff;}
+.bd-bar{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:16px; font-size:13px; color:var(--muted);}
+.bd-bar select,.bd-bar input{font:inherit; font-size:13px; padding:4px 7px; border:1px solid var(--border); border-radius:7px; background:#fff;}
+.cov-group{font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); font-weight:700; margin:6px 0 10px;}
+.cov-theme{margin-bottom:20px;}
+.cov-theme h3{font-size:15px; font-weight:700;}
+.cov-theme .q{font-size:12px; color:var(--muted); margin-bottom:8px;}
+.cov-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:10px;}
+.cov-box{background:#fff; border:1px solid var(--border); border-radius:10px; padding:10px 12px;}
+.cov-box.low{background:var(--header-bg); border-style:dashed;}
+.cov-box.gap{background:#FFF7E6; border-color:#F0C36D;}
+.cov-box .l{font-size:13px; font-weight:600;}
+.cov-box .t{height:4px; border-radius:2px; background:var(--header-bg); margin-top:7px; overflow:hidden;}
+.cov-box .t i{display:block; height:100%; background:var(--accent);}
+.cov-box .r{display:flex; justify-content:space-between; align-items:baseline; margin-top:6px; font-size:12px; color:var(--muted);}
+.cov-box .v{font-size:16px; font-weight:700; color:var(--text);}
+.cov-box .n{font-size:11.5px; color:var(--muted); margin-top:6px;}
+.cov-box .v.good, table.mx td .v.good{color:var(--good);} .cov-box .v.bad, table.mx td .v.bad{color:var(--bad);}
+table.mx th, table.mx td{text-align:center; white-space:normal; min-width:96px; vertical-align:middle;}
+table.mx th:first-child, table.mx td:first-child{text-align:left; font-weight:600; min-width:150px;}
+table.mx td .v{font-size:15px; font-weight:700; display:block;}
+table.mx td .s{font-size:11px; color:var(--muted);}
+table.mx td.low{background:var(--header-bg); color:var(--muted);}
+table.mx td.gap{background:#FFFBF0; color:#C9A24D;}
+.needs-bar{background:#EAF3F5; border:1px solid var(--accent2); color:var(--primary-dark); font-size:13px; padding:9px 12px; border-radius:8px; margin-bottom:14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+.needs-bar button{font:inherit; font-size:12.5px; padding:4px 10px; border-radius:7px; border:1px solid var(--primary); background:#fff; color:var(--primary); cursor:pointer;}
+td.na{color:var(--muted); font-size:12px;}
 /* editable tags */
 td.edit{cursor:text;}
 td.edit:hover{outline:1px dashed var(--accent); outline-offset:-2px;}
@@ -168,30 +198,35 @@ const CFG = {
   tab:      "Ad Performance",
   webhookUrl: "",              // Apps Script /exec for tag edits; empty = edits show as unsaved
   resultLabel: "Purchases",
-  dimensions: ["Format", "Audience", "Funnel", "Placement",
-               "Message Motivator", "Secondary Motivator", "Production Style",
-               "Subject", "Aspect Ratio", "Offer", "Product/Service"],
-  aiDims:     ["Message Motivator", "Secondary Motivator", "Production Style",
-               "Subject", "Aspect Ratio", "Offer", "Product/Service"],
-  editOptions: {
-    "Message Motivator":   ["Functional benefit", "Emotional benefit", "Urgency/scarcity",
-                            "Offer-based", "Social proof", "Aspirational", "Problem/solution", "Seasonal moment"],
-    "Secondary Motivator": ["None", "Functional benefit", "Emotional benefit", "Urgency/scarcity",
-                            "Offer-based", "Social proof", "Aspirational", "Problem/solution", "Seasonal moment"],
-    "Production Style":    ["Lo-fi creator", "Lo-fi brand", "Polished product", "Polished lifestyle", "Graphic-animation"],
-    "Subject":             ["People+product", "Product-only", "Talent-led"],
-    "Aspect Ratio":        ["9:16", "4:5", "1:1", "16:9", "Other"],
-    "Product/Service":     ["Dresses", "Girls (non-dress)", "Boys", "Baby", "Accessories", "Toys/Gifts", "Sale/Offer", "Other"],
-  },
+  // Fallback only. The live theme list (names, allowed values, who fills them) is read from
+  // the sheet's Taxonomy tab at load, so editing that tab changes this page with no code change.
+  aiDims: ["Selling angle","Look","What's shown","Text on the creative","AI-made","Who's talking",
+           "Shape","Video length","Hook","Product line","Background color","Offer type"],
+  editOptions: {},
 };
 
 const SHEET_ID=CFG.sheetId;
 const DAILY_TAB=CFG.dailyTab, TAG_TAB=CFG.tagTab, PERF_TAB=CFG.tab;
-const AI_DIMS=CFG.aiDims||[];
-const EDIT_OPTIONS=CFG.editOptions||{};
+let AI_DIMS=CFG.aiDims||[];
+let EDIT_OPTIONS=CFG.editOptions||{};
 const WEBHOOK_URL=CFG.webhookUrl||"";
 const DERIVED_DIMS=["Format","Audience","Funnel","Placement","Objective"];
 let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);
+// Themes from the Taxonomy tab: {dim, type: select|auto|manual, values[], hint}
+let THEMES=[];
+const UNIVERSAL=["Selling angle","Look","What's shown","Text on the creative","AI-made","Who's talking","Shape","Video length"];
+const THEME_Q={"Selling angle":"The main reason the creative gives someone to buy","Look":"How the creative was made",
+  "What's shown":"Who or what is in the frame","Text on the creative":"Strongest text element on the image or video",
+  "AI-made":"Whether the image or video is AI-generated","Who's talking":"Whose voice carries the message",
+  "Shape":"From the file's pixel size","Video length":"From the video file","Hook":"The specific claim the creative leads with",
+  "Product line":"Which product family is shown","Background color":"Dominant backdrop","Offer type":"The offer attached to the ad",
+  "Brand in first 3 sec":"Answered by Amy, videos only","Works with sound off":"Answered by Amy, videos only","Audio":"Answered by Amy, videos only"};
+// Values that are not a "gap" when nothing is running there.
+const NEUTRAL=new Set(["None","No one","Varies","Not a video","No"]);
+const CREATIVE_COLS=["Selling angle","Hook","Look","What's shown","Text on the creative","Who's talking","Product line","Offer type",
+  "Brand in first 3 sec","Works with sound off","Audio"];
+const manualDims=()=>THEMES.filter(t=>t.type==="manual").map(t=>t.dim);
+const isVideoRow=r=>{ const v=(r["Video length"]||"").toString(); return v && v!=="Not a video"; };
 const RESULT_LABEL=CFG.resultLabel;
 const RESULT_ONE=RESULT_LABEL.replace(/s$/,"").toLowerCase();   // "purchase"
 
@@ -255,8 +290,17 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              fetch(gvizUrl("Budgets")).then(r=>r.text()).catch(()=>""),
              fetch(gvizUrl("Device Detail")).then(r=>r.text()).catch(()=>""),
              fetch(gvizUrl("Demographics")).then(r=>r.text()).catch(()=>""),
-             fetch(gvizUrl("Hourly")).then(r=>r.text()).catch(()=>"")])
- .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT])=>{
+             fetch(gvizUrl("Hourly")).then(r=>r.text()).catch(()=>""),
+             fetch(gvizUrl("Taxonomy")).then(r=>r.text()).catch(()=>"")])
+ .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, taxT])=>{
+   try{ THEMES=parseGviz(taxT).rows.map(r=>({dim:String(r["Dimension"]||"").trim(), type:String(r["Type"]||"select").trim().toLowerCase(),
+       values:String(r["Values"]||"").split(",").map(v=>v.trim()).filter(Boolean), hint:String(r["Hint"]||"")}))
+     .filter(t=>t.dim && ["select","auto","manual"].includes(t.type)); }catch(e){ THEMES=[]; }
+   if(!THEMES.length) THEMES=AI_DIMS.map(d=>({dim:d,type:"select",values:[],hint:""}));
+   AI_DIMS=THEMES.map(t=>t.dim);
+   EDIT_OPTIONS={}; THEMES.forEach(t=>{ if(t.type!=="auto" && t.values.length) EDIT_OPTIONS[t.dim]=t.values; });
+   BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS); bdDim=BREAKDOWN_DIMS.includes(bdDim)?bdDim:AI_DIMS[0]||BREAKDOWN_DIMS[0];
+   bdA=AI_DIMS[0]||BREAKDOWN_DIMS[0]; bdB=AI_DIMS.includes("What's shown")?"What's shown":(AI_DIMS[1]||BREAKDOWN_DIMS[1]);
    try{ parseGviz(budgetT).rows.forEach(r=>{
      const m=String(r["Month"]||"").slice(0,7);
      const b=parseFloat(String(r["Budget"]||"").replace(/[$,]/g,""));
@@ -636,33 +680,104 @@ function renderTrends(f){
     options:{...base,scales:{y:{beginAtZero:true,ticks:{callback:v=>"$"+(+v).toFixed(0)}}}}});
 }
 
-let bdDim=BREAKDOWN_DIMS[0];
+let bdDim=BREAKDOWN_DIMS[0], bdView="coverage", bdMin=500, bdA="", bdB="";
 function specialBrkRows(dim){
   if(dim==="Device") return BRK.device;
   if(dim==="Age"||dim==="Gender") return BRK.demo.filter(r=>r[dim] && r[dim]!=="(all)");
   if(dim==="Hour of Day") return BRK.hourly;
   return null;
 }
+const roasCls=(x,base)=>!x.rev?"":(x.roas>=base*1.1?"good":x.roas<base*0.8?"bad":"");
+function bdBar(extra){
+  const seg=[["coverage","Coverage"],["one","One theme"],["combo","Combine two"]]
+    .map(([k,l])=>`<button data-bdv="${k}" class="${bdView===k?"on":""}">${l}</button>`).join("");
+  return `<div class="bd-bar"><span class="seg">${seg}</span>${extra||""}
+    <label>Min spend $ <input type="number" id="bdMinIn" value="${bdMin}" style="width:80px;"></label>
+    <span>Boxes under the minimum are dashed and not scored.</span></div>`;
+}
+function wireBdBar(){
+  document.querySelectorAll("#tab-breakdowns [data-bdv]").forEach(b=>b.addEventListener("click",()=>{bdView=b.dataset.bdv; renderBreakdowns(filtered());}));
+  const m=document.getElementById("bdMinIn"); if(m) m.addEventListener("change",e=>{bdMin=Math.max(0,+e.target.value||0); renderBreakdowns(filtered());});
+}
 function renderBreakdowns(f){
+  if(bdView==="coverage") return renderCoverage(f);
+  if(bdView==="combo") return renderCombo(f);
   const sp=specialBrkRows(bdDim);
   if(sp) f=sp.filter(r=>r._date>=state.from && r._date<=state.to);
-  const opts=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}${AI_DIMS.includes(d)?" (AI)":""}</option>`).join("");
+  const opts=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}</option>`).join("");
   const g=groupBy(f,bdDim);
   let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows)}));
   out=out.filter(x=>x.k!=="(none)" || out.length===1);
   if(bdDim==="Hour of Day") out.sort((a,b)=>a.k<b.k?-1:1); else out.sort(rankRoas);
-  const body=out.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>${resCells(x)}</tr>`).join("");
+  const body=out.map(x=>`<tr${x.spend<bdMin?' style="color:var(--muted)"':""}><td>${x.k}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCells(x)}</tr>`).join("");
   document.getElementById("tab-breakdowns").innerHTML=
-    `<div class="card"><h2>Breakdown by
-       <select id="bdSel" style="font:inherit;font-size:14px;padding:3px 7px;border:1px solid var(--border);border-radius:7px;">${opts}</select>
-       ${AI_DIMS.includes(bdDim)?'<span class="aimark">✨ AI</span>':''}</h2>
+    bdBar(`<label>Theme <select id="bdSel">${opts}</select></label>`)+
+    `<div class="card"><h2>${bdDim} — spend vs revenue</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||""}</div>
        <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
      <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${RES_HEAD}</tr></thead><tbody>${body}</tbody></table></div></div>`;
   document.getElementById("bdSel").addEventListener("change",e=>{bdDim=e.target.value; renderBreakdowns(filtered());});
-  dimChart("bdChart",out);
+  wireBdBar(); dimChart("bdChart",out);
+}
+/* Coverage: every allowed value of every theme as a box. Spend share + ROAS, dashed when under
+   the minimum spend, yellow when nothing ran there in the selected dates. */
+function renderCoverage(f){
+  const tot=agg(f);
+  const themeHtml=t=>{
+    const g=groupBy(f,t.dim); const seen=Object.keys(g).filter(k=>k!=="(none)");
+    const vals=t.values.length?t.values.concat(seen.filter(k=>!t.values.includes(k))):seen;
+    const boxes=vals.map(v=>{ const x=agg(g[v]||[]);
+      if(!x.spend){ return NEUTRAL.has(v)?"":`<div class="cov-box gap"><div class="l">${v}</div><div class="n">Nothing running here.</div></div>`; }
+      if(x.spend<bdMin) return `<div class="cov-box low"><div class="l">${v}</div><div class="n">${money(x.spend)} spent. Too little to judge.</div></div>`;
+      const share=tot.spend?x.spend/tot.spend*100:0;
+      return `<div class="cov-box"><div class="l">${v}</div><div class="t"><i style="width:${share.toFixed(0)}%"></i></div>
+        <div class="r"><span>${share.toFixed(0)}% of spend</span><span class="v ${roasCls(x,tot.roas)}">${roasFmt(x)}</span></div>
+        <div class="n">${money(x.spend)} · ${num(x.leads)} purchases · ${x.ads} ad${x.ads===1?"":"s"}</div></div>`; }).join("");
+    const untagged=agg(g["(none)"]||[]);
+    return `<div class="cov-theme"><h3>${t.dim}</h3><div class="q">${THEME_Q[t.dim]||t.hint||""}</div><div class="cov-grid">${boxes}</div>
+      ${untagged.spend?`<div class="note">${money(untagged.spend)} of spend is on ads not tagged for this theme yet.</div>`:""}</div>`; };
+  const uni=THEMES.filter(t=>UNIVERSAL.includes(t.dim)), man=THEMES.filter(t=>t.type==="manual"),
+        cli=THEMES.filter(t=>!UNIVERSAL.includes(t.dim)&&t.type!=="manual");
+  const vid=f.filter(isVideoRow);
+  const manHtml=man.map(t=>{ const g=groupBy(vid,t.dim); return Object.keys(g).some(k=>k!=="(none)")?themeHtml({...t}):""; }).join("");
+  document.getElementById("tab-breakdowns").innerHTML=bdBar()+
+    `<div class="note" style="margin:-6px 0 14px;">Account ROAS for these dates: <b>${tot.roas.toFixed(2)}x</b> on ${money(tot.spend)}. Green = at least 10% above it, red = more than 20% below.</div>
+     <div class="card"><div class="cov-group">Every client</div>${uni.map(themeHtml).join("")}</div>
+     ${cli.length?`<div class="card"><div class="cov-group">Bird &amp; Bean only</div>${cli.map(themeHtml).join("")}</div>`:""}
+     ${manHtml?`<div class="card"><div class="cov-group">Video details (answered by Amy)</div>${manHtml}</div>`:""}`;
+  wireBdBar();
+}
+/* Combine two themes: grid of A (rows) x B (columns) + every pair ranked. */
+function renderCombo(f){
+  const tot=agg(f);
+  const opt=sel=>BREAKDOWN_DIMS.filter(d=>!specialBrkRows(d)).map(d=>`<option value="${d}"${d===sel?" selected":""}>${d}</option>`).join("");
+  const key=(r,d)=>(r[d]||"").toString().trim()||"(none)";
+  const cell={}, rowT={}, colT={};
+  f.forEach(r=>{ const a=key(r,bdA), b=key(r,bdB); if(a==="(none)"||b==="(none)") return;
+    (cell[a+"|"+b]=cell[a+"|"+b]||[]).push(r); (rowT[a]=rowT[a]||[]).push(r); (colT[b]=colT[b]||[]).push(r); });
+  const bySpend=o=>Object.keys(o).sort((x,y)=>agg(o[y]).spend-agg(o[x]).spend);
+  const rowsK=bySpend(rowT), colsK=bySpend(colT);
+  const td=x=>!x.spend?`<td class="gap">not tested</td>`:x.spend<bdMin?`<td class="low"><span class="s">${money(x.spend)}<br>too little</span></td>`
+     :`<td><span class="v ${roasCls(x,tot.roas)}">${roasFmt(x)}</span><span class="s">${money(x.spend)} · ${num(x.leads)} purch</span></td>`;
+  const head=`<tr><th>${bdA} ↓ &nbsp; ${bdB} →</th>${colsK.map(c=>`<th>${c}</th>`).join("")}<th>All</th></tr>`;
+  const body=rowsK.map(a=>`<tr><td>${a}</td>${colsK.map(b=>td(agg(cell[a+"|"+b]||[]))).join("")}${td(agg(rowT[a]))}</tr>`).join("")+
+    `<tr><td>All</td>${colsK.map(b=>td(agg(colT[b]))).join("")}${td(tot)}</tr>`;
+  const pairs=Object.entries(cell).map(([k,rs])=>({k:k.replace("|"," + "),...agg(rs)})).filter(x=>x.spend>=bdMin).sort(rankRoas);
+  const under=Object.keys(cell).length-pairs.length;
+  document.getElementById("tab-breakdowns").innerHTML=
+    bdBar(`<label>Combine <select id="bdA">${opt(bdA)}</select></label><label>with <select id="bdB">${opt(bdB)}</select></label>`)+
+    `<div class="card"><h2>${bdA} combined with ${bdB}</h2>
+       <div class="note" style="margin:-8px 0 12px;">Each cell is ROAS for ads that are both. Account ROAS for these dates: <b>${tot.roas.toFixed(2)}x</b>.</div>
+       <div style="overflow-x:auto"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
+     <div class="card"><h2>Pairs ranked by ROAS</h2>
+       <div style="overflow-x:auto"><table><thead><tr><th>${bdA} + ${bdB}</th><th class="num">Spend</th>${RES_HEAD}</tr></thead><tbody>${
+         pairs.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>${resCells(x)}</tr>`).join("")||`<tr><td colspan="7" class="note">No pair has reached the minimum spend in these dates.</td></tr>`}</tbody></table></div>
+       ${under?`<div class="note">${under} more pair${under===1?"":"s"} ran under the ${money(bdMin)} minimum and are left out of the ranking.</div>`:""}</div>`;
+  document.getElementById("bdA").addEventListener("change",e=>{bdA=e.target.value; renderBreakdowns(filtered());});
+  document.getElementById("bdB").addEventListener("change",e=>{bdB=e.target.value; renderBreakdowns(filtered());});
+  wireBdBar();
 }
 
-let crSort={col:null,asc:true};
+let crSort={col:null,asc:true}, crNeeds=false;
 function renderCreative(f){
   let ads=adsAgg(f);
   const sval=(a,c)=>{ if(c==="spend")return a.spend; if(c==="leads")return a.leads; if(c==="rev")return a.rev;
@@ -672,25 +787,32 @@ function renderCreative(f){
   ads.sort(crSort.col?((a,b)=>{const va=sval(a,crSort.col),vb=sval(b,crSort.col),s=crSort.asc?1:-1;return va<vb?-s:va>vb?s:0;}):rankRoas);
   const arr=c=>crSort.col===c?(crSort.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
-  const aiCols=AI_DIMS;
+  const aiCols=CREATIVE_COLS.filter(d=>AI_DIMS.includes(d));
+  const MAN=manualDims();
+  const needs=a=>isVideoRow(a.tags) && MAN.some(d=>!(a.tags[d]||"").toString().trim());
+  const needN=ads.filter(needs).length;
+  if(crNeeds) ads=ads.filter(needs);
   const resultHead=sth("leads",RESULT_LABEL,"num")+sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("cpa","CPA","num")+sth("aov","AOV","num");
   const head=`<tr><th></th>${sth("name","Ad")}${sth("format","Format")}${sth("funnel","Funnel")}`+
     aiCols.map(d=>sth(d,d,"ai")).join("")+sth("spend","Spend","num")+resultHead+`</tr>`;
   const rows=ads.map(a=>{
     return `<tr><td>${a.thumb?`<img class="thumb" src="${a.thumb}" alt="" onerror="this.style.display='none'" style="width:42px;height:42px;border-radius:6px;object-fit:cover;display:block;">`:""}</td><td class="adname">${a.name||""}</td><td><span class="pill">${a.format||"—"}</span></td><td>${a.funnel||"—"}</td>`+
-      aiCols.map(d=>`<td class="ai edit" data-adid="${a.id}" data-field="${d}">${d===aiCols[0]?'<span class="ai-pill">'+(a.tags[d]||"—")+'</span>':(a.tags[d]||"—")}</td>`).join("")+
+      aiCols.map(d=>(MAN.includes(d)&&!isVideoRow(a.tags))?`<td class="ai na">n/a</td>`
+        :`<td class="ai edit" data-adid="${a.id}" data-field="${d}">${d===aiCols[0]?'<span class="ai-pill">'+(a.tags[d]||"—")+'</span>':(a.tags[d]||(MAN.includes(d)?'<span class="pill">needs Amy</span>':"—"))}</td>`).join("")+
       `<td class="num">${money(a.spend)}</td>${resCells(a)}</tr>`;
   }).join("");
   document.getElementById("tab-creative").innerHTML=kpiHtml(f)+
     `<div class="card"><h2>Ads — ranked by ROAS
-       <span class="aimark">✨ creative tagged by Claude</span></h2>
-       <div class="warn-bar">✎ Click any AI tag to edit it. Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL?"":" (saving not configured for this client yet)"}.</div>
+       <span class="aimark">✨ themes tagged by Claude</span></h2>
+       ${MAN.length&&(needN||crNeeds)?`<div class="needs-bar"><span><b>${needN}</b> video${needN===1?"":"s"} still need your answers: ${MAN.join(", ")}.</span><button id="crNeedsBtn">${crNeeds?"Show all ads":"Show only these"}</button></div>`:""}
+       <div class="warn-bar">✎ Click any tag to edit it. Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL?"":" (saving not configured for this client yet)"}.</div>
        <div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
   document.querySelectorAll("#tab-creative th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
     const c=th.dataset.sort; if(!c) return;
     if(crSort.col===c)crSort.asc=!crSort.asc; else {crSort.col=c; crSort.asc=(c==="name"||c==="format"||c==="funnel"||c==="cpa"||AI_DIMS.includes(c));}
     renderCreative(filtered());
   }));
+  const nb=document.getElementById("crNeedsBtn"); if(nb) nb.addEventListener("click",()=>{crNeeds=!crNeeds; renderCreative(filtered());});
   wireCreativeEdit();
 }
 
