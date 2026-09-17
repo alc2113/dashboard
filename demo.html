@@ -31,6 +31,31 @@ body{
   --purple:#9D50D9;
 }
 
+/* creative themes: switch, coverage grid, pair grid */
+.bd-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;font-size:13px;color:var(--text-muted);}
+.bd-bar input{font:inherit;font-size:13px;padding:4px 7px;border:1px solid var(--border);border-radius:7px;background:#fff;}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;margin-right:12px;}
+.seg button{font:inherit;font-size:13px;font-weight:600;padding:6px 14px;border:0;background:#fff;color:var(--text-muted);cursor:pointer;}
+.seg button.on{background:var(--primary);color:#fff;}
+#tab-breakdowns.bd-themes-mode > *:not(#bdSwitch):not(#themesGrid){display:none;}
+#tab-breakdowns:not(.bd-themes-mode) #themesGrid{display:none;}
+.cov-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:18px;}
+.cov-theme{margin-bottom:20px;} .cov-theme h3{font-size:15px;font-weight:700;} .cov-theme .q{font-size:12px;color:var(--text-muted);margin-bottom:8px;}
+.cov-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;}
+.cov-box{background:#fff;border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.cov-box.low{background:var(--header-bg);border-style:dashed;} .cov-box.gap{background:#FFF7E6;border-color:#F0C36D;}
+.cov-box .l{font-size:13px;font-weight:600;} .cov-box .t{height:4px;border-radius:2px;background:var(--header-bg);margin-top:7px;overflow:hidden;}
+.cov-box .t i{display:block;height:100%;background:var(--primary);}
+.cov-box .r{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;font-size:12px;color:var(--text-muted);}
+.cov-box .v{font-size:16px;font-weight:700;color:var(--text);} .cov-box .n{font-size:11.5px;color:var(--text-muted);margin-top:6px;}
+.cov-box .v.good,table.mx td .v.good{color:var(--green);} .cov-box .v.bad,table.mx td .v.bad{color:var(--red);}
+.cov-note{font-size:12px;color:var(--text-muted);margin:-6px 0 14px;}
+table.mx{width:100%;border-collapse:collapse;font-size:13px;} table.mx th,table.mx td{text-align:center;padding:9px 10px;border-bottom:1px solid var(--border);min-width:96px;vertical-align:middle;}
+table.mx th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);}
+table.mx th:first-child,table.mx td:first-child{text-align:left;font-weight:600;min-width:150px;}
+table.mx td .v{font-size:15px;font-weight:700;display:block;} table.mx td .s{font-size:11px;color:var(--text-muted);}
+table.mx td.low{background:var(--header-bg);color:var(--text-muted);} table.mx td.gap{background:#FFFBF0;color:#C9A24D;}
+
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar{width:8px;height:8px;}
 ::-webkit-scrollbar-track{background:transparent;}
@@ -619,7 +644,11 @@ td.edit.saved{background:#eaf7ef;}
   </div>
 
   <!-- BREAKDOWNS TAB -->
-  <div id="tab-breakdowns" class="tab-content">
+  <div id="tab-breakdowns" class="tab-content bd-themes-mode">
+    <div id="bdSwitch" class="bd-bar"><span class="seg"><button data-bdv="themes" class="on">Themes</button><button data-bdv="detail">Theme detail</button></span>
+      <label>Min spend $ <input type="number" id="bdMinIn" value="500" style="width:80px;"></label>
+      <span>Anything under the minimum is greyed out and not scored.</span></div>
+    <div id="themesGrid"></div>
     <div class="leader-controls" style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
       <label>Dimension:
         <select id="breakdownDim">
@@ -640,6 +669,18 @@ td.edit.saved{background:#eaf7ef;}
             <option value="creative_type">Creative Type (CRS/IMG/VID)</option>
             <option value="funnel">Funnel (Prospecting/Retargeting)</option>
             <option value="targeting">Targeting (Interest/LAL/CA)</option>
+          </optgroup>
+          <optgroup label="Meta — Creative themes">
+            <option value="tag_selling_angle">Selling angle</option>
+            <option value="tag_look">Look</option>
+            <option value="tag_what_s_shown">What's shown</option>
+            <option value="tag_text_on_the_creative">Text on the creative</option>
+            <option value="tag_ai_made">AI-made</option>
+            <option value="tag_who_s_talking">Who's talking</option>
+            <option value="tag_shape">Shape</option>
+            <option value="tag_video_length">Video length</option>
+            <option value="tag_pet_type">Pet type</option>
+            <option value="tag_offer_type">Offer type</option>
           </optgroup>
           <optgroup label="Google">
             <option value="campaign_type">Campaign Type (Search/Display/YouTube)</option>
@@ -669,6 +710,18 @@ td.edit.saved{background:#eaf7ef;}
             <option value="funnel">Funnel</option>
             <option value="targeting">Targeting</option>
           </optgroup>
+          <optgroup label="Meta — Creative themes">
+            <option value="tag_selling_angle">Selling angle</option>
+            <option value="tag_look">Look</option>
+            <option value="tag_what_s_shown">What's shown</option>
+            <option value="tag_text_on_the_creative">Text on the creative</option>
+            <option value="tag_ai_made">AI-made</option>
+            <option value="tag_who_s_talking">Who's talking</option>
+            <option value="tag_shape">Shape</option>
+            <option value="tag_video_length">Video length</option>
+            <option value="tag_pet_type">Pet type</option>
+            <option value="tag_offer_type">Offer type</option>
+          </optgroup>
           <optgroup label="Google">
             <option value="campaign_type">Campaign Type</option>
             <option value="creative_direction">Creative Direction</option>
@@ -678,6 +731,7 @@ td.edit.saved{background:#eaf7ef;}
         </select>
       </label>
     </div>
+    <div id="pairMatrix"></div>
     <div class="chart-row">
       <div class="chart-container">
         <div class="chart-title">Purchases Over Time by <span id="trendDimLabel">Dimension</span></div>
@@ -2618,7 +2672,70 @@ function renderBreakdownTrends(filtered, dim, dim2, dimLabel) {
   });
 }
 
+// Creative themes v2 (demo): same themes and views as the client dashboards. The demo has no
+// tagging sheet, so each sample ad gets a stable value per theme derived from its name.
+const THEME_DEFS = [{"dim": "Selling angle", "key": "tag_selling_angle", "values": ["What it does", "How it feels", "Limited time", "Deal or discount", "Reviews and proof", "Dream outcome", "Fixes a problem", "Season or holiday", "Just shows the product"]}, {"dim": "Look", "key": "tag_look", "values": ["Studio with people", "Studio product", "Phone-shot by the brand", "Phone-shot by a creator", "Graphic or animation"]}, {"dim": "What's shown", "key": "tag_what_s_shown", "values": ["Person with product", "One product", "Several products", "No product shown"]}, {"dim": "Text on the creative", "key": "tag_text_on_the_creative", "values": ["None", "Text only", "Text with offer", "Text with reviews or stars", "Text with button"]}, {"dim": "AI-made", "key": "tag_ai_made", "values": ["Yes", "No"]}, {"dim": "Who's talking", "key": "tag_who_s_talking", "values": ["The brand", "A team member", "A customer", "A creator", "No one"]}, {"dim": "Shape", "key": "tag_shape", "values": ["9:16", "4:5", "1:1", "16:9"]}, {"dim": "Video length", "key": "tag_video_length", "values": ["10 sec or less", "11 to 20 sec", "Over 20 sec", "Not a video"]}, {"dim": "Pet type", "key": "tag_pet_type", "values": ["Dog", "Cat", "Small pet", "All pets"]}, {"dim": "Offer type", "key": "tag_offer_type", "values": ["Free shipping", "Bundle", "First order discount", "None"]}];
+const THEME_NEUTRAL = { 'None': 1, 'No one': 1, 'Varies': 1, 'Not a video': 1, 'No': 1, 'No product shown': 1 };
+const THEME_Q = { 'Selling angle': 'The main reason the creative gives someone to buy', 'Look': 'How the creative was made',
+  "What's shown": 'Who or what is in the frame', 'Text on the creative': 'Strongest text element on the image or video',
+  'AI-made': 'Whether the image or video is AI-generated', "Who's talking": 'Whose voice carries the message',
+  'Shape': "From the file's pixel size", 'Video length': 'From the video file', 'Pet type': 'Which pets the creative features',
+  'Offer type': 'The offer attached to the ad' };
+function _demoHash(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function assignDemoThemes(r) {
+  var isVid = /VID/i.test(r.creative_type || r.adName || '');
+  THEME_DEFS.forEach(function(t, ti) {
+    var vals = t.values;
+    if (t.dim === 'Video length') vals = isVid ? vals.slice(0, 3) : ['Not a video'];
+    var h = _demoHash((r.adName || '') + '|' + t.dim), pick = h % (vals.length + 2);   // skew toward the first values so some boxes stay empty
+    r[t.key] = vals[pick < vals.length ? pick : (h >> 3) % Math.min(2, vals.length)];
+  });
+}
+let bdView = 'themes', bdMin = 500;
+function roasCls(x, base) { if (!x.revenue || !base) return ''; return x.roas >= base * 1.1 ? 'good' : x.roas < base * 0.8 ? 'bad' : ''; }
+function roasTxt(x) { return x.revenue ? x.roas.toFixed(2) + 'x' : '—'; }
+function themeMetaRows() { return getFilteredAdDetail().filter(function(r) { return r.platform === 'meta'; }); }
+function renderThemesGrid() {
+  var el = document.getElementById('themesGrid'); if (!el) return;
+  var rows = themeMetaRows(), tot = aggregateRows(rows);
+  function box(v, rs) { var x = aggregateRows(rs || []);
+    if (!x.spend) return THEME_NEUTRAL[v] ? '' : '<div class="cov-box gap"><div class="l">' + v + '</div><div class="n">Nothing running here.</div></div>';
+    if (x.spend < bdMin) return '<div class="cov-box low"><div class="l">' + v + '</div><div class="n">' + formatCurrency(x.spend) + ' spent. Too little to judge.</div></div>';
+    var share = tot.spend ? x.spend / tot.spend * 100 : 0, ads = {}; rs.forEach(function(r) { ads[r.adName] = 1; });
+    return '<div class="cov-box"><div class="l">' + v + '</div><div class="t"><i style="width:' + share.toFixed(0) + '%"></i></div>' +
+      '<div class="r"><span>' + share.toFixed(0) + '% of spend</span><span class="v ' + roasCls(x, tot.roas) + '">' + roasTxt(x) + '</span></div>' +
+      '<div class="n">' + formatCurrency(x.spend) + ' · ' + formatNumber(x.callsBooked) + ' purchases · ' + Object.keys(ads).length + ' ads</div></div>'; }
+  el.innerHTML = '<div class="cov-note">Meta ads only. Account ROAS for these dates: <b>' + roasTxt(tot) + '</b> on ' + formatCurrency(tot.spend) +
+    '. Green = at least 10% above it, red = more than 20% below.</div><div class="cov-card">' +
+    THEME_DEFS.map(function(t) { var g = {}; rows.forEach(function(r) { var k = r[t.key] || '(none)'; (g[k] = g[k] || []).push(r); });
+      return '<div class="cov-theme"><h3>' + t.dim + '</h3><div class="q">' + (THEME_Q[t.dim] || '') + '</div><div class="cov-grid">' + t.values.map(function(v) { return box(v, g[v]); }).join('') + '</div></div>'; }).join('') + '</div>';
+}
+function renderPairMatrix(data, dim, dim2, labels) {
+  var el = document.getElementById('pairMatrix'); if (!el) return;
+  if (!dim2) { el.innerHTML = ''; return; }
+  var tot = aggregateRows(data), cell = {}, rowT = {}, colT = {};
+  data.forEach(function(r) { var a = r[dim], b = r[dim2]; (cell[a + '|' + b] = cell[a + '|' + b] || []).push(r); (rowT[a] = rowT[a] || []).push(r); (colT[b] = colT[b] || []).push(r); });
+  function bySpend(o) { return Object.keys(o).sort(function(x, y) { return aggregateRows(o[y]).spend - aggregateRows(o[x]).spend; }); }
+  var rk = bySpend(rowT).slice(0, 15), ck = bySpend(colT).slice(0, 8);
+  function td(rs) { var x = aggregateRows(rs || []);
+    if (!x.spend) return '<td class="gap">not tested</td>';
+    if (x.spend < bdMin) return '<td class="low"><span class="s">' + formatCurrency(x.spend) + '<br>too little</span></td>';
+    return '<td><span class="v ' + roasCls(x, tot.roas) + '">' + roasTxt(x) + '</span><span class="s">' + formatCurrency(x.spend) + ' · ' + formatNumber(x.callsBooked) + ' purch</span></td>'; }
+  el.innerHTML = '<div class="cov-card"><h3 style="font-size:15px;margin-bottom:4px;">' + (labels[dim] || dim) + ' and ' + (labels[dim2] || dim2) + ' together</h3>' +
+    '<div class="cov-note" style="margin:0 0 12px;">Each cell is ROAS for ads that are both. Overall: <b>' + roasTxt(tot) + '</b>.</div>' +
+    '<div style="overflow-x:auto"><table class="mx"><thead><tr><th>' + (labels[dim] || dim) + ' ↓ &nbsp; ' + (labels[dim2] || dim2) + ' →</th>' + ck.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '<th>All</th></tr></thead><tbody>' +
+    rk.map(function(a) { return '<tr><td>' + a + '</td>' + ck.map(function(b) { return td(cell[a + '|' + b]); }).join('') + td(rowT[a]) + '</tr>'; }).join('') + '</tbody></table></div></div>';
+}
+function wireBdSwitch() {
+  var tab = document.getElementById('tab-breakdowns'); if (!tab || tab._bdWired) return; tab._bdWired = true;
+  tab.querySelectorAll('[data-bdv]').forEach(function(b) { b.addEventListener('click', function() {
+    bdView = b.dataset.bdv; tab.querySelectorAll('[data-bdv]').forEach(function(x) { x.classList.toggle('on', x === b); });
+    tab.classList.toggle('bd-themes-mode', bdView === 'themes'); renderBreakdowns(); }); });
+  document.getElementById('bdMinIn').addEventListener('change', function(e) { bdMin = Math.max(0, +e.target.value || 0); renderBreakdowns(); });
+}
 function renderBreakdowns() {
+  wireBdSwitch();
+  if (bdView === 'themes') { renderThemesGrid(); return; }
   renderDowCharts();
   var dim = document.getElementById('breakdownDim').value;
   var dim2 = document.getElementById('breakdownDim2').value;
@@ -2632,6 +2749,7 @@ function renderBreakdowns() {
     campaign_type: 'Campaign Type', creative_direction: 'Creative Direction',
     direction: 'Direction'
   };
+  THEME_DEFS.forEach(function(t) { dimLabels[t.key] = t.dim; });
 
   var keyFn;
   var dimLabel;
@@ -2661,6 +2779,7 @@ function renderBreakdowns() {
   renderBreakdownTrends(filtered, dim, dim2, dimLabel);
 
   var grouped = groupBy(relevantData, keyFn);
+  renderPairMatrix(relevantData, dim, dim2, dimLabels);
 
   var chartSorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; }).slice(0, 15);
   var chartLabels = chartSorted.map(function(g) {
@@ -4468,6 +4587,7 @@ async function loadData() {
     adDetailData = [];
     for (var i = 0; i < metaAdRows.length; i++) {
       var mr = normalizeMetaAdDetail(metaAdRows[i]);
+      assignDemoThemes(mr);
       if (mr.date && mr.spend > 0) adDetailData.push(mr);
     }
     for (var i = 0; i < googleAdRows.length; i++) {
