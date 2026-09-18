@@ -1491,6 +1491,12 @@ function periodWindow(key, isMonth, fMin, fMax) {
   const lo = Math.max(0, dayDiff(s, fMin)), hi = Math.min(len - 1, dayDiff(s, fMax));
   return { lo: lo, hi: hi, len: len, days: hi - lo + 1, partial: (hi - lo + 1) < len };
 }
+// Key of the period immediately before `key` (week keys are Monday dates, month keys are YYYY-MM).
+function prevPeriodKey(key, isMonth) {
+  if (isMonth) { const y = +key.slice(0, 4), m = +key.slice(5, 7); return m === 1 ? (y - 1) + '-12' : y + '-' + String(m - 1).padStart(2, '0'); }
+  const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() - 7);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 function renderOverviewPeriodTables(filtered) {
   function fill(tbodyId, keyFn, labelFn) {
     const tbody = document.getElementById(tbodyId);
@@ -1500,21 +1506,21 @@ function renderOverviewPeriodTables(filtered) {
     tbody.innerHTML = '';
     const isMonth = keyFn === getMonthKey;
     function _ds(r) { const dd = parseDate(r.date); return dd ? formatDateStr(dd) : ''; }
-    const byKey = {}; let fMin = null, fMax = null;
-    filtered.forEach(function(r) {
-      const ds = _ds(r); if (!ds) return;
-      const k = keyFn(r.date); (byKey[k] = byKey[k] || []).push(r);
-      if (!fMin || ds < fMin) fMin = ds; if (!fMax || ds > fMax) fMax = ds;
-    });
+    // The comparison period is read from ALL data (campaign/platform filters kept, date filter
+    // dropped), so a period still gets its change when the prior period sits outside the date range.
+    let fMin = null, fMax = null;
+    filtered.forEach(function(r) { const ds = _ds(r); if (!ds) return; if (!fMin || ds < fMin) fMin = ds; if (!fMax || ds > fMax) fMax = ds; });
+    const allScoped = applyFilters(enrichedData, Object.assign({}, getFilterState(), { from: '', to: '' }));
+    const prevByKey = {};
+    allScoped.forEach(function(r) { const ds = _ds(r); if (!ds) return; const k = keyFn(r.date); (prevByKey[k] = prevByKey[k] || []).push(r); });
     groups.forEach(function(g, i) {
-      let p = groups[i + 1];   // previous (older) period; last row has none
-      let lfl = '';
-      const w = (p && fMin) ? periodWindow(g.key, isMonth, fMin, fMax) : null;
-      if (w && w.partial) {
-        const pk = p.key;
-        const slice = (byKey[pk] || []).filter(function(r) { const o = periodOffset(pk, isMonth, _ds(r)); return o >= w.lo && o <= w.hi; });
-        p = aggregateRows(slice); p.key = pk;
-        lfl = '<span class="tbl-delta neutral">' + w.days + ' of ' + w.len + ' days, vs same days prior ' + (isMonth ? 'month' : 'week') + '</span>';
+      let lfl = '', p = null;
+      const w = fMin ? periodWindow(g.key, isMonth, fMin, fMax) : null;
+      if (w) {
+        const pk = prevPeriodKey(g.key, isMonth);
+        const slice = (prevByKey[pk] || []).filter(function(r) { if (!w.partial) return true; const o = periodOffset(pk, isMonth, _ds(r)); return o >= w.lo && o <= w.hi; });
+        if (slice.length) { p = aggregateRows(slice); p.key = pk; }
+        if (w.partial) lfl = '<span class="tbl-delta neutral">' + w.days + ' of ' + w.len + ' days, vs same days prior ' + (isMonth ? 'month' : 'week') + '</span>';
       }
       function d(cur, prevVal, invert, absFmt) {
         if (!p) return '';

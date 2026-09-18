@@ -1239,20 +1239,28 @@ function periodWindow(key, isMonth, fMin, fMax) {
   const lo = Math.max(0, dayDiff(s, fMin)), hi = Math.min(len - 1, dayDiff(s, fMax));
   return { lo: lo, hi: hi, len: len, days: hi - lo + 1, partial: (hi - lo + 1) < len };
 }
+// Key of the period immediately before `key` (week keys are Monday dates, month keys are YYYY-MM).
+function prevPeriodKey(key, isMonth) {
+  if (isMonth) { const y = +key.slice(0, 4), m = +key.slice(5, 7); return m === 1 ? (y - 1) + '-12' : y + '-' + String(m - 1).padStart(2, '0'); }
+  const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() - 7);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
 function periodTable(rows,keyFn,colLabel,labelFn){
   const isMonth=keyFn===monthKey; let fMin=null,fMax=null; rows.forEach(r=>{ if(!fMin||r._date<fMin)fMin=r._date; if(!fMax||r._date>fMax)fMax=r._date; });
+  const allByKey={}; scoped().forEach(r=>{ const k=keyFn(r._date); (allByKey[k]=allByKey[k]||[]).push(r); });
   const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
   const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs),ctr:0})).sort((a,b)=>b.k.localeCompare(a.k));
   out.forEach(x=>{ x.ctr=x.imp?x.clicks/x.imp*100:0; });
   const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
   const body=out.map((x,i)=>{
-    let p=out[i+1];   // previous (older) period; last row has none
-    let lfl="";
-    const w=(p&&fMin)?periodWindow(x.k,isMonth,fMin,fMax):null;
-    if(w&&w.partial){ const pk=p.k;
-      const slice=(g[pk]||[]).filter(r=>{ const o=periodOffset(pk,isMonth,r._date); return o>=w.lo&&o<=w.hi; });
-      p={k:pk,...agg(slice)}; p.ctr=p.imp?p.clicks/p.imp*100:0;
-      lfl=`<span class="tbl-delta neutral">${w.days} of ${w.len} days, vs same days prior ${isMonth?"month":"week"}</span>`; }
+    // Comparison period comes from ALL data (campaign / ad set filters kept, date filter dropped), so a
+    // period still gets its change when the prior period sits outside the selected dates.
+    let p=null, lfl="";
+    const w=fMin?periodWindow(x.k,isMonth,fMin,fMax):null;
+    if(w){ const pk=prevPeriodKey(x.k,isMonth);
+      const slice=(allByKey[pk]||[]).filter(r=>{ if(!w.partial) return true; const o=periodOffset(pk,isMonth,r._date); return o>=w.lo&&o<=w.hi; });
+      if(slice.length){ p={k:pk,...agg(slice)}; p.ctr=p.imp?p.clicks/p.imp*100:0; }
+      if(w.partial) lfl=`<span class="tbl-delta neutral">${w.days} of ${w.len} days, vs same days prior ${isMonth?"month":"week"}</span>`; }
     const d=(cur,prev,inv,absFmt)=>p?periodDelta(cur,prev,inv,absFmt):"";
     return `<tr><td>${labelFn?labelFn(x.k):x.k}${lfl}</td><td class="num">${money(x.spend)}${d(x.spend,p&&p.spend,false,money)}</td><td class="num">${num(x.imp)}</td>`+
       `<td class="num">${num(x.clicks)}${d(x.clicks,p&&p.clicks,false,num)}</td><td class="num">${x.ctr.toFixed(2)}%${d(x.ctr,p&&p.ctr,false)}</td>`+
