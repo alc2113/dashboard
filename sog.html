@@ -1312,6 +1312,22 @@ async function fetchSheetData(sheetName) {
 // Taxonomy tab, and each ad's values from its Ad Performance tab. Row keys are 'tag_' + slug.
 let THEME_DEFS = [];   // [{dim, type, values, key}]
 function themeKey(dim) { return 'tag_' + String(dim).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); }
+// Ad-name parts are typed by hand, so one value can arrive as "Connect" and "connect", or
+// "ReCutIntro" and "RecutIntro". Fold variants that differ only by capitalization, spacing,
+// punctuation or a plural "s" into ONE value, so filters and breakdowns never split it.
+function cleanRowValues(rows, dims) {
+  function ck(v) { return String(v).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  dims.forEach(function(dim) {
+    var counts = {};
+    rows.forEach(function(r) { var v = r[dim]; if (!v) return; var k = ck(v); counts[k] = counts[k] || {}; counts[k][v] = (counts[k][v] || 0) + 1; });
+    var fold = {};
+    Object.keys(counts).forEach(function(k) { if (k.length > 3 && k.slice(-1) === 's' && counts[k.slice(0, -1)]) fold[k] = k.slice(0, -1); });
+    var label = {};
+    Object.keys(counts).forEach(function(k) { var t = fold[k] || k; if (label[t]) return;
+      var src = counts[t]; label[t] = Object.keys(src).sort(function(a, b) { return src[b] - src[a]; })[0]; });
+    rows.forEach(function(r) { var v = r[dim]; if (!v) return; var k = ck(v); r[dim] = label[fold[k] || k]; });
+  });
+}
 async function loadAdTags() {
   var TAG_SHEET = '1gklZFfDPiH-5Rd-91cK6EpRAPJvLf2myedT0TE1Cqng';
   function gv(tab) { return 'https://docs.google.com/spreadsheets/d/' + TAG_SHEET + '/gviz/tq?tqx=out:json&headers=1&sheet=' + encodeURIComponent(tab) + '&t=' + Date.now(); }
@@ -4358,6 +4374,7 @@ async function loadData() {
       var gr = normalizeGoogleAdDetail(googleAdRows[i]);
       if (gr.date && gr.spend > 0) adDetailData.push(gr);
     }
+    cleanRowValues(adDetailData, ['color', 'creative_theme', 'creative_type', 'funnel', 'targeting', 'lp', 'creative_direction', 'direction']);
     adDetailData.sort(function(a, b) { return a.date.localeCompare(b.date); });
 
     // Normalize asset performance

@@ -437,6 +437,7 @@ tr.clickable:hover td{background:#f0f9f3;}
     <button class="tab-btn" data-tab="explorer">Ad Explorer</button>
     <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
     <button class="tab-btn" data-tab="creativetags">Creative</button>
+    <button class="tab-btn" data-tab="headlines">Headlines &amp; Copy</button>
     <button class="tab-btn" data-tab="funnel">Funnel</button>
     <button class="tab-btn" data-tab="sparkloop">FB + SparkLoop</button>
     <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
@@ -684,6 +685,13 @@ tr.clickable:hover td{background:#f0f9f3;}
   </div>
 
   <!-- FUNNEL TAB -->
+  <!-- HEADLINES & COPY TAB (same tab as the other ad dashboards; Meta feed = Headline / Primary Text from the theme sheet) -->
+  <div id="tab-headlines" class="tab-content">
+    <div class="bd-bar"><label>Min spend $ <input type="number" id="hcMinIn" value="200" style="width:80px;"></label>
+      <span>Text under the minimum is greyed out and not ranked.</span></div>
+    <div id="headlinesWrap"></div>
+  </div>
+
   <div id="tab-funnel" class="tab-content">
     <div class="funnel-wrap" id="funnelWrap"></div>
     <div class="chart-container">
@@ -1105,7 +1113,29 @@ function buildTagLookup(adPerfRows) {
       campaignTag: String(r['Campaign Tag'] || '').trim()
     };
   });
+  cleanTagValues(lookup, ['color', 'theme', 'type', 'landingPage', 'campaignTag']);
   return lookup;
+}
+
+// Ad-name parts are typed by hand, so the same value arrives as "Challenge", "challenge" and
+// "Challenges", or "Sign Up" and "signup". Fold those into ONE value per dimension so filters and
+// breakdowns never split a value by capitalization, spacing, punctuation or a plural "s".
+const TAG_LABELS = { challenge: 'Challenge', rules: 'Rules', signup: 'Sign Up', author: 'Author', genericrules: 'Generic Rules',
+  liesrules: 'Lies Rules', community: 'Community', messenger: 'Messenger' };
+function cleanTagValues(lookup, dims) {
+  function ck(v) { return String(v).toLowerCase().replace(/[^a-z0-9]/g, ''); }
+  dims.forEach(function(dim) {
+    var counts = {};   // canonical key -> {variant: uses}
+    Object.keys(lookup).forEach(function(n) { var v = lookup[n][dim]; if (!v) return; var k = ck(v); (counts[k] = counts[k] || {})[v] = ((counts[k] || {})[v] || 0) + 1; });
+    var fold = {};     // plural key -> singular key, only when both exist
+    Object.keys(counts).forEach(function(k) { if (k.length > 3 && k.slice(-1) === 's' && counts[k.slice(0, -1)]) fold[k] = k.slice(0, -1); });
+    var label = {};
+    Object.keys(counts).forEach(function(k) { var t = fold[k] || k; if (label[t]) return;
+      var variants = Object.assign({}, counts[t] || {}); if (fold[k]) Object.keys(counts[k]).forEach(function(v) { variants[v] = (variants[v] || 0) + counts[k][v]; });
+      var best = Object.keys(counts[t] || counts[k]).sort(function(a, b) { return (counts[t] || counts[k])[b] - (counts[t] || counts[k])[a]; })[0];
+      label[t] = TAG_LABELS[t] || (best.charAt(0).toUpperCase() + best.slice(1)); });
+    Object.keys(lookup).forEach(function(n) { var v = lookup[n][dim]; if (!v) return; var k = ck(v); lookup[n][dim] = label[fold[k] || k]; });
+  });
 }
 
 // AI creative tags live in a separate product sheet (keyed by Ad Name). Best-effort:
@@ -1133,7 +1163,8 @@ async function loadAiTagLookup() {
     var map = {};
     parse(res[0]).forEach(function(o) {
       var name = (o['Ad Name'] || '').trim(); if (!name) return;   // exact trim, matches buildTagLookup join
-      var tg = {}; THEME_DEFS.forEach(function(t) { tg[t.key] = o[t.dim] || ''; }); map[name] = tg;
+      var tg = {}; THEME_DEFS.forEach(function(t) { tg[t.key] = o[t.dim] || ''; });
+      tg._headline = (o['Headline'] || '').trim(); tg._body = (o['Primary Text'] || '').trim(); map[name] = tg;
     });
     // Breakdown pickers: swap the old AI options for the sheet's themes
     var opts = THEME_DEFS.map(function(t) { return '<option value="' + t.key + '">' + t.dim + '</option>'; }).join('');
@@ -2061,6 +2092,32 @@ function closeAdModal() {
 // ========================================================================
 // TAB: BREAKDOWNS
 // ========================================================================
+// Headlines & Copy: performance by headline and by primary text. Copy comes from the theme sheet
+// (one headline + one primary text per ad: for ads with several variations loaded, Meta's first one).
+let hcMin = 200;
+function renderHeadlines() {
+  var el = document.getElementById('headlinesWrap'); if (!el) return;
+  var inp = document.getElementById('hcMinIn');
+  if (inp && !inp._wired) { inp._wired = true; inp.addEventListener('change', function(e) { hcMin = Math.max(0, +e.target.value || 0); renderHeadlines(); }); }
+  var rows = getFilteredData(), tot = aggregateRows(rows);
+  function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+  function table(field, title) {
+    var g = {}, noCopy = 0;
+    rows.forEach(function(r) { var k = r[field]; if (!k) { noCopy += r.spend; return; } (g[k] = g[k] || []).push(r); });
+    var out = Object.keys(g).map(function(k) { var x = aggregateRows(g[k]), ads = {}; g[k].forEach(function(r) { ads[r.adName] = 1; }); x.k = k; x.ads = Object.keys(ads).length; return x; });
+    out.sort(function(a, b) { var al = a.spend < hcMin || !a.purchases, bl = b.spend < hcMin || !b.purchases; if (al !== bl) return al ? 1 : -1; return al ? b.spend - a.spend : a.costPerPurchase - b.costPerPurchase; });
+    var body = out.map(function(x) { var low = x.spend < hcMin;
+      return '<tr' + (low ? ' style="color:var(--text-muted)"' : '') + '><td style="white-space:normal;max-width:520px;">' + esc(x.k.length > 220 ? x.k.slice(0, 217) + '...' : x.k) + '</td><td>' + x.ads + '</td><td>' + formatCurrency(x.spend) + '</td><td>' + formatNumber(x.purchases) + '</td>' +
+        '<td>' + (x.purchases ? '<span class="v ' + (low ? '' : cppCls(x, tot.costPerPurchase)) + '" style="font-weight:700;">' + formatCurrency(x.costPerPurchase) + '</span>' : '—') + '</td>' +
+        '<td>' + formatNumber(x.registrations) + '</td><td>' + (x.registrations ? formatCurrency(x.spend / x.registrations) : '—') + '</td><td>' + (x.ctr * 100).toFixed(2) + '%</td></tr>'; }).join('');
+    return '<div class="cov-card"><h3 style="font-size:15px;margin-bottom:10px;">' + title + '</h3><div style="overflow-x:auto"><table class="mx" style="text-align:left;"><thead><tr><th>Text</th><th>Ads</th><th>Spend</th><th>Purchases</th><th>Cost / purchase</th><th>Registrations</th><th>Cost / registration</th><th>CTR</th></tr></thead><tbody>' +
+      (body || '<tr><td colspan="8">No copy found for the ads in these dates.</td></tr>') + '</tbody></table></div>' +
+      (noCopy > 0 ? '<div class="cov-note" style="margin:8px 0 0;">' + formatCurrency(noCopy) + ' of spend is on ads with no ' + (field === '_headline' ? 'headline' : 'primary text') + ' on file (carousels and catalog ads often have none).</div>' : '') + '</div>';
+  }
+  el.innerHTML = '<div class="cov-note">Cost per purchase for these dates: <b>' + cppTxt(tot) + '</b>. Ranked cheapest first. Green = at least 10% cheaper than that, red = at least 25% more expensive.</div>' +
+    table('_headline', 'By Headline') + table('_body', 'By Primary Text') +
+    '<div class="cov-note">Ads with several headlines or texts loaded are grouped under the first one Meta lists. Per-variation delivery is not shown here.</div>';
+}
 let bdView = 'themes', bdMin = 500;
 const THEME_NEUTRAL = { 'None': 1, 'No one': 1, 'Varies': 1, 'Not a video': 1, 'No': 1, 'No product shown': 1 };
 const THEME_Q = { 'Selling angle': 'The main reason the creative gives someone to act', 'Look': 'How the creative was made',
@@ -2906,6 +2963,7 @@ function renderCurrentTab() {
     case 'explorer':    renderExplorer(); break;
     case 'breakdowns':  renderBreakdowns(); break;
     case 'creativetags': if (window.crRefresh) window.crRefresh(); break;
+    case 'headlines':   renderHeadlines(); break;
     case 'funnel':      renderFunnel(); break;
     case 'sparkloop':   renderSparkLoop(); break;
     case 'pacing':      renderPacing(); break;
