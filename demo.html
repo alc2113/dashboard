@@ -2034,23 +2034,62 @@ function renderTrends() {
   });
 
   // --- Cost per Purchase Over Time (line) ---
+  // Rolling 7-period cost per purchase (spend over the last 7 points divided by purchases over the same
+  // 7) smooths the daily noise, and a least-squares trend line shows the direction.
+  var rollWin = gran === 'daily' ? 7 : gran === 'weekly' ? 4 : 3;
+  var rolling = labels.map(function(k, i) {
+    var sp = 0, pu = 0;
+    for (var j = Math.max(0, i - rollWin + 1); j <= i; j++) { var g = allMap[labels[j]]; if (g) { sp += g.spend; pu += g.callsBooked; } }
+    return pu > 0 ? sp / pu : null;
+  });
+  var pts = []; rolling.forEach(function(v, i) { if (v !== null) pts.push([i, v]); });
+  var trend = labels.map(function() { return null; });
+  if (pts.length >= 3) {
+    var n = pts.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
+    pts.forEach(function(p) { sx += p[0]; sy += p[1]; sxx += p[0] * p[0]; sxy += p[0] * p[1]; });
+    var slope = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1), icpt = (sy - slope * sx) / n;
+    trend = labels.map(function(k, i) { return (i >= pts[0][0] && i <= pts[pts.length - 1][0]) ? Math.max(0, icpt + slope * i) : null; });
+  }
   createChart('chartCostPerCall', {
     type: 'line',
     data: {
       labels: labels,
       datasets: [
         {
-          label: 'Combined Cost/Purchase',
-          data: labels.map(function(k) { return allMap[k] ? allMap[k].costPerLead : 0; }),
+          label: (gran === 'daily' ? '7-day' : gran === 'weekly' ? '4-week' : '3-month') + ' rolling Cost/Purchase',
+          data: rolling,
           borderColor: '#209D50',
-          backgroundColor: 'rgba(32,157,80,0.08)',
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          tension: 0.3,
+          pointRadius: 0,
+          spanGaps: true
+        },
+        {
+          label: 'Trend',
+          data: trend,
+          borderColor: '#9B59B6',
+          backgroundColor: 'transparent',
+          borderDash: [6, 4],
+          borderWidth: 2,
+          pointRadius: 0,
+          spanGaps: true
+        },
+        {
+          label: 'Combined Cost/Purchase',
+          data: labels.map(function(k) { return allMap[k] && allMap[k].callsBooked ? allMap[k].costPerLead : null; }),
+          borderColor: 'rgba(32,157,80,0.35)',
+          backgroundColor: 'rgba(32,157,80,0.06)',
           fill: true,
           tension: 0.3,
-          pointRadius: pointRadius
+          pointRadius: pointRadius,
+          spanGaps: true
         },
         {
           label: 'Meta Cost/Purchase',
-          data: labels.map(function(k) { return metaMap[k] ? metaMap[k].costPerLead : 0; }),
+          data: labels.map(function(k) { return metaMap[k] && metaMap[k].callsBooked ? metaMap[k].costPerLead : null; }),
+          spanGaps: true,
+          hidden: true,
           borderColor: '#1877F2',
           backgroundColor: 'transparent',
           tension: 0.3,
@@ -2058,7 +2097,9 @@ function renderTrends() {
         },
         {
           label: 'Google Cost/Purchase',
-          data: labels.map(function(k) { return googleMap[k] ? googleMap[k].costPerLead : 0; }),
+          data: labels.map(function(k) { return googleMap[k] && googleMap[k].callsBooked ? googleMap[k].costPerLead : null; }),
+          spanGaps: true,
+          hidden: true,
           borderColor: '#EA4335',
           backgroundColor: 'transparent',
           tension: 0.3,
@@ -2731,7 +2772,13 @@ function renderThemesGrid() {
     '. Green = at least 10% above it, red = more than 20% below.' +
     (totDeals.deals ? ' Green line in a box = CRM deals created in these dates whose contact first clicked an ad in that group. All Meta ads: <b>' + dealsLine(totDeals) + '</b>.' : '') + '</div><div class="cov-card">' +
     THEME_DEFS.map(function(t) { var g = {}; rows.forEach(function(r) { var k = r[t.key] || '(none)'; (g[k] = g[k] || []).push(r); });
-      return '<div class="cov-theme"><h3>' + t.dim + '</h3><div class="q">' + (THEME_Q[t.dim] || '') + '</div><div class="cov-grid">' + t.values.map(function(v) { return box(v, g[v]); }).join('') + '</div></div>'; }).join('') + '</div>';
+      // Order: real boxes by spend (highest first), then under-minimum boxes, then "nothing running" last.
+      var cells = t.values.map(function(v) { return { v: v, x: aggregateRows(g[v] || []) }; });
+      cells.sort(function(a, b) {
+        var ra = !a.x.spend ? 2 : a.x.spend < bdMin ? 1 : 0, rb = !b.x.spend ? 2 : b.x.spend < bdMin ? 1 : 0;
+        return ra !== rb ? ra - rb : b.x.spend - a.x.spend;
+      });
+      return '<div class="cov-theme"><h3>' + t.dim + '</h3><div class="q">' + (THEME_Q[t.dim] || '') + '</div><div class="cov-grid">' + cells.map(function(c) { return box(c.v, g[c.v]); }).join('') + '</div></div>'; }).join('') + '</div>';
 }
 function renderPairMatrix(data, dim, dim2, labels) {
   var el = document.getElementById('pairMatrix'); if (!el) return;
