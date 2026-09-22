@@ -308,7 +308,7 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
        closeDate:dl["Close Date"]||"", line:dl["Service Line"]||"", pipeline:dl["Pipeline"]||"", stage:dl["Stage"]||"",
        cstage:dl["Canonical Stage"]||"", outcome:dl["Outcome"]||"", source:dl["Source"]||"", bucket:dl["Source Bucket"]||"",
        campaign:dl["Campaign"]||"", latestBucket:dl["Latest Bucket"]||"", latestCampaign:dl["Latest Campaign"]||"",
-       keyword:dl["Keyword"]||"", latestKeyword:dl["Latest Keyword"]||"",
+       keyword:dl["Keyword"]||"", latestKeyword:dl["Latest Keyword"]||"", ad:dl["Ad"]||"",
        value:pv(dl["Deal Value"]), leadMagnet:dl["Lead Magnet"]==="Y", owner:dl["Owner"]||"",
        leadCallDate:dl["Lead Call Date"]||"", proposalDate:dl["Proposal Date"]||"", wonDate:dl["Won Date"]||"",
        completeDate:dl["Complete Date"]||"", asOf:dl["As Of"]||"", dataSource:dl["Data Source"]||"" }); }); }catch(e){}
@@ -762,7 +762,7 @@ function renderModeled(){
    (MOD.rows); spend by campaign comes from this dashboard's daily ad rows
    (ROWS, Meta unless a Platform column says google). There are no keyword
    rows on the ad-ID product sheet, so the keyword breakout carries no spend.
-   Whole-history view; ignores the global date filter. */
+   Follows the page's global date range (state.from / state.to). */
 var DEALS_LINES = ['Design', 'Install', 'Caretaking', 'Eco Lawns'];
 var DEALS_SHORT_LADDER = { 'Caretaking': true, 'Eco Lawns': true };   // Created / Won / Complete only
 var DEALS_STALL_DAYS = 30;
@@ -854,7 +854,7 @@ function dealsShellHtml() {
       ${CRM} deals joined to ad spend. Paid sources are a <b>floor</b>: an ad click that arrives without campaign
       tracking is recorded as Direct and cannot be recovered. Recent months are still maturing because open deals
       have not converted yet, so read the trend, not the newest month. Revenue = the ${CRM} <b>Deal Value</b> field.
-      The date filter above does not apply to this tab.
+      The date range above sets the window: deals by create date, spend by month.
     </div>
     <div class="note" id="dealsAsOf" style="margin-bottom:12px;"></div>
     <div class="controls" style="gap:14px;">
@@ -862,11 +862,6 @@ function dealsShellHtml() {
         <select class="deals-sel" id="dealsAttrib">
           <option value="Original">Original source (first touch)</option>
           <option value="Latest">Latest source (last touch)</option>
-        </select></label>
-      <label>Window
-        <select class="deals-sel" id="dealsWin">
-          <option value="ytd">Year to date</option>
-          <option value="12m">Last 12 months</option>
         </select></label>
     </div>
 
@@ -882,7 +877,7 @@ function dealsShellHtml() {
     </div>
 
     <div class="card">
-      <h2>Cumulative Won Value by Month Won, Google vs Meta (dashed = maturing months)</h2>
+      <h2>Cumulative Won Value by Month Won in the date range, Google vs Meta (dashed = maturing months)</h2>
       <div class="chart-wrap" style="height:280px;"><canvas id="chartDealsCum"></canvas></div>
     </div>
 
@@ -927,7 +922,7 @@ function dealsShellHtml() {
           <option value="line">By service line and platform</option>
           <option value="campaign">By campaign</option>
           <option value="keyword">By Google keyword</option>
-          <option value="ad" disabled>By Meta ad (needs the click-to-ad map)</option>
+          <option value="ad" id="dealsDimAd" disabled>By Meta ad (needs the click-to-ad map)</option>
         </select>
       </h2>
       <div class="note" style="margin-bottom:8px;" id="dealsDimNote"></div>
@@ -943,12 +938,14 @@ function dealsShellHtml() {
 
 function renderDeals() {
   var CRM = dealsCrmName();
-  var ctl = ['dealsAttrib', 'dealsWin', 'dealsFunnelView', 'dealsDim'].map(function(id) {
+  var ctl = ['dealsAttrib', 'dealsFunnelView', 'dealsDim'].map(function(id) {
     var el = document.getElementById(id); el.onchange = renderDeals; return el;
   });
-  var attrib = ctl[0].value, winMode = ctl[1].value, funnelView = ctl[2].value, dim = ctl[3].value;
+  var attrib = ctl[0].value, funnelView = ctl[1].value, dim = ctl[2].value;
 
   var asOfEl = document.getElementById('dealsAsOf');
+
+  var adOptEl = document.getElementById('dealsDimAd'); if (adOptEl) { var hasAds = dealsData.some(function(r) { return r.ad; }); adOptEl.disabled = !hasAds; adOptEl.textContent = hasAds ? 'By Meta ad' : 'By Meta ad (needs the click-to-ad map)'; }
   if (!dealsData.length) { asOfEl.textContent = 'No deal data loaded yet (' + ((DEALS && DEALS.dealsTab) || 'HS Deals') + ' tab is empty or could not be read).'; return; }
   asOfEl.textContent = 'Deal data as of ' + (dealsData[0].asOf || '') + ' via ' + dealsData[0].dataSource + '. ' +
     num(dealsData.length) + ' deals in ' + CRM + '.';
@@ -959,12 +956,12 @@ function renderDeals() {
   // First month with modeled spend (sog.html hardcodes 2026-01; derived here so other clients work).
   var modMonths = MOD.rows.map(function(m) { return m.month; }).sort();
   var spendStart = modMonths.length ? modMonths[0] : curMonth.slice(0, 4) + '-01';
-  var winFrom = winMode === 'ytd' ? curMonth.slice(0, 4) + '-01-01'
-                                  : fmtDate(new Date(new Date().setFullYear(new Date().getFullYear() - 1)));
-  var winLabel = winMode === 'ytd' ? 'deals created ' + curMonth.slice(0, 4) + ' to date' : 'deals created in the last 12 months';
-  document.getElementById('dealsScoreTitle').textContent = '(' + winLabel + ')';
+  var winFrom = state.from || spendStart + '-01';
+  var winTo = state.to || todayStr;
+  var winToMonth = winTo.slice(0, 7) < curMonth ? winTo.slice(0, 7) : curMonth;
+  document.getElementById('dealsScoreTitle').textContent = '(deals created ' + winFrom + ' to ' + winTo + ')';
   document.getElementById('dealsScoreNote').textContent = 'Deals attributed by ' + CRM + ' source. Win rate rises as open deals close.' +
-    (winFrom < spendStart + '-01' ? ' Spend on this sheet starts ' + monthLabel(spendStart) + ', so deals created before that carry no spend and cost figures read low for the 12-month window.' : '');
+    (winFrom < spendStart + '-01' ? ' Spend on this sheet starts ' + monthLabel(spendStart) + ', so deals created before that carry no spend and cost figures read low.' : '');
 
   // Attribution view + paid-only working set
   var deals = dealsData.map(function(r) {
@@ -973,7 +970,7 @@ function renderDeals() {
              plat: dealsPlatform(useLatest ? r.latestBucket : r.bucket) };
   });
   var paid = deals.filter(function(d) { return d.plat; });
-  var inWin = paid.filter(function(d) { return d.r.created >= winFrom; });
+  var inWin = paid.filter(function(d) { return d.r.created >= winFrom && d.r.created <= winTo; });
   // Service lines: the SOG order first, then any other line present on paid deals.
   var lines = DEALS_LINES.slice();
   paid.forEach(function(d) { if (d.r.line && lines.indexOf(d.r.line) === -1) lines.push(d.r.line); });
@@ -986,9 +983,15 @@ function renderDeals() {
     var p = dealsPlatform(m.source) || (m.source === 'Google - Other' ? 'google' : null);
     if (p) spendPlat[m.month + '|' + p] = (spendPlat[m.month + '|' + p] || 0) + m.spend;
   });
+  // Platform spend inside the exact date range from this dashboard's daily ad rows (the modeled
+  // rows are monthly and would overstate spend for a partial month).
   function spendPlatWindow(p) {
     var t = 0;
-    Object.keys(spendPlat).forEach(function(k) { if (k.split('|')[1] === p && k.slice(0, 7) >= winFrom.slice(0, 7)) t += spendPlat[k]; });
+    ROWS.forEach(function(c) {
+      if (!c._date || c._date < winFrom || c._date > winTo) return;
+      var plat = String(c["Platform"] || 'meta').trim().toLowerCase() === 'google' ? 'google' : 'meta';
+      if (plat === p) t += c._spend;
+    });
     return t;
   }
   var campSpendWin = {};
@@ -996,7 +999,7 @@ function renderDeals() {
     if (!c._date || !c["Campaign"]) return;
     var plat = String(c["Platform"] || 'meta').trim().toLowerCase() === 'google' ? 'google' : 'meta';
     var key = plat + '|' + dealsNormName(c["Campaign"]);
-    if (c._date >= winFrom) campSpendWin[key] = (campSpendWin[key] || 0) + c._spend;
+    if (c._date >= winFrom && c._date <= winTo) campSpendWin[key] = (campSpendWin[key] || 0) + c._spend;
   });
   var kwSpendWin = {};
   function platformCampaignName(d) {
@@ -1015,14 +1018,14 @@ function renderDeals() {
       '</td><td>' + (a.deals ? (100 * a.won / a.deals).toFixed(0) + '%' : '') + '</td>' + dealsMetricCells(a, i === 2 ? { wonValue: 0, spend: 0 } : sMax) + '</tr>';
   }).join('');
 
-  // ── Cumulative won value by month won (paid, since the first modeled spend month) ──
+  // ── Cumulative won value by month won (paid, months inside the date range) ──
   var months = [];
-  for (var ym = spendStart; ym <= curMonth; ym = dealsShiftMonth(ym, 1)) months.push(ym);
+  for (var ym = winFrom.slice(0, 7); ym <= winToMonth; ym = dealsShiftMonth(ym, 1)) months.push(ym);
   var wonByMonth = { google: {}, meta: {} };
   paid.forEach(function(d) {
     if (d.r.outcome !== 'Won') return;
     var m = (d.r.wonDate || d.r.closeDate || '').slice(0, 7);
-    if (m) wonByMonth[d.plat][m] = (wonByMonth[d.plat][m] || 0) + d.r.value;
+    if (m && m >= winFrom.slice(0, 7) && m <= winToMonth) wonByMonth[d.plat][m] = (wonByMonth[d.plat][m] || 0) + d.r.value;
   });
   function cumulative(p) {
     var t = 0;
@@ -1129,6 +1132,9 @@ function renderDeals() {
       key = 'google|' + label; spendKey = kwSpendWin[dealsNormName(label)];
     } else if (dim === 'line') {
       label = r.line; key = d.plat + '|' + label; spendKey = null;
+    } else if (dim === 'ad') {
+      if (d.plat !== 'meta') return;
+      label = r.ad || '(ad not logged)'; key = 'meta|' + label; spendKey = null;
     } else return;
     if (!brows[key]) { brows[key] = dealsEmptyAgg(); bMeta[key] = { label: label, plat: platLabel }; brows[key].spend = spendKey || 0; }
     else if (dim === 'campaign' && label !== label.toLowerCase() && bMeta[key].label === bMeta[key].label.toLowerCase()) bMeta[key].label = label;
@@ -1137,6 +1143,7 @@ function renderDeals() {
   if (dim === 'campaign') note = 'Campaign as recorded by ' + CRM + '. Spend joins to this dashboard\'s daily ad rows by campaign name (mapped: pmax_callsbooked, sog nonbranded search, sog branded search, retargeting_completeregistration). Campaigns with no ad rows here in the window show no cost; the scorecard carries platform-level spend.';
   if (dim === 'keyword') note = 'Google deals only. PMax has no keywords, so its deals sit on one row. This dashboard has no keyword spend rows, so cost columns are blank here.';
   if (dim === 'line') note = 'Service line by platform. Spend is not split by service line, so cost columns are blank here; use the scorecard for cost.';
+  if (dim === 'ad') note = 'Meta deals by the ad the contact clicked, read from the contact\'s first-visit URL in the CRM. Ad-level spend is not joined here; use the campaign view for cost.';
   document.getElementById('dealsDimNote').textContent = note;
   var bKeys = Object.keys(brows).sort(function(a, b) { return brows[b].deals - brows[a].deals || brows[b].wonValue - brows[a].wonValue; });
   var bMax = { wonValue: 0, spend: 0, deals: 0 };
@@ -1341,6 +1348,19 @@ function wireBdBar(){
   document.querySelectorAll("#tab-breakdowns [data-bdv]").forEach(b=>b.addEventListener("click",()=>{bdView=b.dataset.bdv; renderBreakdowns(filtered());}));
   const m=document.getElementById("bdMinIn"); if(m) m.addEventListener("change",e=>{bdMin=Math.max(0,+e.target.value||0); renderBreakdowns(filtered());});
 }
+/* Deal outcomes for the Meta ads in a set of rows: CRM deals whose contact first clicked one of
+   those ads (deals tab "Ad" column), created inside the page's date range. Used by the theme views. */
+function dealsForRows(rows){
+  const names={}; rows.forEach(r=>{ const n=(r["Ad Name"]||"").toString().trim().toLowerCase(); if(n) names[n]=1; });
+  const out={deals:0,won:0,wonValue:0};
+  if(!Object.keys(names).length) return out;
+  dealsData.forEach(d=>{ if(!d.ad||d.bucket!=="Paid Social (Meta)") return;
+    if(!names[String(d.ad).trim().toLowerCase()]) return;
+    if((state.from&&d.created<state.from)||(state.to&&d.created>state.to)) return;
+    out.deals++; if(d.outcome==="Won"){ out.won++; out.wonValue+=d.value; } });
+  return out;
+}
+function dealsLine(x){ return x.deals?`${num(x.deals)} deal${x.deals===1?"":"s"} · ${num(x.won)} won${x.wonValue?" · "+money(x.wonValue):""}`:""; }
 function renderBreakdowns(f){
   if(bdView==="coverage") return renderCoverage(f);
   if(bdB && bdB!==bdDim && !specialBrkRows(bdDim)){ bdA=bdDim; return renderCombo(f); }
@@ -1348,14 +1368,18 @@ function renderBreakdowns(f){
   if(sp){ f=sp.filter(r=>r._date>=state.from && r._date<=state.to && (!state.campaign||!r.Campaign||r.Campaign===state.campaign));
     if(state.adset||(state.campaign&&bdDim==="Hour of Day")) spNote=`<div class="note" style="margin:-4px 0 12px;">${bdDim} is not available by ${bdDim==="Hour of Day"&&state.campaign?"campaign or ad set":"ad set"}, so that filter does not apply to it.</div>`; }
   const g=groupBy(f,bdDim);
-  let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows)}));
+  let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows),...dealsForRows(rows)}));
   out=out.filter(x=>x.k!=="(none)" || out.length===1);
   if(bdDim==="Hour of Day") out.sort((a,b)=>a.k<b.k?-1:1); else out.sort(rankBest);
-  const body=out.map(x=>`<tr${x.spend<bdMin?' style="color:var(--muted)"':""}><td>${x.k}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}</tr>`).join("");
+  // Deal outcome columns only when this client has a deals tab loaded.
+  const hasDeals=dealsData.length>0;
+  const dealsHead=hasDeals?`<th class="num" title="${dealsCrmName()} deals created in these dates whose contact first clicked a Meta ad in this group">Deals</th><th class="num">Won</th><th class="num">Won Value</th>`:"";
+  const dealsCells=x=>hasDeals?`<td class="num">${x.deals?num(x.deals):""}</td><td class="num">${x.won?num(x.won):""}</td><td class="num">${x.wonValue?money(x.wonValue):""}</td>`:"";
+  const body=out.map(x=>`<tr${x.spend<bdMin?' style="color:var(--muted)"':""}><td>${x.k}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}${dealsCells(x)}</tr>`).join("");
   document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+spNote+
     `<div class="card"><h2>${bdDim}</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||(THEMES.find(t=>t.dim===bdDim)||{}).hint||""}</div>
        <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
-     <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${resHeadHtml()}</tr></thead><tbody>${body}</tbody></table></div></div>`;
+     <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${resHeadHtml()}${dealsHead}</tr></thead><tbody>${body}</tbody></table></div></div>`;
   wireDetailPickers(); wireBdBar(); dimChart("bdChart",out);
 }
 function renderCoverage(f){
@@ -1366,17 +1390,18 @@ function renderCoverage(f){
     const boxes=vals.map(v=>{ const x=agg(g[v]||[]);
       if(!x.spend) return NEUTRAL.has(v)?"":`<div class="cov-box gap"><div class="l">${v}</div><div class="n">Nothing running here.</div></div>`;
       if(x.spend<bdMin) return `<div class="cov-box low"><div class="l">${v}</div><div class="n">${money(x.spend)} spent. Too little to judge.</div></div>`;
-      const share=tot.spend?x.spend/tot.spend*100:0;
+      const share=tot.spend?x.spend/tot.spend*100:0, dl=dealsLine(dealsForRows(g[v]||[]));
       return `<div class="cov-box"><div class="l">${v}</div><div class="t"><i style="width:${share.toFixed(0)}%"></i></div>
         <div class="r"><span>${share.toFixed(0)}% of spend</span><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span></div>
-        <div class="n">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()} · ${x.ads} ad${x.ads===1?"":"s"}</div></div>`; }).join("");
+        <div class="n">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()} · ${x.ads} ad${x.ads===1?"":"s"}</div>${dl?`<div class="n" style="color:var(--good);font-weight:600;">${dl}</div>`:""}</div>`; }).join("");
     const un=agg(g["(none)"]||[]);
     return `<div class="cov-theme"><h3>${t.dim}</h3><div class="q">${THEME_Q[t.dim]||t.hint||""}</div><div class="cov-grid">${boxes}</div>
       ${un.spend?`<div class="note">${money(un.spend)} of spend is on ads not tagged for this theme yet.</div>`:""}</div>`; };
   const main=THEMES.filter(t=>t.type!=="manual"), vid=f.filter(isVideoRow);
   const manHtml=THEMES.filter(t=>t.type==="manual"&&vid.some(r=>(r[t.dim]||"").toString().trim())).map(t=>themeHtml(t,vid)).join("");
+  const totDeals=dealsForRows(f);
   document.getElementById("tab-breakdowns").innerHTML=bdBar()+
-    `<div class="note" style="margin:-6px 0 14px;">Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b> on ${money(tot.spend)}. ${SCORE_RULE}</div>
+    `<div class="note" style="margin:-6px 0 14px;">Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b> on ${money(tot.spend)}. ${SCORE_RULE}${totDeals.deals?` Green line in a box = ${dealsCrmName()} deals created in these dates whose contact first clicked an ad in that group. All Meta ads: <b>${dealsLine(totDeals)}</b>.`:""}</div>
      ${main.length?`<div class="card">${main.map(t=>themeHtml(t,f)).join("")}</div>`:`<div class="card"><div class="note">No creative themes are set up for this client yet.</div></div>`}
      ${manHtml?`<div class="card"><div class="cov-group">Video details</div>${manHtml}</div>`:""}`;
   wireBdBar();
@@ -1387,11 +1412,13 @@ function renderCombo(f){
     (cell[a+"|"+b]=cell[a+"|"+b]||[]).push(r); (rowT[a]=rowT[a]||[]).push(r); (colT[b]=colT[b]||[]).push(r); });
   const bySpend=o=>Object.keys(o).sort((x,y)=>agg(o[y]).spend-agg(o[x]).spend);
   const rowsK=bySpend(rowT), colsK=bySpend(colT).slice(0,8);
-  const td=x=>!x.spend?`<td class="gap">not tested</td>`:x.spend<bdMin?`<td class="low"><span class="s">${money(x.spend)}<br>too little</span></td>`
-     :`<td><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span><span class="s">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()}</span></td>`;
+  const td=(x,rs)=>{ if(!x.spend) return `<td class="gap">not tested</td>`;
+     if(x.spend<bdMin) return `<td class="low"><span class="s">${money(x.spend)}<br>too little</span></td>`;
+     const dl=dealsLine(dealsForRows(rs||[]));
+     return `<td><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span><span class="s">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()}${dl?"<br>"+dl:""}</span></td>`; };
   const head=`<tr><th>${bdA} ↓ &nbsp; ${bdB} →</th>${colsK.map(c=>`<th>${c}</th>`).join("")}<th>All</th></tr>`;
-  const body=rowsK.map(a=>`<tr><td>${a}</td>${colsK.map(b=>td(agg(cell[a+"|"+b]||[]))).join("")}${td(agg(rowT[a]))}</tr>`).join("")+
-    `<tr><td>All</td>${colsK.map(b=>td(agg(colT[b]))).join("")}${td(tot)}</tr>`;
+  const body=rowsK.map(a=>`<tr><td>${a}</td>${colsK.map(b=>td(agg(cell[a+"|"+b]||[]),cell[a+"|"+b])).join("")}${td(agg(rowT[a]),rowT[a])}</tr>`).join("")+
+    `<tr><td>All</td>${colsK.map(b=>td(agg(colT[b]),colT[b])).join("")}${td(tot,f)}</tr>`;
   const pairs=Object.entries(cell).map(([k,rs])=>({k:k.replace("|"," + "),...agg(rs)})).filter(x=>x.spend>=bdMin).sort(rankBest);
   const under=Object.keys(cell).length-pairs.length;
   document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+
