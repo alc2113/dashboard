@@ -4151,7 +4151,7 @@ function renderDeals() {
   if (dim === 'campaign') note = 'Campaign as recorded by HubSpot. Spend joins to the ad platform by name (mapped: pmax_callsbooked, sog nonbranded search, sog branded search, retargeting_completeregistration). Campaigns without spend in the window show no cost.';
   if (dim === 'keyword') note = 'Google deals only. PMax has no keywords, so its deals sit on one row. Spend joins to the Keywords tab by keyword text.';
   if (dim === 'line') note = 'Service line by platform. Spend is not split by service line, so cost columns are blank here; use the scorecard for cost.';
-  if (dim === 'ad') note = 'Meta deals by the ad the contact clicked, from the click log. Deals whose click happened before the log went live show as not logged. Ad-level spend join comes next.';
+  if (dim === 'ad') note = 'Meta deals by the ad the contact clicked, read from the contact\'s first-visit URL in the CRM. Ad-level spend is not joined here; use the campaign view for cost.';
   document.getElementById('dealsDimNote').textContent = note;
   var bKeys = Object.keys(brows).sort(function(a, b) { return brows[b].deals - brows[a].deals || brows[b].wonValue - brows[a].wonValue; });
   var bMax = { wonValue: 0, spend: 0, deals: 0 };
