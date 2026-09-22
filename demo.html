@@ -2034,77 +2034,36 @@ function renderTrends() {
   });
 
   // --- Cost per Purchase Over Time (line) ---
-  // Rolling 7-period cost per purchase (spend over the last 7 points divided by purchases over the same
-  // 7) smooths the daily noise, and a least-squares trend line shows the direction.
+  // Rolling cost per purchase = spend over the last N points divided by purchases over the same N.
+  // Windows with fewer than MIN_PURCHASES purchases are left blank: one or two purchases in a week
+  // turn into a $1,000 "cost per purchase" that is noise, not a trend. The 4x-longer window is the
+  // slow trend (a straight regression across months of structural changes misleads).
+  // Nothing is hidden by default: hidden datasets render crossed out in the legend.
   var rollWin = gran === 'daily' ? 7 : gran === 'weekly' ? 4 : 3;
-  var rolling = labels.map(function(k, i) {
-    var sp = 0, pu = 0;
-    for (var j = Math.max(0, i - rollWin + 1); j <= i; j++) { var g = allMap[labels[j]]; if (g) { sp += g.spend; pu += g.callsBooked; } }
-    return pu > 0 ? sp / pu : null;
-  });
-  var pts = []; rolling.forEach(function(v, i) { if (v !== null) pts.push([i, v]); });
-  var trend = labels.map(function() { return null; });
-  if (pts.length >= 3) {
-    var n = pts.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
-    pts.forEach(function(p) { sx += p[0]; sy += p[1]; sxx += p[0] * p[0]; sxy += p[0] * p[1]; });
-    var slope = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1), icpt = (sy - slope * sx) / n;
-    trend = labels.map(function(k, i) { return (i >= pts[0][0] && i <= pts[pts.length - 1][0]) ? Math.max(0, icpt + slope * i) : null; });
+  var slowWin = gran === 'daily' ? 28 : gran === 'weekly' ? 12 : 6;
+  var MIN_PURCHASES = gran === 'daily' ? 5 : gran === 'weekly' ? 10 : 15;
+  function rollingCpp(map, win) {
+    return labels.map(function(k, i) {
+      var sp = 0, pu = 0;
+      for (var j = Math.max(0, i - win + 1); j <= i; j++) { var g = map[labels[j]]; if (g) { sp += g.spend; pu += g.callsBooked; } }
+      return pu >= MIN_PURCHASES ? sp / pu : null;
+    });
   }
+  var rollLabel = gran === 'daily' ? '7-day' : gran === 'weekly' ? '4-week' : '3-month';
+  var slowLabel = gran === 'daily' ? '28-day' : gran === 'weekly' ? '12-week' : '6-month';
   createChart('chartCostPerCall', {
     type: 'line',
     data: {
       labels: labels,
       datasets: [
-        {
-          label: (gran === 'daily' ? '7-day' : gran === 'weekly' ? '4-week' : '3-month') + ' rolling Cost/Purchase',
-          data: rolling,
-          borderColor: '#209D50',
-          backgroundColor: 'transparent',
-          borderWidth: 3,
-          tension: 0.3,
-          pointRadius: 0,
-          spanGaps: true
-        },
-        {
-          label: 'Trend',
-          data: trend,
-          borderColor: '#9B59B6',
-          backgroundColor: 'transparent',
-          borderDash: [6, 4],
-          borderWidth: 2,
-          pointRadius: 0,
-          spanGaps: true
-        },
-        {
-          label: 'Combined Cost/Purchase',
-          data: labels.map(function(k) { return allMap[k] && allMap[k].callsBooked ? allMap[k].costPerLead : null; }),
-          borderColor: 'rgba(32,157,80,0.35)',
-          backgroundColor: 'rgba(32,157,80,0.06)',
-          fill: true,
-          tension: 0.3,
-          pointRadius: pointRadius,
-          spanGaps: true
-        },
-        {
-          label: 'Meta Cost/Purchase',
-          data: labels.map(function(k) { return metaMap[k] && metaMap[k].callsBooked ? metaMap[k].costPerLead : null; }),
-          spanGaps: true,
-          hidden: true,
-          borderColor: '#1877F2',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          pointRadius: pointRadius
-        },
-        {
-          label: 'Google Cost/Purchase',
-          data: labels.map(function(k) { return googleMap[k] && googleMap[k].callsBooked ? googleMap[k].costPerLead : null; }),
-          spanGaps: true,
-          hidden: true,
-          borderColor: '#EA4335',
-          backgroundColor: 'transparent',
-          tension: 0.3,
-          pointRadius: pointRadius
-        }
+        { label: 'Combined ' + rollLabel + ' Cost/Purchase', data: rollingCpp(allMap, rollWin),
+          borderColor: '#209D50', backgroundColor: 'transparent', borderWidth: 3, tension: 0.3, pointRadius: 0, spanGaps: false },
+        { label: 'Meta ' + rollLabel + ' Cost/Purchase', data: rollingCpp(metaMap, rollWin),
+          borderColor: '#1877F2', backgroundColor: 'transparent', borderWidth: 1.5, tension: 0.3, pointRadius: 0, spanGaps: false },
+        { label: 'Google ' + rollLabel + ' Cost/Purchase', data: rollingCpp(googleMap, rollWin),
+          borderColor: '#EA4335', backgroundColor: 'transparent', borderWidth: 1.5, tension: 0.3, pointRadius: 0, spanGaps: false },
+        { label: 'Combined ' + slowLabel + ' trend', data: rollingCpp(allMap, slowWin),
+          borderColor: '#9B59B6', backgroundColor: 'transparent', borderDash: [6, 4], borderWidth: 2.5, tension: 0.3, pointRadius: 0, spanGaps: false }
       ]
     },
     options: {

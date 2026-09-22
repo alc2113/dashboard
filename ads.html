@@ -1296,20 +1296,16 @@ function renderTrends(f){
   const s=dailySeries(f);
   const by={}; f.forEach(r=>{const d=r._date;const b=by[d]=by[d]||{spend:0,leads:0,rev:0};b.spend+=r._spend;b.leads+=r._leads;b.rev+=r._rev;});
   const days=Object.keys(by).sort();
-  // Daily line goes null (not 0) on days with no result so a gap reads as a gap, not a crash to zero.
-  const resultLine=days.map(d=>IS_ROAS?(by[d].spend?by[d].rev/by[d].spend:null):(by[d].leads?by[d].spend/by[d].leads:null));
-  // Rolling 7-day figure (revenue over spend, or spend over results, each summed across the last 7 days)
-  // smooths the daily noise, and a least-squares trend line shows the direction. Trends here is daily only.
-  const rollWin=7;
-  const rolling=days.map((d,i)=>{ let sp=0,le=0,rv=0;
-    for(let j=Math.max(0,i-rollWin+1);j<=i;j++){ const b=by[days[j]]; sp+=b.spend; le+=b.leads; rv+=b.rev; }
-    return IS_ROAS?(sp>0?rv/sp:null):(le>0?sp/le:null); });
-  const pts=[]; rolling.forEach((v,i)=>{ if(v!==null) pts.push([i,v]); });
-  let trend=days.map(()=>null);
-  if(pts.length>=3){ const n=pts.length; let sx=0,sy=0,sxx=0,sxy=0;
-    pts.forEach(p=>{ sx+=p[0]; sy+=p[1]; sxx+=p[0]*p[0]; sxy+=p[0]*p[1]; });
-    const slope=(n*sxy-sx*sy)/(n*sxx-sx*sx||1), icpt=(sy-slope*sx)/n;
-    trend=days.map((d,i)=>(i>=pts[0][0]&&i<=pts[pts.length-1][0])?Math.max(0,icpt+slope*i):null); }
+  // Rolling figure = revenue over spend (ROAS) or spend over results (cost per result), each summed across
+  // the last N days. Windows with fewer than MIN_RESULTS results are left blank: one or two results in a
+  // week turn into a $1,000 "cost per result" that is noise, not a trend. The 4x-longer window is the slow
+  // trend (a straight regression across months of structural changes misleads). Trends here is daily only.
+  // Nothing is hidden by default: hidden datasets render crossed out in the legend.
+  const rollWin=7, slowWin=28, MIN_RESULTS=5;
+  const rolling=win=>days.map((d,i)=>{ let sp=0,le=0,rv=0;
+    for(let j=Math.max(0,i-win+1);j<=i;j++){ const b=by[days[j]]; sp+=b.spend; le+=b.leads; rv+=b.rev; }
+    if(le<MIN_RESULTS) return null;
+    return IS_ROAS?(sp>0?rv/sp:null):sp/le; });
   document.getElementById("tab-trends").innerHTML=
     `<div class="chart-row">
       <div class="card"><h2>Spend by day</h2><div class="chart-wrap"><canvas id="trSpend"></canvas></div></div>
@@ -1321,9 +1317,8 @@ function renderTrends(f){
   makeChart("trResult",{type:"bar",data:{labels:s.days,datasets:[{label:RESULT_LABEL,data:s.result,backgroundColor:COLORS[1]}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
   makeChart("trEff",{type:"line",data:{labels:days,datasets:[
-      {label:IS_ROAS?"7-day ROAS":"7-day rolling Cost per "+RESULT_ONE,data:rolling,borderColor:COLORS[2],backgroundColor:"transparent",borderWidth:3,tension:.25,pointRadius:0,spanGaps:true},
-      {label:"Trend",data:trend,borderColor:COLORS[4],backgroundColor:"transparent",borderDash:[6,4],borderWidth:2,pointRadius:0,spanGaps:true},
-      {label:IS_ROAS?"Daily ROAS":"Daily cost per "+RESULT_ONE,data:resultLine,borderColor:"rgba(255,107,107,.35)",backgroundColor:"rgba(255,107,107,.06)",fill:true,tension:.25,spanGaps:true}]},
+      {label:IS_ROAS?"7-day ROAS":"7-day Cost per "+RESULT_ONE,data:rolling(rollWin),borderColor:COLORS[2],backgroundColor:"transparent",borderWidth:3,tension:.25,pointRadius:0,spanGaps:false},
+      {label:"28-day trend",data:rolling(slowWin),borderColor:"#9B59B6",backgroundColor:"transparent",borderDash:[6,4],borderWidth:2.5,tension:.25,pointRadius:0,spanGaps:false}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}},scales:{y:{beginAtZero:true,ticks:{callback:v=>IS_ROAS?v.toFixed(2)+"x":"$"+v.toFixed(0)}}}}});
 }
 
