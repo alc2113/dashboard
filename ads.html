@@ -22,6 +22,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .brand .name{font-size:15px; font-weight:700; letter-spacing:2px; color:var(--primary);}
 .title{font-size:22px; font-weight:700;}
 .sub{font-size:13px; color:var(--muted); margin-bottom:16px;}
+.head-right{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
+.stamp{font-size:12px; color:var(--muted);}
 
 /* Controls */
 .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center; background:var(--card);
@@ -33,7 +35,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
   background:#fff; cursor:pointer;}
 .preset.active{background:var(--primary); color:#fff; border-color:var(--primary);}
 .spacer{flex:1;}
-/* creative themes: coverage grid + combinations */
+.info-bar{background:#EAF3F5; border:1px solid var(--border); color:var(--text); font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:14px;}
+/* segmented toggles (Trends granularity, Breakdown views) */
 .seg{display:inline-flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; margin-right:12px;}
 .seg button{font:inherit; font-size:13px; font-weight:600; padding:6px 14px; border:0; background:#fff; color:var(--muted); cursor:pointer;}
 .seg button.on{background:var(--primary); color:#fff;}
@@ -88,6 +91,7 @@ td.na{color:var(--muted); font-size:12px;}
 .kpi{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px;}
 .kpi .label{font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px;}
 .kpi .val{font-size:26px; font-weight:700; margin-top:4px;}
+.kpi .sublabel{font-size:11px; color:var(--muted); margin-top:2px;}
 .kpi-delta{font-size:11px; font-weight:600; margin-top:3px;}
 .kpi-delta.good{color:var(--good);}
 .kpi-delta.bad{color:var(--bad);}
@@ -96,6 +100,9 @@ td.na{color:var(--muted); font-size:12px;}
 /* Cards + charts */
 .card{background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:18px;}
 .card h2{font-size:16px; font-weight:700; margin-bottom:14px;}
+.card h2 .tt{font-size:13px; font-weight:600;}
+.card h2 .tt.flat{font-weight:400; color:var(--muted);}
+.card h2 .tt.up{color:var(--good);} .card h2 .tt.down{color:var(--bad);}
 .chart-wrap{position:relative; height:300px;}
 .chart-row{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
 @media(max-width:760px){.chart-row{grid-template-columns:1fr;}}
@@ -116,6 +123,8 @@ th{font-size:11px; text-transform:uppercase; letter-spacing:.4px; color:var(--mu
 .deals-sel{font:inherit;font-size:13px;font-weight:400;padding:3px 7px;border:1px solid var(--border);border-radius:7px;background:#fff;}
 th.num,td.num{text-align:right;}
 tbody tr:hover{background:var(--header-bg);}
+tr.clickable{cursor:pointer;}
+tr.low{color:var(--muted);}
 .thumb{width:42px; height:42px; border-radius:6px; object-fit:cover; background:var(--header-bg); display:block;}
 .adname{white-space:normal; min-width:200px; font-weight:600;}
 .pill{display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; background:var(--header-bg); color:var(--muted);}
@@ -128,13 +137,59 @@ th.ai,td.ai{background:rgba(32,157,80,.05);}
 .loading,.err{text-align:center; padding:60px 20px; color:var(--muted);}
 .err{color:var(--bad);}
 .note{font-size:12px; color:var(--muted); margin-top:4px;}
+.search-box{font:inherit; padding:8px 14px; border:1px solid var(--border); border-radius:8px; font-size:13.5px; width:100%; max-width:380px; margin-bottom:12px; outline:none; background:#fff;}
+.search-box:focus{border-color:var(--primary);}
+.mini{font-size:12px; color:var(--muted); font-weight:400;}
+.mini input,.mini select{font:inherit; padding:3px 6px; border:1px solid var(--border); border-radius:6px; background:#fff;}
+/* Leaderboard cards + bubble */
+.leader-cards{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px;}
+@media(max-width:760px){.leader-cards{grid-template-columns:1fr;}}
+.leader-col-title{font-size:14px; font-weight:700; margin-bottom:10px;}
+.leader-col-title.top{color:var(--good);} .leader-col-title.bottom{color:var(--bad);}
+.leader-card{background:var(--card); border:2px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:8px; display:flex; gap:12px; align-items:flex-start;}
+.leader-card.top{border-color:var(--good);} .leader-card.bottom{border-color:var(--bad);}
+.leader-card .thumb{width:54px; height:54px; flex-shrink:0;}
+.leader-card-rank{font-size:12px; font-weight:700; color:var(--muted);}
+.leader-card-name{font-size:13px; font-weight:600; margin:2px 0 6px; white-space:normal; word-break:break-word;}
+.leader-card-stats{display:flex; gap:12px; flex-wrap:wrap;}
+.leader-card-stat{font-size:12px; color:var(--muted);}
+.leader-card-stat b{color:var(--text); font-weight:600;}
+/* Funnel steps */
+.funnel-wrap{display:flex; flex-direction:column; align-items:center; padding:10px 0 4px;}
+.funnel-stage{background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 24px; text-align:center; min-width:230px; max-width:800px;}
+.funnel-stage-label{font-size:14px; font-weight:700;}
+.funnel-stage-count{font-size:24px; font-weight:700; color:var(--primary);}
+.funnel-stage-pct,.funnel-stage-cost{font-size:12px; color:var(--muted);}
+.funnel-stage-drop{font-size:11.5px; color:#4A90D9; font-weight:600; margin-top:2px;}
+.funnel-arrow{font-size:20px; color:var(--border); line-height:1; padding:4px 0;}
+/* Ad Explorer detail panel */
+.badge{display:inline-block; padding:2px 10px; border-radius:10px; font-size:11px; font-weight:500; margin:0 4px 4px 0; background:#e3f2fd; color:#1565c0;}
+.badge.dim{background:var(--header-bg); color:var(--muted);}
+.ax-overlay{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:300; display:none; justify-content:flex-end;}
+.ax-overlay.open{display:flex;}
+.ax-panel{width:760px; max-width:100vw; background:#fff; height:100%; overflow-y:auto; box-shadow:-4px 0 24px rgba(0,0,0,.15); animation:axIn .22s ease-out;}
+@keyframes axIn{from{transform:translateX(100%);}to{transform:translateX(0);}}
+.ax-head{padding:18px 22px; border-bottom:1px solid var(--border); display:flex; align-items:flex-start; justify-content:space-between; gap:12px; position:sticky; top:0; background:#fff; z-index:1;}
+.ax-title{font-size:16px; font-weight:700; word-break:break-word;}
+.ax-sub{font-size:13px; color:var(--muted); margin-top:4px;}
+.ax-close{width:32px; height:32px; border:none; background:var(--header-bg); border-radius:6px; font-size:18px; cursor:pointer; flex-shrink:0;}
+.ax-body{padding:20px 22px;}
+.ax-kpis{display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; margin-bottom:18px;}
+.ax-kpi{background:var(--header-bg); border-radius:8px; padding:10px 12px; text-align:center;}
+.ax-kpi .l{font-size:11px; color:var(--muted);} .ax-kpi .v{font-size:17px; font-weight:700;}
+.ax-link{font-size:12.5px; color:#1565c0; text-decoration:underline;}
 /* editable tags */
 td.edit{cursor:text;}
 td.edit:hover{outline:1px dashed var(--primary); outline-offset:-2px;}
-td.edit:hover::after{content:"✎"; font-size:10px; color:var(--primary); opacity:.6; margin-left:5px;}
+td.edit:hover::after{content:"\270E"; font-size:10px; color:var(--primary); opacity:.6; margin-left:5px;}
 td.saved{background:rgba(32,157,80,.14);} td.unsaved{background:rgba(255,193,7,.22);}
 select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid var(--primary); border-radius:5px; max-width:190px;}
 .warn-bar{background:#FFF7E6; border:1px solid #F0C36D; color:#7a5b00; font-size:12.5px; padding:8px 12px; border-radius:8px; margin-bottom:14px;}
+.cr-bulk{display:flex; align-items:center; gap:8px; flex-wrap:wrap; background:var(--header-bg); border:1px solid var(--border); border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:13px;}
+.cr-bulk select{font:inherit; padding:3px 6px; border:1px solid var(--border); border-radius:6px; background:#fff;}
+.cr-bulk button{padding:5px 12px; border-radius:6px; border:1px solid var(--primary); background:var(--primary); color:#fff; cursor:pointer; font-size:12.5px;}
+.cr-bulk button.sec{background:#fff; color:var(--muted); border-color:var(--border);}
+.cr-chk,#crSelAll{cursor:pointer; width:15px; height:15px;}
 .modal-bg{position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:center; justify-content:center; z-index:50;}
 .modal-bg.show{display:flex;}
 .modal{background:#fff; border-radius:12px; padding:24px; max-width:390px; box-shadow:0 8px 40px rgba(0,0,0,.2);}
@@ -159,20 +214,21 @@ select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid
 <div class="wrap" id="app">
   <div class="head">
     <div class="brand"><div class="dot" id="brandDot">C</div><div class="name" id="brandName">CASSA STRATEGY</div></div>
-    <div class="sub" id="range" style="margin:0;"></div>
+    <div class="head-right"><div class="sub" id="range" style="margin:0;"></div><div class="stamp" id="stamp"></div></div>
   </div>
   <div class="title" id="clientTitle">Ad Performance</div>
   <div class="sub" id="clientSub">Keyed on ad ID, so renames never break it.</div>
 
-  <div id="content"><div class="loading">Loading live data…</div></div>
+  <div id="content"><div class="loading">Loading live data...</div></div>
 </div>
 
 <script src="ads-clients.js"></script>
 <script>
 /* ============================================================
-   Flexible multi-client ad dashboard. Reads the daily ad-level
-   tab + the AI tags from one product sheet (per ?client=),
-   joins tags onto daily rows by Ad ID, and date-filters.
+   Multi-client ad dashboard template. One codebase, one registry
+   entry per client (ads-clients.js). Reads the engine's tabs from
+   the client's product sheet (gviz, headers=1), joins AI tags and
+   ad copy onto the daily ad rows by Ad ID, and date-filters.
    ============================================================ */
 const PARAMS = new URLSearchParams(location.search);
 const CLIENTS = window.AD_CLIENTS || {};
@@ -188,14 +244,18 @@ if(!CFG){
 
 const BRAND=CFG.brand, SHEET_ID=CFG.sheetId;
 const DAILY_TAB=CFG.dailyTab||"Ad Daily", TAG_TAB=CFG.tagTab||"Tagging", PERF_TAB=CFG.tab||"Ad Performance";
+const PLATFORM_TAB=CFG.platformTab||"Platform Daily", EVENT_TAB=CFG.eventTab||"Meta Event Detail";
+const HEAD_TAB=CFG.headlineTab||"Headline Performance", BODY_TAB=CFG.bodyTab||"Primary Text Performance";
+const SYNC_TAB=CFG.syncStatusTab||"Sync Status";
+const GOOGLE=CFG.google||null;              // optional Google Ads layer (may live on a different sheet)
 const IS_ROAS=CFG.resultMetric==="roas";
 let AI_DIMS=CFG.aiDims||[];
-let EDIT_OPTIONS=CFG.editOptions||{};   // controlled-dim dropdown values; others edit as text
-const WEBHOOK_URL=CFG.webhookUrl||"";     // Apps Script /exec to save tag edits back
-const MODELED=CFG.modeled||null;          // CRM truth layer config (optional)
-const SPARKLOOP=CFG.sparkloop||null;      // SparkLoop Earn tabs config (optional)
-const DEALS=CFG.deals||null;              // CRM pipeline + revenue config (optional)
-const DERIVED_DIMS=["Format","Audience","Funnel","Objective"];
+let EDIT_OPTIONS=CFG.editOptions||{};       // controlled-dim dropdown values; others edit as text
+const WEBHOOK_URL=CFG.webhookUrl||"";       // Apps Script /exec to save tag edits back
+const MODELED=CFG.modeled||null;            // CRM truth layer config (optional)
+const SPARKLOOP=CFG.sparkloop||null;        // SparkLoop Earn tabs config (optional)
+const DEALS=CFG.deals||null;                // CRM pipeline + revenue config (optional)
+const DERIVED_DIMS=["Format","Audience","Funnel","Placement","Objective","CTA"];
 let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);
 // Creative themes v2: the live theme list (names, allowed values, who fills them) comes from the
 // sheet's Taxonomy tab; the registry's aiDims/editOptions are only the fallback.
@@ -204,11 +264,14 @@ const NEUTRAL=new Set(["None","No one","Varies","Not a video","No","No product s
 const THEME_Q={"Selling angle":"The main reason the creative gives someone to act","Look":"How the creative was made",
   "What's shown":"Who or what is in the frame","Text on the creative":"Strongest text element on the image or video",
   "AI-made":"Whether the image or video is AI-generated","Who's talking":"Whose voice carries the message",
-  "Shape":"From the file's pixel size","Video length":"From the video file",
+  "Shape":"From the file's pixel size","Video length":"From the video file","Landing Page":"Where the ad sends people, from the ad's link",
   "Brand in first 3 sec":"Videos only","Works with sound off":"Videos only","Audio":"Videos only"};
-const isVideoRow=r=>{ const v=(r["Video length"]||"").toString(); return v && v!=="Not a video"; };   // special dims appended after load when their tabs have data
-const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Revenue":"Leads");
+const isVideoRow=r=>{ const v=(r["Video length"]||"").toString(); return v && v!=="Not a video"; };
+const manualDims=()=>THEMES.filter(t=>t.type==="manual").map(t=>t.dim);
+const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Purchases":"Leads");
 const RESULT_ONE=RESULT_LABEL.replace(/s$/,"").toLowerCase();   // "lead" / "purchase"
+const COST_LABEL="Cost per "+RESULT_ONE;
+const NA="-";   // empty-cell placeholder
 
 document.getElementById("brandName").textContent=BRAND.name;
 document.getElementById("brandDot").textContent=BRAND.initial;
@@ -221,7 +284,15 @@ document.title=CFG.title||"Ad Performance";
 const COLORS=["#209D50","#4A90D9","#FF6B6B","#FFA500","#9D50D9","#50C8D9","#D4A843","#E8527A","#7BC67E","#6B8DE3"];
 const money=v=>"$"+(+v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const num=v=>Math.round(+v||0).toLocaleString();
+const pct=v=>(+v||0).toFixed(2)+"%";
 const pv=v=>{ if(v==null||v==="") return 0; if(typeof v==="number") return v; return parseFloat(String(v).replace(/[$,%]/g,""))||0; };
+const esc=s=>{ const d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; };
+const fade=(hex,a)=>hex+Math.round(a*255).toString(16).padStart(2,"0");
+const roasFmt=x=>x.rev?x.roas.toFixed(2)+"x":NA;
+const cpaFmt=x=>x.leads?money(x.cpa):NA;
+const aovFmt=x=>x.leads?money(x.aov):NA;
+const cpcFmt=x=>x.clicks?money(x.cpc):NA;
+const cpmFmt=x=>x.imp?money(x.cpm):NA;
 
 // gviz with headers=1 (pins header to row 1 so upsert-frozen string rows aren't dropped).
 function gvizUrlFor(sheetId,tab){ return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`; }
@@ -235,15 +306,28 @@ function parseGviz(text){
     o[cols[i]]=v; }); return o; });
   return {cols, rows};
 }
+// gviz answers with the FIRST tab when the named tab does not exist, so every optional tab is
+// validated by its headers before use. Returns [] when the tab is missing or malformed.
+function tabRows(text, required){
+  if(!text) return [];
+  try{ const p=parseGviz(text); if(required.some(c=>p.cols.indexOf(c)<0)) return []; return p.rows; }catch(e){ return []; }
+}
+const fetchTab=(sheetId,tab)=>fetch(gvizUrlFor(sheetId,tab)).then(r=>r.ok?r.text():"").catch(()=>"");
 
-let ROWS=[], DMIN="", DMAX="", state={from:"",to:"",tab:"overview",campaign:"",adset:"",cmp:true}, charts={};
+let ROWS=[], PROWS=[], DMIN="", DMAX="", charts={};
+let state={from:"",to:"",tab:"overview",campaign:"",adset:"",platform:"",cmp:true};
+let PLATFORMS=[];          // distinct Platform values from Platform Daily
+let EVENTS=[];             // Meta Event Detail, de-duplicated per ad + day + event
+let HAS_EVENT_TAB=false;
+let HEADS=[], BODIES=[];   // Headline Performance / Primary Text Performance (Meta asset rows)
+let GKW=[], GHEAD=[], GDESC=[];   // Google layer: Keywords / Headline Performance / Description Performance
+let SYNC={};               // Sync Status: synced_at, data_through, client, engine_version
 // Optional breakdown tabs (Device Detail / Demographics / Hourly / PMax Channels).
 // Rows carry the dim value under the dim's display name so aggByDim works as-is.
 let BRK={device:[],demo:[],hourly:[],pmax:[]};
 let MOD={rows:[],ga4:[]};   // CRM truth layer (monthly) + GA4 traffic, when configured
 let SL={payouts:[],partners:[]};   // SparkLoop Earn data, when configured
 let dealsData=[];          // CRM deal snapshot: one row per deal, when `deals` is configured
-let dealChangesData=[];    // CRM deal change log (append-only), when `deals` is configured
 function parseBrkTab(text, build){
   if(!text) return [];
   try{
@@ -260,6 +344,24 @@ function monthlyBudgetFor(ym){
   return best;
 }
 
+/* Value cleaning (ported from sog.html): values of a dimension that differ only by case, spacing,
+   punctuation or a trailing plural s fold into one value. The most common spelling wins, first letter
+   capitalised. Run over every row set at once so dropdowns, groupings and tables agree. */
+function cleanRowValues(rows, dims){
+  const ck=v=>String(v).toLowerCase().replace(/[^a-z0-9]/g,"");
+  dims.forEach(dim=>{
+    const counts={};
+    rows.forEach(r=>{ const v=r[dim]; if(v==null||v==="") return; const k=ck(v); if(!k) return; counts[k]=counts[k]||{}; counts[k][v]=(counts[k][v]||0)+1; });
+    const fold={};
+    Object.keys(counts).forEach(k=>{ if(k.length>3 && k.slice(-1)==="s" && counts[k.slice(0,-1)]) fold[k]=k.slice(0,-1); });
+    const label={};
+    Object.keys(counts).forEach(k=>{ const t=fold[k]||k; if(label[t]) return;
+      const src=counts[t]; const best=Object.keys(src).sort((a,b)=>src[b]-src[a])[0];
+      label[t]=best.charAt(0).toUpperCase()+best.slice(1); });
+    rows.forEach(r=>{ const v=r[dim]; if(v==null||v==="") return; const k=ck(v); if(!k) return; r[dim]=label[fold[k]||k]; });
+  });
+}
+
 /* Optional password gate: set `password` on the client's registry entry. */
 const PASSWORD=CFG.password||"";
 function doLogin(){
@@ -267,7 +369,9 @@ function doLogin(){
   if(pw===PASSWORD){ document.getElementById("loginWrap").style.display="none"; document.getElementById("app").style.display="block"; loadData(); }
   else { document.getElementById("loginErr").textContent="Incorrect password. Please try again."; document.getElementById("loginPw").value=""; document.getElementById("loginPw").focus(); }
 }
-if(PASSWORD){
+/* ?embed=1 skips the gate (same as the client pages; the host page handles access there). */
+const EMBED=new URLSearchParams(location.search).has("embed");
+if(PASSWORD && !EMBED){
   document.getElementById("app").style.display="none";
   document.getElementById("loginWrap").style.display="flex";
   document.getElementById("loginBrand").textContent=BRAND.name;
@@ -278,32 +382,44 @@ if(PASSWORD){
 } else { loadData(); }
 
 function loadData(){
+const GS=GOOGLE?(GOOGLE.sheetId||SHEET_ID):null;
 Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              fetch(gvizUrl(TAG_TAB)).then(r=>r.text()),
-             fetch(gvizUrl(PERF_TAB)).then(r=>r.text()).catch(()=>""),
-             fetch(gvizUrl("Budgets")).then(r=>r.text()).catch(()=>""),
-             fetch(gvizUrl("Device Detail")).then(r=>r.text()).catch(()=>""),
-             fetch(gvizUrl("Demographics")).then(r=>r.text()).catch(()=>""),
-             fetch(gvizUrl("Hourly")).then(r=>r.text()).catch(()=>""),
-             fetch(gvizUrl("PMax Channels")).then(r=>r.text()).catch(()=>""),
-             MODELED?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.tab||"Modeled Metrics")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             MODELED&&MODELED.ga4Tab?fetch(gvizUrlFor(MODELED.sheetId||SHEET_ID,MODELED.ga4Tab)).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.payoutsTab||"SparkLoop Payouts")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             SPARKLOOP?fetch(gvizUrlFor(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.partnersTab||"SparkLoop Partners")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             DEALS?fetch(gvizUrlFor(DEALS.sheetId||SHEET_ID,DEALS.dealsTab||"HS Deals")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             DEALS?fetch(gvizUrlFor(DEALS.sheetId||SHEET_ID,DEALS.changesTab||"HS Deal Changes")).then(r=>r.text()).catch(()=>""):Promise.resolve(""),
-             fetch(gvizUrl("Taxonomy")).then(r=>r.text()).catch(()=>"")])
- .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT, dealsT, dealChgT, taxT])=>{
-   try{ THEMES=parseGviz(taxT).rows.map(r=>({dim:String(r["Dimension"]||"").trim(), type:String(r["Type"]||"select").trim().toLowerCase(),
+             fetchTab(SHEET_ID,PERF_TAB),
+             fetchTab(SHEET_ID,"Budgets"),
+             fetchTab(SHEET_ID,"Device Detail"),
+             fetchTab(SHEET_ID,"Demographics"),
+             fetchTab(SHEET_ID,"Hourly"),
+             fetchTab(SHEET_ID,"PMax Channels"),
+             MODELED?fetchTab(MODELED.sheetId||SHEET_ID,MODELED.tab||"Modeled Metrics"):Promise.resolve(""),
+             MODELED&&MODELED.ga4Tab?fetchTab(MODELED.sheetId||SHEET_ID,MODELED.ga4Tab):Promise.resolve(""),
+             SPARKLOOP?fetchTab(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.payoutsTab||"SparkLoop Payouts"):Promise.resolve(""),
+             SPARKLOOP?fetchTab(SPARKLOOP.sheetId||SHEET_ID,SPARKLOOP.partnersTab||"SparkLoop Partners"):Promise.resolve(""),
+             DEALS?fetchTab(DEALS.sheetId||SHEET_ID,DEALS.dealsTab||"HS Deals"):Promise.resolve(""),
+             fetchTab(SHEET_ID,"Taxonomy"),
+             fetchTab(SHEET_ID,PLATFORM_TAB),
+             fetchTab(SHEET_ID,EVENT_TAB),
+             fetchTab(SHEET_ID,HEAD_TAB),
+             fetchTab(SHEET_ID,BODY_TAB),
+             fetchTab(SHEET_ID,SYNC_TAB),
+             GOOGLE?fetchTab(GS,GOOGLE.keywordsTab||"Keywords"):Promise.resolve(""),
+             GOOGLE?fetchTab(GS,GOOGLE.headlineTab||"Headline Performance"):Promise.resolve(""),
+             GOOGLE?fetchTab(GS,GOOGLE.descriptionTab||"Description Performance"):Promise.resolve("")])
+ .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT, dealsT, taxT, platT, evT, headT, bodyT, syncT, gKwT, gHeadT, gDescT])=>{
+   // Themes from the Taxonomy tab (first row per dimension wins; the tab can carry duplicates)
+   const seenDim={};
+   THEMES=tabRows(taxT,["Dimension","Type"]).map(r=>({dim:String(r["Dimension"]||"").trim(), type:String(r["Type"]||"select").trim().toLowerCase(),
        values:String(r["Values"]||"").split(",").map(v=>v.trim()).filter(Boolean), hint:String(r["Hint"]||"")}))
-     .filter(t=>t.dim && ["select","auto","manual"].includes(t.type)); }catch(e){ THEMES=[]; }
+     .filter(t=>{ if(!t.dim || !["select","auto","manual"].includes(t.type) || seenDim[t.dim]) return false; seenDim[t.dim]=1; return true; });
    if(!THEMES.length) THEMES=AI_DIMS.map(d=>({dim:d,type:"select",values:EDIT_OPTIONS[d]||[],hint:""}));
    AI_DIMS=THEMES.map(t=>t.dim);
    EDIT_OPTIONS={}; THEMES.forEach(t=>{ if(t.type!=="auto" && t.values.length) EDIT_OPTIONS[t.dim]=t.values; });
-   BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS); bdDim=AI_DIMS[0]||BREAKDOWN_DIMS[0];
-   // CRM deal snapshot + change log (optional; Pipeline & Revenue tab)
-   dealsData=[]; dealChangesData=[];
-   try{ parseGviz(dealsT).rows.forEach(dl=>{ if(!dl["Deal ID"]) return;
+   BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS); bdDim=AI_DIMS[0]||BREAKDOWN_DIMS[0]; bdA=bdDim; bdB="";
+   // Sync Status (Key / Value)
+   SYNC={}; tabRows(syncT,["Key","Value"]).forEach(r=>{ const k=String(r["Key"]||"").trim(); if(k) SYNC[k]=String(r["Value"]==null?"":r["Value"]).trim(); });
+   // CRM deal snapshot (optional; Pipeline & Revenue tab)
+   dealsData=[];
+   tabRows(dealsT,["Deal ID"]).forEach(dl=>{ if(!dl["Deal ID"]) return;
      dealsData.push({ id:String(dl["Deal ID"]).replace(/\.0$/,""), created:dl["Created"]||"", createdMonth:dl["Created Month"]||"",
        closeDate:dl["Close Date"]||"", line:dl["Service Line"]||"", pipeline:dl["Pipeline"]||"", stage:dl["Stage"]||"",
        cstage:dl["Canonical Stage"]||"", outcome:dl["Outcome"]||"", source:dl["Source"]||"", bucket:dl["Source Bucket"]||"",
@@ -311,71 +427,125 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
        keyword:dl["Keyword"]||"", latestKeyword:dl["Latest Keyword"]||"", ad:dl["Ad"]||"",
        value:pv(dl["Deal Value"]), leadMagnet:dl["Lead Magnet"]==="Y", owner:dl["Owner"]||"",
        leadCallDate:dl["Lead Call Date"]||"", proposalDate:dl["Proposal Date"]||"", wonDate:dl["Won Date"]||"",
-       completeDate:dl["Complete Date"]||"", asOf:dl["As Of"]||"", dataSource:dl["Data Source"]||"" }); }); }catch(e){}
-   try{ parseGviz(dealChgT).rows.forEach(dc=>{ if(!dc["Deal ID"]||!dc["Observed"]) return;
-     dealChangesData.push({ observed:dc["Observed"], id:String(dc["Deal ID"]).replace(/\.0$/,""), line:dc["Service Line"]||"",
-       bucket:dc["Source Bucket"]||"", campaign:dc["Campaign"]||"", field:dc["Field"]||"", from:dc["From"]||"",
-       to:dc["To"]||"", exactness:dc["Exactness"]||"", value:pv(dc["Deal Value"]), outcome:dc["Outcome"]||"" }); }); }catch(e){}
+       completeDate:dl["Complete Date"]||"", asOf:dl["As Of"]||"", dataSource:dl["Data Source"]||"" }); });
    // SparkLoop Earn tabs (optional; written by the client's sparkloop pull script).
    // Rows with no date (one legacy payout) are kept for totals, skipped in charts.
    SL={payouts:[],partners:[]};
-   try{ parseGviz(slPayT).rows.forEach(r=>{ const d=String(r["Date"]||"").slice(0,10), a=pv(r["Amount (USD)"]);
-     if(a>0) SL.payouts.push({date:d, amount:a, status:String(r["Status"]||"").trim()}); }); }catch(e){}
-   try{ parseGviz(slParT).rows.forEach(r=>{ const n=String(r["Partner Program"]||"").trim();
-     if(n) SL.partners.push({name:n, status:String(r["Status"]||"").trim(), cpa:pv(r["CPA (USD)"]), maxPayout:pv(r["Max Payout (USD)"])}); }); }catch(e){}
+   tabRows(slPayT,["Amount (USD)"]).forEach(r=>{ const d=String(r["Date"]||"").slice(0,10), a=pv(r["Amount (USD)"]);
+     if(a>0) SL.payouts.push({date:d, amount:a, status:String(r["Status"]||"").trim()}); });
+   tabRows(slParT,["Partner Program"]).forEach(r=>{ const n=String(r["Partner Program"]||"").trim();
+     if(n) SL.partners.push({name:n, status:String(r["Status"]||"").trim(), cpa:pv(r["CPA (USD)"]), maxPayout:pv(r["Max Payout (USD)"])}); });
    SL.payouts.sort((a,b)=>a.date<b.date?-1:1);
    // CRM truth layer (optional tab)
    MOD.rows=[]; MOD.ga4=[];
-   try{ parseGviz(modeledT).rows.forEach(r=>{ if(!r["Month"]||!r["Source"]) return;
+   tabRows(modeledT,["Month","Source"]).forEach(r=>{ if(!r["Month"]||!r["Source"]) return;
      MOD.rows.push({month:String(r["Month"]).slice(0,7), source:String(r["Source"]),
        bookings:pv(r["HS Bookings"]!==undefined?r["HS Bookings"]:r["CRM Conversions"]), cancels:pv(r["HS Cancels"]),
-       spend:pv(r["Spend"]), claimed:pv(r["Platform Claimed"])}); }); }catch(e){}
-   try{ parseGviz(ga4T).rows.forEach(r=>{ if(!r["Month"]||!r["Channel"]) return;
+       spend:pv(r["Spend"]), claimed:pv(r["Platform Claimed"])}); });
+   tabRows(ga4T,["Month","Channel"]).forEach(r=>{ if(!r["Month"]||!r["Channel"]) return;
      MOD.ga4.push({month:String(r["Month"]).slice(0,7), channel:String(r["Channel"]),
-       sessions:pv(r["Sessions"]), users:pv(r["Users"]), keyEvents:pv(r["Key Events"])}); }); }catch(e){}
-   try{ parseGviz(budgetT).rows.forEach(r=>{
+       sessions:pv(r["Sessions"]), users:pv(r["Users"]), keyEvents:pv(r["Key Events"])}); });
+   tabRows(budgetT,["Month","Budget"]).forEach(r=>{
      const m=String(r["Month"]||"").slice(0,7);
      const b=parseFloat(String(r["Budget"]||"").replace(/[$,]/g,""));
-     if(/^\d{4}-\d{2}$/.test(m) && b>0) BUDGETS[m]=b; }); }catch(e){}
+     if(/^\d{4}-\d{2}$/.test(m) && b>0) BUDGETS[m]=b; });
    const daily=parseGviz(dailyT).rows.filter(r=>r["Ad ID"] && r["Date"]);
    const tagsParsed=parseGviz(tagT);
    const tagCols=tagsParsed.cols.filter(c=>c!=="Ad ID"&&c!=="Ad Name");
    const tags={};
    tagsParsed.rows.forEach(r=>{ const id=String(r["Ad ID"]||"").trim(); if(!id) return;
      const o={}; tagCols.forEach(c=>o[c]=r[c]||""); tags[id]=o; });
-   // ad copy (headline + primary text) by Ad ID, from the perf tab
+   // ad copy (headline + primary text) + thumbnail by Ad ID, from the perf tab
    const copy={};
-   try{ parseGviz(perfT).rows.forEach(r=>{ const id=String(r["Ad ID"]||"").trim();
-     if(id) copy[id]={headline:r["Headline"]||"", body:r["Primary Text"]||""}; }); }catch(e){}
-   // join tags + copy onto daily rows by Ad ID + coerce numerics
+   tabRows(perfT,["Ad ID"]).forEach(r=>{ const id=String(r["Ad ID"]||"").trim();
+     if(id) copy[id]={headline:r["Headline"]||"", body:r["Primary Text"]||"", thumb:r["Thumbnail"]||""}; });
+   // join tags + copy onto daily rows by Ad ID + coerce numerics (older frozen rows may be short: missing = 0)
+   const numerics=o=>{
+     o._spend=pv(o["Spend"]); o._imp=pv(o["Impressions"]); o._reach=pv(o["Reach"]); o._clicks=pv(o["Clicks"]);
+     o._leads=pv(o["Leads"]); o._rev=pv(o["Revenue"]); o._lpv=pv(o["Landing Page Views"]); o._atc=pv(o["Adds to Cart"]);
+     o._ckt=pv(o["Checkouts Initiated"]); o._purch=pv(o["Purchases"]); o._regs=pv(o["Registrations"]);
+     o._leadev=pv(o["Lead Events"]); o._cv=pv(o["Content Views"]); };
    ROWS=daily.map(r=>{
      const id=String(r["Ad ID"]).trim();
      const o=Object.assign({}, r, tags[id]||{});
-     const c=copy[id]||{}; o._headline=c.headline||""; o._body=c.body||"";
+     o["Ad ID"]=id;
+     const c=copy[id]||{}; o._headline=c.headline||""; o._body=c.body||""; o._thumb=c.thumb||"";
      o._date=String(o["Date"]).slice(0,10);
-     o._spend=pv(o["Spend"]); o._imp=pv(o["Impressions"]); o._clicks=pv(o["Clicks"]);
-     o._leads=pv(o["Leads"]); o._rev=pv(o["Revenue"]);
+     numerics(o);
      return o;
    });
+   // Per-ad attributes (latest daily row wins) for joining onto Platform Daily rows
+   const adAttr={};
+   ROWS.slice().sort((a,b)=>a._date<b._date?-1:1).forEach(r=>{ adAttr[r["Ad ID"]]={Objective:r["Objective"]||"",Format:r["Format"]||"",CTA:r["CTA"]||"",
+     Audience:r["Audience"]||"",Funnel:r["Funnel"]||"",Placement:r["Placement"]||""}; });
+   // Platform Daily: ad x day x platform. Reach is not reported per platform (left 0, flagged in the UI).
+   PROWS=tabRows(platT,["Date","Ad ID","Platform","Spend"]).filter(r=>r["Ad ID"]&&r["Date"]).map(r=>{
+     const id=String(r["Ad ID"]).trim();
+     const o=Object.assign({}, adAttr[id]||{}, r, tags[id]||{});
+     o["Ad ID"]=id; o["Platform"]=String(o["Platform"]||"Unknown").trim()||"Unknown";
+     const c=copy[id]||{}; o._headline=c.headline||""; o._body=c.body||""; o._thumb=c.thumb||"";
+     o._date=String(o["Date"]).slice(0,10);
+     numerics(o); o._reach=0;
+     return o;
+   });
+   // Meta Event Detail: several raw action types map to one friendly Event. Keep ONE row per
+   // ad + day + Event: the largest count wins (omni_ is the superset), ties prefer omni_ > plain > offsite. Never summed.
+   const evRaw=tabRows(evT,["Date","Ad ID","Event","Count"]);
+   HAS_EVENT_TAB=evRaw.length>0;
+   const evRank=t=>{ t=String(t||""); return t.indexOf("omni_")===0?0:t.indexOf("offsite_conversion.")===0?2:1; };
+   const evBest={};
+   evRaw.forEach(r=>{ if(!r["Ad ID"]||!r["Date"]||!r["Event"]) return;
+     const o={_date:String(r["Date"]).slice(0,10), "Ad ID":String(r["Ad ID"]).trim(), "Ad Name":r["Ad Name"]||"", Campaign:r["Campaign"]||"",
+       "Ad Set":r["Ad Set"]||"", event:String(r["Event"]).trim(), count:pv(r["Count"]), value:pv(r["Value"]), type:String(r["Action Type"]||"")};
+     const k=o["Ad ID"]+"|"+o._date+"|"+o.event, cur=evBest[k];
+     // Raw types are nested (omni_ contains web + app), so the largest count is the true total; rank only breaks ties.
+     if(!cur || o.count>cur.count || (o.count===cur.count && evRank(o.type)<evRank(cur.type))) evBest[k]=o; });
+   EVENTS=Object.values(evBest);
+   // Meta asset performance (headline / primary text), one row per ad x day x asset
+   const assetRow=r=>({_date:String(r["Date"]).slice(0,10), "Ad ID":String(r["Ad ID"]).trim(), "Ad Name":r["Ad Name"]||"", Campaign:r["Campaign"]||"",
+     "Ad Set":r["Ad Set"]||"", asset:String(r["Asset"]||"").trim(), _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _clicks:pv(r["Clicks"]),
+     _leads:pv(r["Leads"]), _purch:pv(r["Purchases"]), _rev:pv(r["Revenue"])});
+   HEADS=tabRows(headT,["Date","Ad ID","Asset","Spend"]).filter(r=>r["Ad ID"]&&r["Date"]).map(assetRow);
+   BODIES=tabRows(bodyT,["Date","Ad ID","Asset","Spend"]).filter(r=>r["Ad ID"]&&r["Date"]).map(assetRow);
+   // Google layer (optional): keywords + RSA asset tables, as written by sog_sync.py
+   const MT={"2":"Exact","3":"Phrase","4":"Broad","EXACT":"Exact","PHRASE":"Phrase","BROAD":"Broad"};
+   GKW=tabRows(gKwT,["Date","Keyword","Spend"]).filter(r=>r["Date"]&&r["Keyword"]).map(r=>{ const mt=String(r["Match Type"]||"").trim();
+     return {_date:String(r["Date"]).slice(0,10), campaign:String(r["Campaign"]||"").trim(), ad_group:String(r["Ad Group"]||"").trim(),
+       keyword:String(r["Keyword"]||"").trim(), match_type:MT[mt]||mt||"(none)", _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _clicks:pv(r["Clicks"]),
+       _leads:pv(r["Conversions"])}; });
+   const gAsset=(rows,col)=>rows.filter(r=>r[col] && (!r["Platform"] || String(r["Platform"]).trim().toLowerCase()==="google")).map(r=>({
+     text:String(r[col]).trim(), _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _clicks:pv(r["Clicks"]), _leads:pv(r["Leads"]!==undefined?r["Leads"]:r["Conversions"])}));
+   GHEAD=gAsset(tabRows(gHeadT,["Headline","Spend"]),"Headline");
+   GDESC=gAsset(tabRows(gDescT,["Description","Spend"]),"Description");
+
    const ds=ROWS.map(r=>r._date).filter(Boolean).sort();
    DMIN=ds[0]||""; DMAX=ds[ds.length-1]||"";
-   state.from=DMIN; state.to=DMAX;
+   // Default view = last 30 days (Trends read better; "All" is one click away)
+   state.to=DMAX; state.from=shiftDays(DMAX,29); if(state.from<DMIN) state.from=DMIN;
 
-   // Optional breakdown tabs → special dims (only offered when data exists)
+   // Optional breakdown tabs -> special dims (only offered when data exists)
    const brkBase=r=>({_date:String(r["Date"]||"").slice(0,10), "Ad ID":"",
      _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _clicks:pv(r["Clicks"]),
      _leads:pv(r["Results"]), _rev:pv(r["Revenue"])});
-   BRK.device=parseBrkTab(deviceT, r=>Object.assign(brkBase(r), {"Device":String(r["Device"]||"").trim(), Campaign:String(r["Campaign"]||"")}));
-   BRK.demo=parseBrkTab(demoT, r=>Object.assign(brkBase(r), {"Age":String(r["Age"]||"").trim(), "Gender":String(r["Gender"]||"").trim(), Campaign:String(r["Campaign"]||"")}));
-   BRK.hourly=parseBrkTab(hourlyT, r=>{ const h=parseInt(r["Hour"],10);
+   BRK.device=parseBrkTab(tabRows(deviceT,["Date","Device"]).length?deviceT:"", r=>Object.assign(brkBase(r), {"Device":String(r["Device"]||"").trim(), Campaign:String(r["Campaign"]||"")}));
+   BRK.demo=parseBrkTab(tabRows(demoT,["Date","Age"]).length?demoT:"", r=>Object.assign(brkBase(r), {"Age":String(r["Age"]||"").trim(), "Gender":String(r["Gender"]||"").trim(), Campaign:String(r["Campaign"]||"")}));
+   BRK.hourly=parseBrkTab(tabRows(hourlyT,["Date","Hour"]).length?hourlyT:"", r=>{ const h=parseInt(r["Hour"],10);
      return Object.assign(brkBase(r), {"Hour of Day": isNaN(h)?"":( (h<10?"0"+h:""+h)+":00")}); });
-   BRK.pmax=parseBrkTab(pmaxT, r=>Object.assign(brkBase(r), {"PMax Channel":String(r["Channel"]||"").trim(), Campaign:String(r["Campaign"]||""),
+   BRK.pmax=parseBrkTab(tabRows(pmaxT,["Date","Channel"]).length?pmaxT:"", r=>Object.assign(brkBase(r), {"PMax Channel":String(r["Channel"]||"").trim(), Campaign:String(r["Campaign"]||""),
      _leads:pv(r["Leads"]!==undefined?r["Leads"]:r["Results"])}));
+
+   // Fold near-duplicate values across every row set at once so filters and groupings agree.
+   const all=[].concat(ROWS, PROWS, EVENTS, HEADS, BODIES, BRK.device, BRK.demo, BRK.hourly, BRK.pmax);
+   cleanRowValues(all, ["Campaign","Ad Set","Placement","Platform"].concat(DERIVED_DIMS.filter(d=>d!=="Placement"), AI_DIMS));
+   PLATFORMS=[...new Set(PROWS.map(r=>r["Platform"]))].filter(Boolean).sort();
+
    if(BRK.device.length) BREAKDOWN_DIMS.push("Device");
    if(BRK.demo.length) BREAKDOWN_DIMS.push("Age","Gender");
    if(BRK.hourly.length) BREAKDOWN_DIMS.push("Hour of Day");
    if(BRK.pmax.length) BREAKDOWN_DIMS.push("PMax Channel");
+   if(PROWS.length) BREAKDOWN_DIMS.push("Platform");
 
+   if(!ROWS.length){ document.getElementById("content").innerHTML=`<div class="err">No data yet.<br><span class="note">The sync has not written any daily rows to the ${DAILY_TAB} tab.</span></div>`; return; }
    buildShell(); render();
  })
  .catch(e=>{ document.getElementById("content").innerHTML=
@@ -383,19 +553,45 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
 }
 
 /* ── Aggregation helpers ─────────────────────────────────────────── */
-function scoped(){ return ROWS.filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)); }
+// Base rows: Ad Daily, or Platform Daily rows for one platform when the Platform filter is set.
+function baseRows(){ return state.platform?PROWS.filter(r=>r["Platform"]===state.platform):ROWS; }
+function scoped(){ return baseRows().filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)); }
 function filtered(){ return scoped().filter(r=>r._date>=state.from && r._date<=state.to); }
-function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0;
-  rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;});
-  return {spend,leads,rev,imp,clicks,cpa:leads?spend/leads:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,ads:new Set(rows.map(r=>r["Ad ID"])).size};
+// Ad Daily rows under the same campaign / ad set / date filter, ignoring the platform filter
+// (used where a metric is not reported per platform, e.g. reach, or for pixel-event cost).
+function filteredAdDaily(){ return ROWS.filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)&&r._date>=state.from&&r._date<=state.to); }
+function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0,reach=0,lpv=0,atc=0,ckt=0,purch=0,regs=0;
+  rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;reach+=r._reach||0;lpv+=r._lpv||0;atc+=r._atc||0;ckt+=r._ckt||0;purch+=r._purch||0;regs+=r._regs||0;});
+  return {spend,leads,rev,imp,clicks,reach,lpv,atc,ckt,purch,regs,cpa:leads?spend/leads:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,
+    ctr:imp?clicks/imp*100:0,cpc:clicks?spend/clicks:0,cpm:imp?spend/imp*1000:0,freq:reach?imp/reach:0,ads:new Set(rows.map(r=>r["Ad ID"])).size};
 }
 function groupBy(rows,key){ const g={}; rows.forEach(r=>{ const k=(r[key]||"").toString().trim()||"(none)"; (g[k]=g[k]||[]).push(r); }); return g; }
+// The one figure each client is judged on: ROAS (higher is better) or cost per result (lower is better).
+const scoreVal=x=>IS_ROAS?x.roas:x.cpa;
+const scoreTxt=x=>IS_ROAS?roasFmt(x):(x.leads?money(x.cpa):"no "+RESULT_LABEL.toLowerCase());
+const scoreCls=(x,t)=>IS_ROAS?(!x.rev?"":x.roas>=t.roas*1.1?"good":x.roas<t.roas*0.8?"bad":""):(!x.leads||!t.cpa?"":x.cpa<=t.cpa*0.9?"good":x.cpa>=t.cpa*1.25?"bad":"");
+const rankBest=(a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:(a.rev?-1:b.rev?1:b.spend-a.spend)):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend));
+const SCORE_NAME=IS_ROAS?"ROAS":"cost per "+RESULT_ONE;
+const SCORE_RULE=IS_ROAS?"Green = at least 10% above it, red = more than 20% below.":"Green = at least 10% cheaper than that, red = at least 25% more expensive.";
+// Result columns shared by the simple dimension tables
+const resHeadHtml=()=>IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+const resCellsHtml=x=>IS_ROAS?`<td class="num">${num(x.leads)||NA}</td><td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${cpaFmt(x)}</td><td class="num">${aovFmt(x)}</td>`
+  :`<td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`;
 
 /* ── Shell (controls + tabs) ─────────────────────────────────────── */
 function buildShell(){
-  const presets=["7d","14d","30d","This Mo","Last Mo","All"].map(p=>`<button class="preset" data-preset="${p}">${p}</button>`).join("");
+  const presets=["7d","14d","30d","This Mo","Last Mo","All"].map(p=>`<button class="preset${p==="30d"?" active":""}" data-preset="${p}">${p}</button>`).join("");
   const bySpendKey=key=>{ const m={}; ROWS.forEach(r=>{ const k=(r[key]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; }); return Object.keys(m).sort((x,y)=>m[y]-m[x]); };
-  const campOpts=`<option value="">All Campaigns</option>`+bySpendKey("Campaign").map(c=>`<option>${c}</option>`).join("");
+  const campOpts=`<option value="">All Campaigns</option>`+bySpendKey("Campaign").map(c=>`<option>${esc(c)}</option>`).join("");
+  const platOpts=`<option value="">All Platforms</option>`+PLATFORMS.map(p=>`<option>${esc(p)}</option>`).join("");
+  const tabs=[["overview","Overview"],["trends","Trends"],["leaderboard","Leaderboard"],["campaigns","Campaigns"],["breakdowns","Breakdowns"]];
+  if(GOOGLE && GKW.length) tabs.push(["keywords","Keywords"]);
+  tabs.push(["explorer","Ad Explorer"],["headlines","Headlines &amp; Copy"],["funnel","Funnel"]);
+  if(HAS_EVENT_TAB) tabs.push(["siteevents","Site Events"]);
+  if(MOD.rows.length) tabs.push(["modeled","Cost per "+(MODELED.noun||"Booking")]);
+  if(DEALS) tabs.push(["deals","Pipeline &amp; Revenue"]);
+  if(SL.payouts.length) tabs.push(["sparkloop","SparkLoop"]);
+  tabs.push(["pacing","Budget Pacing"],["creative","Creative"]);
   document.getElementById("content").innerHTML=`
     <div class="controls">
       <label>From <input type="date" id="cFrom" value="${state.from}" min="${DMIN}" max="${DMAX}"></label>
@@ -404,45 +600,22 @@ function buildShell(){
       <label style="font-size:13px;color:var(--text);cursor:pointer;"><input type="checkbox" id="cCmp"${state.cmp?" checked":""}> vs Previous Period</label>
       <select id="cCamp" style="max-width:230px;">${campOpts}</select>
       <select id="cAdset" style="max-width:230px;"></select>
+      ${PLATFORMS.length?`<select id="cPlat" style="max-width:170px;">${platOpts}</select>`:""}
       <button class="preset" id="cReset" style="border-color:var(--bad);color:var(--bad);">Reset All</button>
       <span class="spacer"></span>
       <span class="note" id="rowNote"></span>
     </div>
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="overview">Overview</button>
-      <button class="tab-btn" data-tab="trends">Trends</button>
-      <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
-      <button class="tab-btn" data-tab="campaigns">Campaigns</button>
-      <button class="tab-btn" data-tab="breakdowns">Breakdowns</button>
-      <button class="tab-btn" data-tab="byad">By Ad</button>
-      <button class="tab-btn" data-tab="headlines">Headlines &amp; Copy</button>
-      <button class="tab-btn" data-tab="funnel">Funnel</button>
-      ${MOD.rows.length?`<button class="tab-btn" data-tab="modeled">Cost per ${MODELED.noun||"Booking"}</button>`:""}
-      ${DEALS?`<button class="tab-btn" data-tab="deals">Pipeline &amp; Revenue</button>`:""}
-      ${SL.payouts.length?`<button class="tab-btn" data-tab="sparkloop">SparkLoop</button>`:""}
-      <button class="tab-btn" data-tab="pacing">Budget Pacing</button>
-      <button class="tab-btn" data-tab="creative">Creative</button>
-    </div>
-    <div id="tab-overview" class="tab-content active"></div>
-    <div id="tab-trends" class="tab-content"></div>
-    <div id="tab-leaderboard" class="tab-content"></div>
-    <div id="tab-campaigns" class="tab-content"></div>
-    <div id="tab-breakdowns" class="tab-content"></div>
-    <div id="tab-byad" class="tab-content"></div>
-    <div id="tab-headlines" class="tab-content"></div>
-    <div id="tab-funnel" class="tab-content"></div>
-    ${MOD.rows.length?`<div id="tab-modeled" class="tab-content"></div>`:""}
-    ${DEALS?dealsShellHtml():""}
-    ${SL.payouts.length?`<div id="tab-sparkloop" class="tab-content"></div>`:""}
-    <div id="tab-pacing" class="tab-content"></div>
-    <div id="tab-creative" class="tab-content"></div>`;
+    <div id="platNote"></div>
+    <div class="tabs">${tabs.map(([k,l],i)=>`<button class="tab-btn${i===0?" active":""}" data-tab="${k}">${l}</button>`).join("")}</div>
+    ${tabs.map(([k])=>k==="deals"?dealsShellHtml():`<div id="tab-${k}" class="tab-content${k==="overview"?" active":""}"></div>`).join("")}`;
 
   fillAdsets();
   document.getElementById("cCmp").addEventListener("change",e=>{state.cmp=e.target.checked; render();});
   document.getElementById("cCamp").addEventListener("change",e=>{state.campaign=e.target.value; state.adset=""; fillAdsets(); render();});
   document.getElementById("cAdset").addEventListener("change",e=>{state.adset=e.target.value; render();});
-  document.getElementById("cReset").addEventListener("click",()=>{ state.campaign=""; state.adset=""; state.cmp=true;
-    document.getElementById("cCamp").value=""; document.getElementById("cCmp").checked=true; fillAdsets(); applyPreset("All",document.querySelector('.preset[data-preset="All"]')); });
+  const pl=document.getElementById("cPlat"); if(pl) pl.addEventListener("change",e=>{state.platform=e.target.value; render();});
+  document.getElementById("cReset").addEventListener("click",()=>{ state.campaign=""; state.adset=""; state.platform=""; state.cmp=true;
+    document.getElementById("cCamp").value=""; if(pl) pl.value=""; document.getElementById("cCmp").checked=true; fillAdsets(); applyPreset("30d",document.querySelector('.preset[data-preset="30d"]')); });
   document.getElementById("cFrom").addEventListener("change",e=>{state.from=e.target.value; clearPreset(); render();});
   document.getElementById("cTo").addEventListener("change",e=>{state.to=e.target.value; clearPreset(); render();});
   document.querySelectorAll(".preset[data-preset]").forEach(b=>b.addEventListener("click",()=>applyPreset(b.dataset.preset,b)));
@@ -452,14 +625,18 @@ function buildShell(){
     b.classList.add("active"); document.getElementById("tab-"+b.dataset.tab).classList.add("active");
     state.tab=b.dataset.tab; render();
   }));
+  // Header stamp: engine sync status, else the newest date in the daily tab
+  document.getElementById("stamp").textContent=SYNC.data_through
+    ? `Data through ${SYNC.data_through}${SYNC.synced_at?" · synced "+SYNC.synced_at:""}`
+    : `Data through ${DMAX}`;
 }
 function clearPreset(){ document.querySelectorAll(".preset[data-preset]").forEach(b=>b.classList.remove("active")); }
 function fillAdsets(){
   const m={}; ROWS.forEach(r=>{ if(state.campaign&&r["Campaign"]!==state.campaign) return; const k=(r["Ad Set"]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; });
   const el=document.getElementById("cAdset"); if(!el) return;
-  el.innerHTML=`<option value="">All Ad Sets</option>`+Object.keys(m).sort((x,y)=>m[y]-m[x]).map(a=>`<option${a===state.adset?" selected":""}>${a}</option>`).join("");
+  el.innerHTML=`<option value="">All Ad Sets</option>`+Object.keys(m).sort((x,y)=>m[y]-m[x]).map(a=>`<option${a===state.adset?" selected":""}>${esc(a)}</option>`).join("");
 }
-function shiftDays(d,n){ const x=new Date(d+"T00:00:00"); x.setDate(x.getDate()-n); return x.toISOString().slice(0,10); }
+function shiftDays(d,n){ const x=new Date(d+"T00:00:00"); x.setDate(x.getDate()-n); return fmtDate(x); }
 function applyPreset(p,btn){
   clearPreset(); if(btn)btn.classList.add("active");
   if(p==="All"){ state.from=DMIN; state.to=DMAX; }
@@ -473,16 +650,20 @@ function applyPreset(p,btn){
 /* ── Render ──────────────────────────────────────────────────────── */
 function render(){
   const f=filtered();
-  document.getElementById("rowNote").textContent=`${f.length} rows · ${state.from} to ${state.to}`;
+  document.getElementById("rowNote").textContent=`${f.length} rows · ${state.from} to ${state.to}`+(state.campaign?` · ${state.campaign}`:"")+(state.adset?` · ${state.adset}`:"")+(state.platform?` · ${state.platform}`:"");
   document.getElementById("range").textContent=`${state.from}  to  ${state.to}`;
+  document.getElementById("platNote").innerHTML=state.platform
+    ? `<div class="info-bar">Showing <b>${esc(state.platform)}</b> only, from the Platform Daily tab. Reach and frequency are not reported per platform, so they are blank here. Device, age, gender and hour breakdowns, headline and text assets, keywords and pixel events are not split by platform and ignore this filter.</div>`:"";
   if(state.tab==="overview") renderOverview(f);
   else if(state.tab==="trends") renderTrends(f);
   else if(state.tab==="leaderboard") renderLeaderboard(f);
   else if(state.tab==="campaigns") renderCampaigns(f);
   else if(state.tab==="breakdowns") renderBreakdowns(f);
-  else if(state.tab==="byad") renderByAd(f);
+  else if(state.tab==="keywords") renderKeywords();
+  else if(state.tab==="explorer") renderExplorer(f);
   else if(state.tab==="headlines") renderHeadlines(f);
   else if(state.tab==="funnel") renderFunnel(f);
+  else if(state.tab==="siteevents") renderSiteEvents();
   else if(state.tab==="modeled") renderModeled();
   else if(state.tab==="deals") renderDeals();
   else if(state.tab==="sparkloop") renderSparkLoopTab();
@@ -495,104 +676,437 @@ function aggByDim(rows,dimKey){
   const g=groupBy(rows,dimKey);
   let out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)}));
   out=out.filter(x=>x.k!=="(none)"||out.length===1);
-  out.sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend));
+  out.sort(rankBest);
   return out;
 }
-function dimTable(out){
-  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
-  const body=out.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>`+
-    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td><td class="num">${x.leads?money(x.aov):"—"}</td>`
-            :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("");
-  return `<table><thead><tr><th>Value</th><th class="num">Spend</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
+function dimTable(out,label){
+  const body=out.map(x=>`<tr><td>${esc(x.k)}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}</tr>`).join("");
+  return `<table><thead><tr><th>${label||"Value"}</th><th class="num">Spend</th>${resHeadHtml()}</tr></thead><tbody>${body}</tbody></table>`;
 }
 function dimChart(id,out){
   const top=out.slice().sort((a,b)=>b.spend-a.spend).slice(0,12);
-  makeChart(id,{type:"bar",data:{labels:top.map(x=>x.k),datasets:[{label:"Spend",data:top.map(x=>x.spend),backgroundColor:top.map((_,i)=>COLORS[i%COLORS.length])}]},
-    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+  const ds=[{label:"Spend",data:top.map(x=>x.spend),backgroundColor:COLORS[0]}];
+  if(IS_ROAS) ds.push({label:"Revenue",data:top.map(x=>x.rev),backgroundColor:COLORS[1]});
+  makeChart(id,{type:"bar",data:{labels:top.map(x=>x.k),datasets:ds},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:IS_ROAS,position:"bottom"}},scales:{x:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+}
+
+/* ── Campaigns: sortable, searchable tables by Campaign and by Ad set + spend chart ── */
+const grpSort={Campaign:{col:null,asc:true},"Ad Set":{col:null,asc:true}};
+let grpSearch="";
+function groupTable(rows,key,label,tid){
+  let out=aggByDim(rows,key);
+  const q=grpSearch.toLowerCase();
+  if(q) out=out.filter(x=>x.k.toLowerCase().indexOf(q)>=0);
+  const st=grpSort[key];
+  const sval=(x,c)=>c==="k"?x.k.toLowerCase():x[c];
+  if(st.col){ const s=st.asc?1:-1; out.sort((a,b)=>{const va=sval(a,st.col),vb=sval(b,st.col);return va<vb?-s:va>vb?s:0;}); }
+  const arr=c=>st.col===c?(st.asc?" ▲":" ▼"):"";
+  const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
+  const head=`<tr>${sth("k",label)}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${sth("cpc","CPC","num")}${sth("cpm","CPM","num")}${sth("leads",RESULT_LABEL,"num")}${sth("cpa","CPA","num")}`+
+    (IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("aov","AOV","num"):"")+`</tr>`;
+  const body=out.map(x=>`<tr><td class="adname">${esc(x.k)}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${cpcFmt(x)}</td><td class="num">${cpmFmt(x)}</td><td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`+
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${aovFmt(x)}</td>`:"")+`</tr>`).join("")
+    ||`<tr><td colspan="12" class="note">Nothing matches.</td></tr>`;
+  return {html:`<div style="overflow-x:auto"><table id="${tid}"><thead>${head}</thead><tbody>${body}</tbody></table></div>`, out};
 }
 function renderCampaigns(f){
-  const out=aggByDim(f,"Campaign");
+  const camp=groupTable(f,"Campaign","Campaign","campTbl"), adset=groupTable(f,"Ad Set","Ad set","adsetTbl");
   document.getElementById("tab-campaigns").innerHTML=
-    `<div class="card"><h2>By Campaign</h2><div class="chart-wrap" style="height:280px;"><canvas id="campChart"></canvas></div></div>
-     <div class="card">${dimTable(out)}</div>`;
-  dimChart("campChart",out);
-}
-function renderFunnel(f){
-  const out=aggByDim(f,"Funnel");
-  document.getElementById("tab-funnel").innerHTML=
-    `<div class="card"><h2>By Funnel stage</h2><div class="chart-wrap" style="height:260px;"><canvas id="funChart"></canvas></div></div>
-     <div class="card">${dimTable(out)}</div>`;
-  dimChart("funChart",out);
+    `<input type="text" class="search-box" id="grpSearch" placeholder="Search campaigns and ad sets..." value="${esc(grpSearch)}">
+     <div class="card"><h2>Spend by campaign${IS_ROAS?" and revenue":""}</h2><div class="chart-wrap" style="height:280px;"><canvas id="campChart"></canvas></div></div>
+     <div class="card"><h2>By Campaign</h2>${camp.html}</div>
+     <div class="card"><h2>By Ad set</h2>${adset.html}</div>`;
+  dimChart("campChart",camp.out);
+  const sb=document.getElementById("grpSearch");
+  sb.addEventListener("input",e=>{ grpSearch=e.target.value; const pos=sb.selectionStart; renderCampaigns(filtered()); const n=document.getElementById("grpSearch"); n.focus(); n.setSelectionRange(pos,pos); });
+  [["campTbl","Campaign"],["adsetTbl","Ad Set"]].forEach(([tid,key])=>document.querySelectorAll(`#${tid} th[data-sort]`).forEach(th=>th.addEventListener("click",()=>{
+    const c=th.dataset.sort, st=grpSort[key]; if(st.col===c) st.asc=!st.asc; else { st.col=c; st.asc=(c==="k"||c==="cpa"||c==="cpc"||c==="cpm"); }
+    renderCampaigns(filtered()); })));
 }
 
-/* ── Per-ad aggregation (shared by Leaderboard / By Ad / Creative) ── */
+/* ── Per-ad aggregation (shared by Leaderboard / Ad Explorer / Creative) ── */
 function adsAgg(rows){
   const byAd={};
-  rows.forEach(r=>{ const id=r["Ad ID"]; const a=byAd[id]||(byAd[id]={id,name:r["Ad Name"],campaign:r["Campaign"],
-    format:r["Format"],audience:r["Audience"],funnel:r["Funnel"],headline:r._headline,body:r._body,
-    spend:0,leads:0,rev:0,imp:0,clicks:0,tags:r}); a.spend+=r._spend;a.leads+=r._leads;a.rev+=r._rev;a.imp+=r._imp;a.clicks+=r._clicks; });
-  return Object.values(byAd).map(a=>({...a,cpa:a.leads?a.spend/a.leads:0,roas:a.spend&&a.rev?a.rev/a.spend:0,aov:a.leads?a.rev/a.leads:0,
-    ctr:a.imp?a.clicks/a.imp*100:0}));
+  rows.forEach(r=>{ const id=r["Ad ID"]; const a=byAd[id]||(byAd[id]={id,name:r["Ad Name"],campaign:r["Campaign"],adset:r["Ad Set"],
+    format:r["Format"],audience:r["Audience"],funnel:r["Funnel"],placement:r["Placement"],headline:r._headline,body:r._body,thumb:r._thumb,rows:[],tags:r});
+    a.rows.push(r); });
+  return Object.values(byAd).map(a=>Object.assign(a,agg(a.rows)));
 }
-function bestFirst(ads){ return ads.slice().sort((a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend))); }
+function bestFirst(ads){ return ads.slice().sort(rankBest); }
 
-let lbMinSpend=0;
+/* ── Leaderboard: Top 5 / Bottom 5 ads on a chosen metric + bubble chart (ported from theunsealed.html) ── */
+let lbMetric=IS_ROAS?"roas":"cpa", lbMinSpend=10;
+const LB_METRICS=()=>[[IS_ROAS?"roas":"cpa",IS_ROAS?"ROAS":COST_LABEL],["cpc","CPC"],["cpm","CPM"],["ctr","CTR"]];
+function lbFmt(m,v){ return m==="roas"?v.toFixed(2)+"x":m==="ctr"?pct(v):money(v); }
 function renderLeaderboard(f){
-  let ads=bestFirst(adsAgg(f).filter(a=>a.spend>=lbMinSpend && (IS_ROAS?a.rev>0:a.leads>0)));
-  const rows=ads.slice(0,25).map((a,i)=>`<tr><td class="num">${i+1}</td><td class="adname">${a.name||""}</td>
-    <td><span class="pill">${a.format||"—"}</span></td><td>${a.funnel||"—"}</td>
-    <td class="num">${money(a.spend)}</td>`+
-    (IS_ROAS?`<td class="num">${money(a.rev)}</td><td class="num good">${a.roas.toFixed(2)}x</td><td class="num">${a.leads?money(a.cpa):"—"}</td><td class="num">${a.leads?money(a.aov):"—"}</td>`
-            :`<td class="num">${num(a.leads)}</td><td class="num good">${money(a.cpa)}</td>`)+`</tr>`).join("");
-  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const ads=adsAgg(f);
+  const isCost=lbMetric==="cpa"||lbMetric==="cpc"||lbMetric==="cpm";
+  const valid=ads.filter(a=>a.spend>=lbMinSpend && isFinite(a[lbMetric]) && a[lbMetric]>0);
+  const sorted=valid.slice().sort((a,b)=>isCost?a[lbMetric]-b[lbMetric]:b[lbMetric]-a[lbMetric]);
+  const top5=sorted.slice(0,5), bottom5=sorted.length>5?sorted.slice(-5).reverse():[];
+  const label=LB_METRICS().find(x=>x[0]===lbMetric)[1];
+  const col=(title,items,cls)=>`<div><div class="leader-col-title ${cls}">${title}</div>`+(items.map((a,i)=>
+    `<div class="leader-card ${cls}">${a.thumb?`<img class="thumb" src="${esc(a.thumb)}" alt="" onerror="this.style.display='none'">`:""}<div>
+      <div class="leader-card-rank">#${i+1}</div><div class="leader-card-name">${esc(a.name||"")}</div>
+      <div class="leader-card-stats"><div class="leader-card-stat">${label}: <b>${lbFmt(lbMetric,a[lbMetric])}</b></div>
+        <div class="leader-card-stat">Spend: <b>${money(a.spend)}</b></div><div class="leader-card-stat">${RESULT_LABEL}: <b>${num(a.leads)}</b></div>
+        <div class="leader-card-stat">Clicks: <b>${num(a.clicks)}</b></div><div class="leader-card-stat">CTR: <b>${pct(a.ctr)}</b></div></div></div></div>`).join("")
+    ||`<div class="note">${items===top5?"No ad meets the minimum spend with a usable "+label+".":"Fewer than six ads qualify, so there is no bottom five."}</div>`)+`</div>`;
   document.getElementById("tab-leaderboard").innerHTML=
-    `<div class="card"><h2>Top ads by ${IS_ROAS?"ROAS":"cost per "+RESULT_ONE}
-       <label style="float:right;font-size:12px;color:var(--muted);">Min spend $<input type="number" id="lbMin" value="${lbMinSpend}" style="width:80px;font:inherit;padding:3px 6px;border:1px solid var(--border);border-radius:6px;"></label></h2>
-       <div style="overflow-x:auto"><table><thead><tr><th class="num">#</th><th>Ad</th><th>Format</th><th>Funnel</th><th class="num">Spend</th>${rh}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  const inp=document.getElementById("lbMin");
-  inp.addEventListener("change",e=>{lbMinSpend=+e.target.value||0; renderLeaderboard(filtered());});
+    `<div class="bd-bar"><label>Metric: <select id="lbMetric">${LB_METRICS().map(([k,l])=>`<option value="${k}"${k===lbMetric?" selected":""}>${l}</option>`).join("")}</select></label>
+       <label>Min spend $ <input type="number" id="lbMin" value="${lbMinSpend}" min="0" step="5" style="width:80px;"></label>
+       <span>${isCost?"Lower is better.":"Higher is better."} Ads without a usable ${label} are left out.</span></div>
+     <div class="leader-cards">${col("Top 5",top5,"top")}${col("Bottom 5",bottom5,"bottom")}</div>
+     <div class="card"><h2>${label} vs clicks <span class="mini">(bubble size = spend, green = ${IS_ROAS?"ROAS at least 1x":"has "+RESULT_LABEL.toLowerCase()})</span></h2><div class="chart-wrap" style="height:340px;"><canvas id="lbBubble"></canvas></div></div>`;
+  document.getElementById("lbMetric").addEventListener("change",e=>{lbMetric=e.target.value; renderLeaderboard(filtered());});
+  document.getElementById("lbMin").addEventListener("change",e=>{lbMinSpend=Math.max(0,+e.target.value||0); renderLeaderboard(filtered());});
+  const pts=valid.map(a=>({x:a.clicks,y:a[lbMetric],r:Math.max(4,Math.min(25,Math.sqrt(a.spend)/3)),name:a.name,good:IS_ROAS?a.roas>=1:a.leads>0,spend:a.spend}));
+  makeChart("lbBubble",{type:"bubble",data:{datasets:[{label:"Ads",data:pts,
+      backgroundColor:pts.map(p=>p.good?"rgba(32,157,80,.45)":"rgba(229,57,53,.45)"),borderColor:pts.map(p=>p.good?"#209D50":"#E53935"),borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const p=c.raw;return `${p.name} | clicks ${num(p.x)} | ${label} ${lbFmt(lbMetric,p.y)} | spend ${money(p.spend)}`;}}}},
+      scales:{x:{title:{display:true,text:"Clicks"},beginAtZero:true},y:{title:{display:true,text:label},beginAtZero:true,ticks:{callback:v=>lbFmt(lbMetric,+v)}}}}});
 }
 
-let byAdSort={col:null,asc:true};
-function renderByAd(f){
-  let ads=adsAgg(f);
-  const sval=(a,c)=>{const m={name:(a.name||"").toLowerCase(),campaign:(a.campaign||"").toLowerCase(),format:(a.format||"").toLowerCase(),
-    audience:(a.audience||"").toLowerCase(),funnel:(a.funnel||"").toLowerCase(),spend:a.spend,imp:a.imp,clicks:a.clicks,ctr:a.ctr,leads:a.leads,rev:a.rev,cpa:a.cpa,roas:a.roas,aov:a.aov};return m[c];};
-  if(byAdSort.col){ const c=byAdSort.col,s=byAdSort.asc?1:-1; ads.sort((a,b)=>{const va=sval(a,c),vb=sval(b,c);return va<vb?-s:va>vb?s:0;}); }
-  else ads=bestFirst(ads);
-  const arr=c=>byAdSort.col===c?(byAdSort.asc?" ▲":" ▼"):"";
-  const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
-  const rh=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("cpa","CPA","num")+sth("aov","AOV","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
-  const head=`<tr>${sth("name","Ad")}${sth("campaign","Campaign")}${sth("format","Format")}${sth("audience","Audience")}${sth("funnel","Funnel")}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${rh}</tr>`;
-  const rows=ads.map(a=>`<tr><td class="adname">${a.name||""}</td><td>${a.campaign||"—"}</td><td><span class="pill">${a.format||"—"}</span></td>
-    <td>${a.audience||"—"}</td><td>${a.funnel||"—"}</td><td class="num">${money(a.spend)}</td><td class="num">${num(a.imp)}</td>
-    <td class="num">${num(a.clicks)}</td><td class="num">${a.ctr.toFixed(2)}%</td>`+
-    (IS_ROAS?`<td class="num">${money(a.rev)}</td><td class="num">${a.rev?a.roas.toFixed(2)+"x":"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td><td class="num">${a.leads?money(a.aov):"—"}</td>`
-            :`<td class="num">${num(a.leads)||"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td>`)+`</tr>`).join("");
-  document.getElementById("tab-byad").innerHTML=
-    `<div class="card"><h2>By Ad</h2><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
-  document.querySelectorAll("#tab-byad th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
-    const c=th.dataset.sort; if(byAdSort.col===c)byAdSort.asc=!byAdSort.asc; else {byAdSort.col=c; byAdSort.asc=(c==="name"||c==="campaign"||c==="format"||c==="audience"||c==="funnel"||c==="cpa");}
-    renderByAd(filtered());
-  }));
+/* ── KPI tiles (Overview + Creative) ── */
+function kpiHtml(f){
+  const t=agg(f);
+  // previous window of equal length, immediately before the selected range
+  const spanDays=Math.round((new Date(state.to+"T00:00:00")-new Date(state.from+"T00:00:00"))/86400000)+1;
+  const pTo=shiftDays(state.from,1), pFrom=shiftDays(state.from,spanDays);
+  const pRows=state.cmp?scoped().filter(r=>r._date>=pFrom&&r._date<=pTo):[];
+  const pAgg=pRows.length?agg(pRows):null;
+  function kd(cur,prev,invert,absFmt){
+    if(!pAgg||prev==null||!isFinite(prev)||prev===0) return "";
+    const diff=cur-prev, pc=diff/Math.abs(prev);
+    const cls=Math.abs(pc)<0.001?"neutral":(invert?pc<=0:pc>=0)?"good":"bad";
+    const abs=absFmt?` (${diff>=0?"+":"−"}${absFmt(Math.abs(diff))})`:"";
+    return `<div class="kpi-delta ${cls}">${pc>=0?"+":""}${(pc*100).toFixed(1)}% ${pc>=0?"↑":"↓"}${abs}</div>`;
+  }
+  const resultK=IS_ROAS
+    ? `<div class="kpi"><div class="label">Blended ROAS</div><div class="val">${t.roas.toFixed(2)}x</div>${kd(t.roas,pAgg&&pAgg.roas,false)}</div>
+       <div class="kpi"><div class="label">CPA</div><div class="val">${cpaFmt(t)}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}<div class="sublabel">cost per ${RESULT_ONE}</div></div>
+       <div class="kpi"><div class="label">AOV</div><div class="val">${aovFmt(t)}</div>${kd(t.aov,pAgg&&pAgg.aov,false,money)}</div>
+       <div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div>${kd(t.rev,pAgg&&pAgg.rev,false,money)}</div>
+       <div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>`
+    : `<div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>
+       <div class="kpi"><div class="label">Blended CPA</div><div class="val">${cpaFmt(t)}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}</div>`;
+  return `<div class="kpis">
+    <div class="kpi"><div class="label">Total Spend</div><div class="val">${money(t.spend)}</div>${kd(t.spend,pAgg&&pAgg.spend,false,money)}</div>
+    ${resultK}
+    <div class="kpi"><div class="label">CTR</div><div class="val">${pct(t.ctr)}</div>${kd(t.ctr,pAgg&&pAgg.ctr,false)}</div>
+    <div class="kpi"><div class="label">CPC</div><div class="val">${cpcFmt(t)}</div>${kd(t.cpc,pAgg&&pAgg.cpc,true,money)}</div>
+    <div class="kpi"><div class="label">CPM</div><div class="val">${cpmFmt(t)}</div>${kd(t.cpm,pAgg&&pAgg.cpm,true,money)}</div>
+    <div class="kpi"><div class="label">Active Ads</div><div class="val">${t.ads}</div>${kd(t.ads,pAgg&&pAgg.ads,false)}</div></div>
+    ${pAgg?`<div class="note" style="margin:-12px 0 16px;">Changes compare to the previous ${spanDays} days (${pFrom} to ${pTo}).</div>`:""}`;
 }
 
-function renderHeadlines(f){
-  const hasCopy=ROWS.some(r=>r._headline||r._body);
-  if(!hasCopy){ document.getElementById("tab-headlines").innerHTML=
-    `<div class="card"><div class="note">No ad copy yet. Re-run the engine to populate Headline / Primary Text in the product sheet.</div></div>`; return; }
-  function grp(rows,field){ const g={}; rows.forEach(r=>{ const k=(r[field]||"").toString().trim(); if(!k) return; (g[k]=g[k]||[]).push(r); });
-    let out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)}));
-    out.sort((a,b)=>IS_ROAS?b.roas-a.roas:(a.leads&&b.leads)?a.cpa-b.cpa:b.spend-a.spend); return out; }
-  const heads=grp(f,"_headline"), bodies=grp(f,"_body");
-  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
-  const tbl=(out)=>`<table><thead><tr><th>Text</th><th class="num">Spend</th>${rh}</tr></thead><tbody>`+
-    out.map(x=>`<tr><td style="white-space:normal;max-width:520px;">${(x.k||"").slice(0,180)}</td><td class="num">${money(x.spend)}</td>`+
-      (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td><td class="num">${x.leads?money(x.aov):"—"}</td>`
-              :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`)+`</tr>`).join("")+`</tbody></table>`;
-  document.getElementById("tab-headlines").innerHTML=
-    `<div class="card"><h2>By Headline</h2><div style="overflow-x:auto">${tbl(heads)}</div></div>`+
-    `<div class="card"><h2>By Primary Text</h2><div style="overflow-x:auto">${tbl(bodies)}</div></div>`;
+function makeChart(id,cfg){ if(charts[id])charts[id].destroy(); const el=document.getElementById(id); if(el)charts[id]=new Chart(el,cfg); }
+function dailySeries(rows){
+  const by={}; rows.forEach(r=>{ const d=r._date; const b=by[d]=by[d]||{spend:0,leads:0,rev:0}; b.spend+=r._spend; b.leads+=r._leads; b.rev+=r._rev; });
+  const days=Object.keys(by).sort();
+  return {days, spend:days.map(d=>by[d].spend), result:days.map(d=>by[d].leads), rev:days.map(d=>by[d].rev)};
+}
+
+/* ── Overview period tables: week-over-week + month-over-month, all campaigns ── */
+const MONTH_NAMES=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtDate(x){ return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
+function weekKey(d){ const x=new Date(d+"T00:00:00"); if(isNaN(x))return d; const day=x.getDay(); x.setDate(x.getDate()-(day===0?6:day-1)); return fmtDate(x); }
+function monthKey(d){ return String(d).slice(0,7); }
+function monthLabel(k){ const p=k.split("-"); return p.length===2?(MONTH_NAMES[+p[1]-1]||p[1])+" "+p[0]:k; }
+// % change vs the previous (older) period; invert flips good/bad for cost metrics.
+function periodDelta(cur,prev,invert,absFmt){
+  if(prev==null||!isFinite(prev)||prev===0) return "";
+  const diff=cur-prev, pc=diff/Math.abs(prev);
+  const cls=Math.abs(pc)<0.001?"neutral":(invert?pc<=0:pc>=0)?"good":"bad";
+  const abs=absFmt?` (${diff>=0?"+":"−"}${absFmt(Math.abs(diff))})`:"";
+  return `<span class="tbl-delta ${cls}">${pc>=0?"+":""}${(pc*100).toFixed(1)}% ${pc>=0?"↑":"↓"}${abs}</span>`;
+}
+// Like-for-like period comparison (Amy, 2026-09-17): a partial period (this week so far, month to
+// date, or a period clipped by the date filter) is compared with the SAME days of the previous
+// period, never with the whole previous period.
+function periodStart(key, isMonth) { return isMonth ? key + '-01' : key; }
+function dayDiff(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
+function periodOffset(key, isMonth, ds) { return dayDiff(periodStart(key, isMonth), ds); }
+function periodWindow(key, isMonth, fMin, fMax) {
+  const s = periodStart(key, isMonth);
+  const len = isMonth ? new Date(+key.slice(0, 4), +key.slice(5, 7), 0).getDate() : 7;
+  const lo = Math.max(0, dayDiff(s, fMin)), hi = Math.min(len - 1, dayDiff(s, fMax));
+  return { lo: lo, hi: hi, len: len, days: hi - lo + 1, partial: (hi - lo + 1) < len };
+}
+// Key of the period immediately before `key` (week keys are Monday dates, month keys are YYYY-MM).
+function prevPeriodKey(key, isMonth) {
+  if (isMonth) { const y = +key.slice(0, 4), m = +key.slice(5, 7); return m === 1 ? (y - 1) + '-12' : y + '-' + String(m - 1).padStart(2, '0'); }
+  const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() - 7);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function periodTable(rows,keyFn,colLabel,labelFn){
+  const isMonth=keyFn===monthKey; let fMin=null,fMax=null; rows.forEach(r=>{ if(!fMin||r._date<fMin)fMin=r._date; if(!fMax||r._date>fMax)fMax=r._date; });
+  const allByKey={}; scoped().forEach(r=>{ const k=keyFn(r._date); (allByKey[k]=allByKey[k]||[]).push(r); });
+  const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
+  const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)})).sort((a,b)=>b.k.localeCompare(a.k));
+  const rh=IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const body=out.map(x=>{
+    // Comparison period comes from ALL data (campaign / ad set filters kept, date filter dropped), so a
+    // period still gets its change when the prior period sits outside the selected dates.
+    let p=null, lfl="";
+    const w=fMin?periodWindow(x.k,isMonth,fMin,fMax):null;
+    if(w){ const pk=prevPeriodKey(x.k,isMonth);
+      const slice=(allByKey[pk]||[]).filter(r=>{ if(!w.partial) return true; const o=periodOffset(pk,isMonth,r._date); return o>=w.lo&&o<=w.hi; });
+      if(slice.length){ p={k:pk,...agg(slice)}; }
+      if(w.partial) lfl=`<span class="tbl-delta neutral">${w.days} of ${w.len} days, vs same days prior ${isMonth?"month":"week"}</span>`; }
+    const d=(cur,prev,inv,absFmt)=>p?periodDelta(cur,prev,inv,absFmt):"";
+    return `<tr><td>${labelFn?labelFn(x.k):x.k}${lfl}</td><td class="num">${money(x.spend)}${d(x.spend,p&&p.spend,false,money)}</td><td class="num">${num(x.imp)}</td>`+
+      `<td class="num">${num(x.clicks)}${d(x.clicks,p&&p.clicks,false,num)}</td><td class="num">${pct(x.ctr)}${d(x.ctr,p&&p.ctr,false)}</td>`+
+      `<td class="num">${num(x.leads)||NA}${d(x.leads,p&&p.leads,false,num)}</td>`+
+      (IS_ROAS?`<td class="num">${money(x.rev)}${d(x.rev,p&&p.rev,false,money)}</td><td class="num">${roasFmt(x)}${x.rev?d(x.roas,p&&p.roas,false):""}</td>`:"")+
+      `<td class="num">${cpaFmt(x)}${x.leads&&p&&p.leads?periodDelta(x.cpa,p.cpa,true,money):""}</td>`+
+      (IS_ROAS?`<td class="num">${aovFmt(x)}${x.leads&&p&&p.leads?periodDelta(x.aov,p.aov,false,money):""}</td>`:"")+`</tr>`;
+  }).join("");
+  return `<table><thead><tr><th>${colLabel}</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+/* ── Rolling windows + trend lines (ported from birdandbean.html) ──
+   rollRatio: sum(num)/sum(den) over the trailing n points. rollAvg: mean over the trailing n points.
+   trendLine: straight least-squares fit through the non-null points. */
+function rollRatio(a,b,n){ return a.map((_,i)=>{ let x=0,y=0; for(let k=Math.max(0,i-n+1);k<=i;k++){x+=a[k]||0;y+=b[k]||0;} return y?x/y:null; }); }
+function rollAvg(v,n){ return v.map((_,i)=>{ let x=0,c=0; for(let k=Math.max(0,i-n+1);k<=i;k++){x+=v[k]||0;c++;} return c?x/c:null; }); }
+function trendLine(v){
+  const pts=v.map((y,x)=>[x,y]).filter(p=>p[1]!=null&&isFinite(p[1]));
+  if(pts.length<3) return v.map(()=>null);
+  const n=pts.length, sx=pts.reduce((a,p)=>a+p[0],0), sy=pts.reduce((a,p)=>a+p[1],0),
+        sxx=pts.reduce((a,p)=>a+p[0]*p[0],0), sxy=pts.reduce((a,p)=>a+p[0]*p[1],0);
+  const m=(n*sxy-sx*sy)/((n*sxx-sx*sx)||1), b=(sy-m*sx)/n;
+  return v.map((_,x)=>Math.max(0,m*x+b));
+}
+// ", trending up, 1.52x to 1.91x": start vs end of the trend line. Flat when the move is under 3%.
+function trendTag(t,lowerIsBetter,fmt){
+  const a=t.find(x=>x!=null), z=[...t].reverse().find(x=>x!=null);
+  if(a==null||z==null) return "";
+  const vals=t.filter(x=>x!=null), avg=vals.reduce((p,x)=>p+x,0)/vals.length||1;
+  const span=`${fmt(a)} to ${fmt(z)}`;
+  if(Math.abs(z-a)/avg<0.03) return `<span class="tt flat">, flat, ${span}</span>`;
+  const up=z>a, good=lowerIsBetter?!up:up;
+  return `<span class="tt ${good?"up":"down"}">, trending ${up?"up":"down"}, ${span}</span>`;
+}
+// Period series over an EXTENDED window so the first rolling points are true windows: reaches back
+// n-1 periods before the selected range, then cuts to the periods inside it.
+function periodSeries(gran,n){
+  const keyOf=gran==="weekly"?weekKey:gran==="monthly"?monthKey:(d=>d);
+  let pre;
+  if(gran==="daily") pre=shiftDays(state.from,n-1);
+  else if(gran==="weekly") pre=shiftDays(weekKey(state.from),7*(n-1));
+  else { const d=new Date(state.from.slice(0,7)+"-01T00:00:00"); d.setMonth(d.getMonth()-(n-1)); pre=fmtDate(d); }
+  const firstKey=keyOf(state.from);
+  // Periods inside the range are clipped to the selected dates; earlier periods use every day.
+  const ext=scoped().filter(r=>r._date>=pre && r._date<=state.to && (keyOf(r._date)<firstKey || r._date>=state.from));
+  const by={}; ext.forEach(r=>{ const k=keyOf(r._date); const b=by[k]=by[k]||{spend:0,leads:0,rev:0,imp:0,clicks:0}; b.spend+=r._spend; b.leads+=r._leads; b.rev+=r._rev; b.imp+=r._imp; b.clicks+=r._clicks; });
+  const keys=Object.keys(by).sort(); let off=keys.findIndex(k=>k>=firstKey); if(off<0) off=keys.length;
+  const col=k=>keys.map(x=>by[x][k]);
+  const spend=col("spend"), leads=col("leads"), rev=col("rev"), imp=col("imp"), clicks=col("clicks");
+  const cut=a=>a.slice(off);
+  const labelOf=k=>gran==="weekly"?"Wk of "+k:gran==="monthly"?monthLabel(k):k;
+  return {
+    labels:cut(keys).map(labelOf),
+    spend:cut(spend), result:cut(leads), rev:cut(rev),
+    eff:cut(keys.map((k,i)=>IS_ROAS?(spend[i]?rev[i]/spend[i]:null):(leads[i]?spend[i]/leads[i]:null))),
+    cpc:cut(keys.map((k,i)=>clicks[i]?spend[i]/clicks[i]:null)),
+    cpm:cut(keys.map((k,i)=>imp[i]?spend[i]/imp[i]*1000:null)),
+    aov:cut(keys.map((k,i)=>leads[i]?rev[i]/leads[i]:null)),
+    rSpend:cut(rollAvg(spend,n)), rResult:cut(rollAvg(leads,n)),
+    rEff:cut(IS_ROAS?rollRatio(rev,spend,n):rollRatio(spend,leads,n)),
+    rCpc:cut(rollRatio(spend,clicks,n)), rCpm:cut(rollRatio(spend.map(v=>v*1000),imp,n)), rAov:cut(rollRatio(rev,leads,n))
+  };
+}
+
+function renderOverview(f){
+  const s=dailySeries(f);
+  const e=periodSeries("daily",7);   // trailing 7-day ROAS / cost per result, warmed up before the range
+  const effLabel=IS_ROAS?"7-day ROAS":"7-day "+COST_LABEL.toLowerCase();
+  document.getElementById("tab-overview").innerHTML=kpiHtml(f)+
+    `<div class="card"><h2>Spend and ${RESULT_LABEL} over time <span class="mini">dashed line = trailing ${effLabel}</span></h2><div class="chart-wrap"><canvas id="ovTrend"></canvas></div></div>
+     <div class="card"><h2>Week over Week, all campaigns</h2><div style="overflow-x:auto">${periodTable(f,weekKey,"Week of")}</div></div>
+     <div class="card"><h2>Month over Month, all campaigns</h2><div style="overflow-x:auto">${periodTable(f,monthKey,"Month",monthLabel)}</div></div>`;
+  const ds=[{label:"Spend",data:s.spend,borderColor:COLORS[0],backgroundColor:fade(COLORS[0],.12),yAxisID:"y",tension:.25,fill:true}];
+  if(IS_ROAS) ds.push({label:"Revenue",data:s.rev,borderColor:COLORS[1],backgroundColor:fade(COLORS[1],.1),yAxisID:"y",tension:.25,fill:true});
+  else ds.push({label:RESULT_LABEL,data:s.result,borderColor:COLORS[1],yAxisID:"y1",tension:.25});
+  ds.push({label:effLabel,data:e.rEff,borderColor:COLORS[5],yAxisID:IS_ROAS?"y1":"y2",tension:.25,borderDash:[4,3],pointRadius:0,borderWidth:2});
+  const scales={y:{position:"left",ticks:{callback:v=>"$"+v.toLocaleString()}},y1:{position:"right",grid:{drawOnChartArea:false},ticks:{callback:v=>IS_ROAS?(+v).toFixed(1)+"x":v.toLocaleString()}}};
+  if(!IS_ROAS) scales.y2={position:"right",grid:{drawOnChartArea:false},ticks:{callback:v=>"$"+(+v).toFixed(0)}};
+  makeChart("ovTrend",{ type:"line", data:{ labels:s.days, datasets:ds },
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom"}},scales}});
+}
+
+/* ── Trends: Daily / Weekly / Monthly, each chart = period bars or dots + rolling line + dashed trend ── */
+let trGran="daily";
+function renderTrends(f){
+  const n=trGran==="daily"?7:trGran==="weekly"?4:3, unit=trGran==="daily"?"day":trGran==="weekly"?"week":"month";
+  const rollName=`${n}-${unit}`;
+  const s=periodSeries(trGran,n);
+  const tS=trendLine(s.rSpend), tR=trendLine(s.rResult), tE=trendLine(s.rEff), tC=trendLine(s.rCpc), tM=trendLine(s.rCpm), tA=trendLine(s.rAov);
+  const seg=[["daily","Daily"],["weekly","Weekly"],["monthly","Monthly"]].map(([k,l])=>`<button data-gran="${k}" class="${trGran===k?"on":""}">${l}</button>`).join("");
+  const effTitle=IS_ROAS?"ROAS":COST_LABEL;
+  document.getElementById("tab-trends").innerHTML=
+    `<div class="bd-bar"><span class="seg">${seg}</span><span>Bars or dots = each ${unit}. Solid line = trailing ${rollName} window. Dashed line = the overall trend across the dates you picked; the label gives its start and end value.</span></div>
+     <div class="chart-row">
+      <div class="card"><h2>Spend by ${unit}${trendTag(tS,false,v=>"$"+(+v).toFixed(0))}</h2><div class="chart-wrap"><canvas id="trSpend"></canvas></div></div>
+      <div class="card"><h2>${RESULT_LABEL} by ${unit}${trendTag(tR,false,v=>(+v).toFixed(1))}</h2><div class="chart-wrap"><canvas id="trResult"></canvas></div></div>
+     </div>
+     <div class="chart-row">
+      <div class="card"><h2>${effTitle}${trendTag(tE,!IS_ROAS,v=>IS_ROAS?(+v).toFixed(2)+"x":"$"+(+v).toFixed(2))}</h2><div class="chart-wrap"><canvas id="trEff"></canvas></div></div>
+      <div class="card"><h2>CPC and CPM <span class="mini">CPC${trendTag(tC,true,v=>"$"+(+v).toFixed(2))||", not enough data"} <br>CPM${trendTag(tM,true,v=>"$"+(+v).toFixed(2))||", not enough data"}</span></h2><div class="chart-wrap"><canvas id="trCpcCpm"></canvas></div></div>
+     </div>
+     ${IS_ROAS?`<div class="card"><h2>AOV${trendTag(tA,false,v=>"$"+(+v).toFixed(0))}</h2><div class="chart-wrap" style="height:240px;"><canvas id="trAov"></canvas></div>
+       <div class="note">Periods with no attributed ${RESULT_ONE} have no dot on the ${effTitle} and AOV charts; the rolling line still counts their spend.</div></div>`:
+       `<div class="note" style="margin:-8px 0 12px;">Periods with no ${RESULT_ONE} have no dot on the ${effTitle} chart; the rolling line still counts their spend.</div>`}`;
+  document.querySelectorAll("#tab-trends [data-gran]").forEach(b=>b.addEventListener("click",()=>{trGran=b.dataset.gran; renderTrends(filtered());}));
+  const many=s.labels.length>60;
+  const base={responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+    plugins:{legend:{position:"bottom",labels:{boxWidth:14,font:{size:11}}}},scales:{x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:many?20:35}}}};
+  const dots=(label,data,c,axis)=>({type:"line",label,data,borderColor:"transparent",backgroundColor:c,pointRadius:many?2:3,pointHoverRadius:4,showLine:false,order:3,yAxisID:axis||"y"});
+  const roll=(label,data,c,axis)=>({type:"line",label,data,borderColor:c,borderWidth:2.5,pointRadius:0,tension:.3,spanGaps:true,order:1,yAxisID:axis||"y"});
+  const trend=(label,data,axis)=>({type:"line",label,data,borderColor:"#2E3A4F",borderWidth:1.5,borderDash:[6,4],pointRadius:0,order:0,yAxisID:axis||"y"});
+  const bars=(label,data,c)=>({type:"bar",label,data,backgroundColor:c,order:4});
+  const withY=(o,y)=>({...base,scales:{...base.scales,y}});
+  makeChart("trSpend",{type:"bar",data:{labels:s.labels,datasets:[bars("Spend",s.spend,fade(COLORS[0],.35)),roll(rollName,s.rSpend,COLORS[0]),trend("Trend",tS)]},
+    options:withY(base,{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}})});
+  makeChart("trResult",{type:"bar",data:{labels:s.labels,datasets:[bars(RESULT_LABEL,s.result,fade(COLORS[1],.35)),roll(rollName,s.rResult,COLORS[1]),trend("Trend",tR)]},
+    options:withY(base,{beginAtZero:true,ticks:{precision:0}})});
+  makeChart("trEff",{type:"line",data:{labels:s.labels,datasets:[dots("Each "+unit,s.eff,fade(COLORS[5],.45)),roll(rollName,s.rEff,COLORS[5]),trend("Trend",tE)]},
+    options:withY(base,{beginAtZero:true,ticks:{callback:v=>IS_ROAS?(+v).toFixed(2)+"x":"$"+(+v).toFixed(0)}})});
+  makeChart("trCpcCpm",{type:"line",data:{labels:s.labels,datasets:[
+      dots("CPC each "+unit,s.cpc,fade(COLORS[2],.45),"y"),roll("CPC "+rollName,s.rCpc,COLORS[2],"y"),trend("CPC trend",tC,"y"),
+      dots("CPM each "+unit,s.cpm,fade(COLORS[3],.45),"y1"),roll("CPM "+rollName,s.rCpm,COLORS[3],"y1"),trend("CPM trend",tM,"y1")]},
+    options:{...base,scales:{...base.scales,y:{position:"left",beginAtZero:true,title:{display:true,text:"CPC ($)"},ticks:{callback:v=>"$"+(+v).toFixed(2)}},
+      y1:{position:"right",beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:"CPM ($)"},ticks:{callback:v=>"$"+(+v).toFixed(2)}}}}});
+  if(IS_ROAS) makeChart("trAov",{type:"line",data:{labels:s.labels,datasets:[dots("Each "+unit,s.aov,fade(COLORS[4],.45)),roll(rollName,s.rAov,COLORS[4]),trend("Trend",tA)]},
+    options:withY(base,{beginAtZero:true,ticks:{callback:v=>"$"+(+v).toFixed(0)}})});
+}
+
+/* ── Breakdowns: Themes grid, Theme detail, two-theme combinations ── */
+let bdDim=BREAKDOWN_DIMS[0], bdView="coverage", bdMin=500, bdA="", bdB="";
+// Rows for the dimensions that live on their own tabs. `level` says which page filters can apply.
+function specialBrkRows(dim){
+  if(dim==="Device") return {rows:BRK.device, level:"campaign"};
+  if(dim==="Age"||dim==="Gender") return {rows:BRK.demo.filter(r=>r[dim] && r[dim]!=="(all)"), level:"campaign"};
+  if(dim==="Hour of Day") return {rows:BRK.hourly, level:"account"};
+  if(dim==="PMax Channel") return {rows:BRK.pmax, level:"campaign"};
+  if(dim==="Platform") return {rows:PROWS, level:"ad"};
+  return null;
+}
+function bdBar(extra){
+  const seg=[["coverage","Themes"],["detail","Theme detail"]].map(([k,l])=>`<button data-bdv="${k}" class="${bdView===k?"on":""}">${l}</button>`).join("");
+  return `<div class="bd-bar"><span class="seg">${seg}</span>${extra||""}
+    <label>Min spend $ <input type="number" id="bdMinIn" value="${bdMin}" style="width:80px;"></label>
+    <span>Anything under the minimum is greyed out and not scored.</span></div>`;
+}
+function detailPickers(){
+  const special=!!specialBrkRows(bdDim);
+  const o1=BREAKDOWN_DIMS.map(d=>`<option value="${esc(d)}"${d===bdDim?" selected":""}>${esc(d)}</option>`).join("");
+  const o2=`<option value="">None</option>`+BREAKDOWN_DIMS.filter(d=>!specialBrkRows(d)&&d!==bdDim).map(d=>`<option value="${esc(d)}"${d===bdB?" selected":""}>${esc(d)}</option>`).join("");
+  return `<label>Theme <select id="bdSel">${o1}</select></label><label>Compare with <select id="bdB"${special?" disabled":""}>${o2}</select></label>`;
+}
+function wireDetailPickers(){
+  document.getElementById("bdSel").addEventListener("change",e=>{bdDim=e.target.value; if(bdB===bdDim) bdB=""; renderBreakdowns(filtered());});
+  document.getElementById("bdB").addEventListener("change",e=>{bdB=e.target.value; renderBreakdowns(filtered());});
+}
+function wireBdBar(){
+  document.querySelectorAll("#tab-breakdowns [data-bdv]").forEach(b=>b.addEventListener("click",()=>{bdView=b.dataset.bdv; renderBreakdowns(filtered());}));
+  const m=document.getElementById("bdMinIn"); if(m) m.addEventListener("change",e=>{bdMin=Math.max(0,+e.target.value||0); renderBreakdowns(filtered());});
+}
+/* Deal outcomes for the Meta ads in a set of rows: CRM deals whose contact first clicked one of
+   those ads (deals tab "Ad" column), created inside the page's date range. Used by the theme views. */
+function dealsForRows(rows){
+  const names={}; rows.forEach(r=>{ const n=(r["Ad Name"]||"").toString().trim().toLowerCase(); if(n) names[n]=1; });
+  const out={deals:0,won:0,wonValue:0};
+  if(!Object.keys(names).length) return out;
+  dealsData.forEach(d=>{ if(!d.ad||d.bucket!=="Paid Social (Meta)") return;
+    if(!names[String(d.ad).trim().toLowerCase()]) return;
+    if((state.from&&d.created<state.from)||(state.to&&d.created>state.to)) return;
+    out.deals++; if(d.outcome==="Won"){ out.won++; out.wonValue+=d.value; } });
+  return out;
+}
+function dealsLine(x){ return x.deals?`${num(x.deals)} deal${x.deals===1?"":"s"} · ${num(x.won)} won${x.wonValue?" · "+money(x.wonValue):""}`:""; }
+function renderBreakdowns(f){
+  if(bdView==="coverage") return renderCoverage(f);
+  if(bdB && bdB!==bdDim && !specialBrkRows(bdDim)){ bdA=bdDim; return renderCombo(f); }
+  const sp=specialBrkRows(bdDim); let spNote="";
+  if(sp){
+    f=sp.rows.filter(r=>r._date>=state.from && r._date<=state.to
+      && (sp.level==="account" || !state.campaign || r["Campaign"]===state.campaign)
+      && (sp.level!=="ad" || !state.adset || r["Ad Set"]===state.adset)
+      && (sp.level!=="ad" || !state.platform || r["Platform"]===state.platform));
+    const ignored=[];
+    if(sp.level==="account" && state.campaign) ignored.push("campaign");
+    if(sp.level!=="ad" && state.adset) ignored.push("ad set");
+    if(sp.level!=="ad" && state.platform) ignored.push("platform");
+    if(ignored.length) spNote=`<div class="note" style="margin:-4px 0 12px;">${bdDim} comes from Meta at ${sp.level} level, so the ${ignored.join(" and ")} filter${ignored.length>1?"s do":" does"} not apply to it.</div>`; }
+  const g=groupBy(f,bdDim);
+  let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows),...dealsForRows(rows)}));
+  out=out.filter(x=>x.k!=="(none)" || out.length===1);
+  if(bdDim==="Hour of Day") out.sort((a,b)=>a.k<b.k?-1:1); else out.sort(rankBest);
+  // Deal outcome columns only when this client has a deals tab loaded.
+  const hasDeals=dealsData.length>0;
+  const dealsHead=hasDeals?`<th class="num" title="${dealsCrmName()} deals created in these dates whose contact first clicked a Meta ad in this group">Deals</th><th class="num">Won</th><th class="num">Won Value</th>`:"";
+  const dealsCells=x=>hasDeals?`<td class="num">${x.deals?num(x.deals):""}</td><td class="num">${x.won?num(x.won):""}</td><td class="num">${x.wonValue?money(x.wonValue):""}</td>`:"";
+  const body=out.map(x=>`<tr${x.spend<bdMin?' class="low"':""}><td>${esc(x.k)}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}${dealsCells(x)}</tr>`).join("");
+  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+spNote+
+    `<div class="card"><h2>${esc(bdDim)}</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||(THEMES.find(t=>t.dim===bdDim)||{}).hint||""}</div>
+       <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
+     <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${esc(bdDim)}</th><th class="num">Spend</th>${resHeadHtml()}${dealsHead}</tr></thead><tbody>${body}</tbody></table></div></div>`;
+  wireDetailPickers(); wireBdBar(); dimChart("bdChart",out);
+}
+function renderCoverage(f){
+  const tot=agg(f);
+  const themeHtml=(t,src)=>{
+    const g=groupBy(src,t.dim); const seen=Object.keys(g).filter(k=>k!=="(none)");
+    const vals=t.values.length?t.values.concat(seen.filter(k=>!t.values.includes(k))):seen;
+    // Order: real boxes by spend (highest first), then under-minimum boxes, then "nothing running" last.
+    const cells=vals.map(v=>({v,x:agg(g[v]||[])}));
+    cells.sort((a,b)=>{ const ra=!a.x.spend?2:a.x.spend<bdMin?1:0, rb=!b.x.spend?2:b.x.spend<bdMin?1:0; return ra!==rb?ra-rb:b.x.spend-a.x.spend; });
+    const boxes=cells.map(({v,x})=>{
+      if(!x.spend) return NEUTRAL.has(v)?"":`<div class="cov-box gap"><div class="l">${esc(v)}</div><div class="n">Nothing running here.</div></div>`;
+      if(x.spend<bdMin) return `<div class="cov-box low"><div class="l">${esc(v)}</div><div class="n">${money(x.spend)} spent. Too little to judge.</div></div>`;
+      const share=tot.spend?x.spend/tot.spend*100:0, dl=dealsLine(dealsForRows(g[v]||[]));
+      return `<div class="cov-box"><div class="l">${esc(v)}</div><div class="t"><i style="width:${share.toFixed(0)}%"></i></div>
+        <div class="r"><span>${share.toFixed(0)}% of spend</span><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span></div>
+        <div class="n">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()} · ${x.ads} ad${x.ads===1?"":"s"}</div>${dl?`<div class="n" style="color:var(--good);font-weight:600;">${dl}</div>`:""}</div>`; }).join("");
+    const un=agg(g["(none)"]||[]);
+    return `<div class="cov-theme"><h3>${esc(t.dim)}</h3><div class="q">${THEME_Q[t.dim]||t.hint||""}</div><div class="cov-grid">${boxes}</div>
+      ${un.spend?`<div class="note">${money(un.spend)} of spend is on ads not tagged for this theme yet.</div>`:""}</div>`; };
+  const main=THEMES.filter(t=>t.type!=="manual"), vid=f.filter(isVideoRow);
+  const manHtml=THEMES.filter(t=>t.type==="manual"&&vid.some(r=>(r[t.dim]||"").toString().trim())).map(t=>themeHtml(t,vid)).join("");
+  const totDeals=dealsForRows(f);
+  document.getElementById("tab-breakdowns").innerHTML=bdBar()+
+    `<div class="note" style="margin:-6px 0 14px;">Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b> on ${money(tot.spend)}. ${SCORE_RULE}${totDeals.deals?` Green line in a box = ${dealsCrmName()} deals created in these dates whose contact first clicked an ad in that group. All Meta ads: <b>${dealsLine(totDeals)}</b>.`:""}</div>
+     ${main.length?`<div class="card">${main.map(t=>themeHtml(t,f)).join("")}</div>`:`<div class="card"><div class="note">No creative themes are set up for this client yet.</div></div>`}
+     ${manHtml?`<div class="card"><div class="cov-group">Video details</div>${manHtml}</div>`:""}`;
+  wireBdBar();
+}
+function renderCombo(f){
+  const tot=agg(f), key=(r,d)=>(r[d]||"").toString().trim()||"(none)", cell={}, rowT={}, colT={};
+  f.forEach(r=>{ const a=key(r,bdA), b=key(r,bdB); if(a==="(none)"||b==="(none)") return;
+    (cell[a+"|"+b]=cell[a+"|"+b]||[]).push(r); (rowT[a]=rowT[a]||[]).push(r); (colT[b]=colT[b]||[]).push(r); });
+  const bySpend=o=>Object.keys(o).sort((x,y)=>agg(o[y]).spend-agg(o[x]).spend);
+  const rowsK=bySpend(rowT), colsK=bySpend(colT).slice(0,8);
+  const td=(x,rs)=>{ if(!x.spend) return `<td class="gap">not tested</td>`;
+     if(x.spend<bdMin) return `<td class="low"><span class="s">${money(x.spend)}<br>too little</span></td>`;
+     const dl=dealsLine(dealsForRows(rs||[]));
+     return `<td><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span><span class="s">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()}${dl?"<br>"+dl:""}</span></td>`; };
+  const head=`<tr><th>${esc(bdA)} ↓ &nbsp; ${esc(bdB)} →</th>${colsK.map(c=>`<th>${esc(c)}</th>`).join("")}<th>All</th></tr>`;
+  const body=rowsK.map(a=>`<tr><td>${esc(a)}</td>${colsK.map(b=>td(agg(cell[a+"|"+b]||[]),cell[a+"|"+b])).join("")}${td(agg(rowT[a]),rowT[a])}</tr>`).join("")+
+    `<tr><td>All</td>${colsK.map(b=>td(agg(colT[b]),colT[b])).join("")}${td(tot,f)}</tr>`;
+  const pairs=Object.entries(cell).map(([k,rs])=>({k:k.replace("|"," + "),...agg(rs)})).filter(x=>x.spend>=bdMin).sort(rankBest);
+  const under=Object.keys(cell).length-pairs.length;
+  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+
+    `<div class="card"><h2>${esc(bdA)} and ${esc(bdB)} together</h2>
+       <div class="note" style="margin:-8px 0 12px;">Each cell is ${SCORE_NAME} for ads that are both. Account: <b>${scoreTxt(tot)}</b>.</div>
+       <div style="overflow-x:auto"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
+     <div class="card"><h2>Pairs ranked by ${SCORE_NAME}</h2>
+       <div style="overflow-x:auto"><table><thead><tr><th>${esc(bdA)} + ${esc(bdB)}</th><th class="num">Spend</th>${resHeadHtml()}</tr></thead><tbody>${
+         pairs.map(x=>`<tr><td>${esc(x.k)}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}</tr>`).join("")||`<tr><td colspan="7" class="note">No pair has reached the minimum spend in these dates.</td></tr>`}</tbody></table></div>
+       ${under?`<div class="note">${under} more pair${under===1?"":"s"} ran under the ${money(bdMin)} minimum and are left out of the ranking.</div>`:""}</div>`;
+  wireDetailPickers(); wireBdBar();
 }
 
 /* ── SparkLoop partner earnings: weekly payouts as the API returns them,
@@ -625,7 +1139,7 @@ function renderSparkLoopTab(){
     <div class="kpis">
       <div class="kpi"><div class="label">Lifetime Paid</div><div class="val">${money(lifetime)}</div></div>
       <div class="kpi"><div class="label">This Month (${thisMonth})</div><div class="val">${money(thisMonthAmt)}</div></div>
-      <div class="kpi"><div class="label">Last Payout${last?" ("+last.date+")":""}</div><div class="val">${last?money(last.amount):"—"}</div></div>
+      <div class="kpi"><div class="label">Last Payout${last?" ("+last.date+")":""}</div><div class="val">${last?money(last.amount):"-"}</div></div>
       <div class="kpi"><div class="label">Expected Payout</div><div class="val">${money(expectedTotal)}</div></div>
       <div class="kpi"><div class="label">Active Partner Programs</div><div class="val">${num(activeN)}</div></div>
     </div>
@@ -635,7 +1149,7 @@ function renderSparkLoopTab(){
       <table><thead><tr><th>Month</th><th class="num">Paid</th><th class="num">Payouts</th></tr></thead><tbody>${moRows}</tbody></table></div></div>
     <div class="card"><h2>Payout history (weekly)</h2><div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
       <table><thead><tr><th>Week Ending</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>${poRows}</tbody></table></div></div>
-    <div class="card"><h2>Ads &times; earnings — net effective cost per ${RESULT_ONE}</h2>
+    <div class="card"><h2>Ads and earnings: net effective cost per ${RESULT_ONE}</h2>
       <div class="chart-wrap" style="height:280px;"><canvas id="slNetChart"></canvas></div>
       <div style="overflow-x:auto;max-height:300px;overflow-y:auto;margin-top:10px;">
       <table><thead><tr><th>Month</th><th class="num">Spend</th><th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>
@@ -666,8 +1180,8 @@ function renderSparkLoopTab(){
     return {month:m,spend,res,earn,net,cpa:res>0?spend/res:0,netCpa:res>0?net/res:0}; });
   document.getElementById("slNetBody").innerHTML=combined.slice().reverse().map(c=>
     `<tr><td>${c.month}</td><td class="num">${money(c.spend)}</td><td class="num">${num(c.res)}</td>
-     <td class="num">${c.res>0?money(c.cpa):"—"}</td><td class="num">${money(c.earn)}</td>
-     <td class="num">${money(c.net)}</td><td class="num"><strong>${c.res>0?money(c.netCpa):"—"}</strong></td></tr>`).join("");
+     <td class="num">${c.res>0?money(c.cpa):"-"}</td><td class="num">${money(c.earn)}</td>
+     <td class="num">${money(c.net)}</td><td class="num"><strong>${c.res>0?money(c.netCpa):"-"}</strong></td></tr>`).join("");
   makeChart("slNetChart",{type:"bar",
     data:{labels:combined.map(c=>c.month),
       datasets:[
@@ -711,8 +1225,8 @@ function renderModeled(){
   }
   const corrCtl=CORR?`<div style="margin:0 0 10px;font-size:13px;"><label style="cursor:pointer;"><input type="checkbox" id="modCorr"${modCorrOn?" checked":""}> Apply source-loss correction (&times;${CORR} on paid ${NOUN.toLowerCase()}s)</label><div class="note">${MODELED.corrNote||""}</div></div>`:"";
   const tblBody=MOD.rows.filter(r=>isAds(r.source)).sort((a,b)=>a.month===b.month?(a.source<b.source?-1:1):(a.month<b.month?1:-1)).map(r=>{
-    const b=adjB(r.source,r.bookings), c=(r.spend>0&&b>0)?money(r.spend/b):"—";
-    return `<tr><td>${r.month}${r.month===curMonth?" (MTD)":""}</td><td>${r.source}</td><td class="num">${(modCorrOn&&b!==r.bookings)?b.toFixed(1):num(r.bookings)}</td><td class="num">${num(r.cancels)||"—"}</td><td class="num">${r.spend>0?money(r.spend):"—"}</td><td class="num">${c}</td><td class="num">${r.claimed>0?num(r.claimed):"—"}</td></tr>`; }).join("");
+    const b=adjB(r.source,r.bookings), c=(r.spend>0&&b>0)?money(r.spend/b):"-";
+    return `<tr><td>${r.month}${r.month===curMonth?" (MTD)":""}</td><td>${r.source}</td><td class="num">${(modCorrOn&&b!==r.bookings)?b.toFixed(1):num(r.bookings)}</td><td class="num">${num(r.cancels)||"-"}</td><td class="num">${r.spend>0?money(r.spend):"-"}</td><td class="num">${c}</td><td class="num">${r.claimed>0?num(r.claimed):"-"}</td></tr>`; }).join("");
   // Booking CVR vs GA4 sessions (generic source-prefix mapping; PMax traffic reports under Cross-network)
   const ga4Cell={}; MOD.ga4.forEach(r=>ga4Cell[r.month+"|"+r.channel]=r);
   const cvrGroups=[
@@ -725,7 +1239,7 @@ function renderModeled(){
     MOD.rows.forEach(r=>{ if(r.month===m&&g.match(r.source)) book+=r.bookings; });
     if(g.paid&&modCorrOn&&CORR) book*=CORR;
     if(!sess&&!book) return;
-    cvrBody+=`<tr><td>${m}${m===curMonth?" (MTD)":""}</td><td>${g.label}</td><td class="num">${num(sess)}</td><td class="num">${(modCorrOn&&g.paid)?book.toFixed(1):num(book)}</td><td class="num">${sess>0?(100*book/sess).toFixed(2)+"%":"—"}</td></tr>`; }); });
+    cvrBody+=`<tr><td>${m}${m===curMonth?" (MTD)":""}</td><td>${g.label}</td><td class="num">${num(sess)}</td><td class="num">${(modCorrOn&&g.paid)?book.toFixed(1):num(book)}</td><td class="num">${sess>0?(100*book/sess).toFixed(2)+"%":"-"}</td></tr>`; }); });
   const ga4Card=MOD.ga4.length?`<div class="card"><h2>GA4 sessions by paid channel (monthly)</h2><div class="chart-wrap"><canvas id="modGa4"></canvas></div></div>
     <div class="card"><h2>${NOUN} conversion rate (${CRM.toLowerCase()==="crm"?"CRM":CRM} ${NOUN.toLowerCase()}s &divide; GA4 sessions)</h2><div style="overflow-x:auto"><table><thead><tr><th>Month</th><th>Channel</th><th class="num">GA4 Sessions</th><th class="num">${NOUN}s</th><th class="num">CVR</th></tr></thead><tbody>${cvrBody}</tbody></table></div></div>`:"";
   document.getElementById("tab-modeled").innerHTML=
@@ -1156,356 +1670,377 @@ function renderDeals() {
   }).join('') || '<tr><td colspan="11" style="color:var(--muted);">Nothing in the window.</td></tr>';
 }
 
+/* ── Keywords (Google layer only; ported from sog.html). Date-filtered; the campaign, ad set and
+   platform pickers list Meta objects, so they do not apply here. ── */
+let kwGroup="keyword", kwGroup2="", kwSort={col:"spend",asc:false};
+const KW_DIMS=[["keyword","Keyword"],["match_type","Match Type"],["campaign","Campaign"],["ad_group","Ad Group"]];
+function renderKeywords(){
+  const rows=GKW.filter(r=>r._date>=state.from && r._date<=state.to);
+  const lbl=Object.fromEntries(KW_DIMS);
+  const keyFn=kwGroup2?(r=>(r[kwGroup]||"(none)")+" × "+(r[kwGroup2]||"(none)")):(r=>r[kwGroup]||"(none)");
+  const dimLabel=kwGroup2?lbl[kwGroup]+" × "+lbl[kwGroup2]:lbl[kwGroup];
+  const g={}; rows.forEach(r=>{ const k=keyFn(r); (g[k]=g[k]||[]).push(r); });
+  const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)}));
+  const sel=(id,cur,opts)=>`<select id="${id}">${opts.map(([k,l])=>`<option value="${k}"${k===cur?" selected":""}>${l}</option>`).join("")}</select>`;
+  const arr=c=>kwSort.col===c?(kwSort.asc?" ▲":" ▼"):"";
+  const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
+  const sorted=out.slice().sort((a,b)=>{ const c=kwSort.col, s=kwSort.asc?1:-1; const va=c==="k"?a.k.toLowerCase():a[c], vb=c==="k"?b.k.toLowerCase():b[c]; return va<vb?-s:va>vb?s:0; });
+  const trunc=(t,n)=>t.length>n?t.slice(0,n-3)+"...":t;
+  document.getElementById("tab-keywords").innerHTML=
+    `<div class="info-bar">Google Ads search keywords for these dates. The campaign, ad set and platform pickers above list Meta objects and do not apply to this tab. Results = the Conversions column.</div>
+     <div class="bd-bar"><label>Group by: ${sel("kwGroup",kwGroup,KW_DIMS)}</label><label>Cross-cut: ${sel("kwGroup2",kwGroup2,[["","None"]].concat(KW_DIMS))}</label></div>
+     <div class="chart-row">
+       <div class="card"><h2>${RESULT_LABEL} by ${esc(dimLabel)}</h2><div class="chart-wrap"><canvas id="kwRes"></canvas></div></div>
+       <div class="card"><h2>${COST_LABEL} by ${esc(dimLabel)}</h2><div class="chart-wrap"><canvas id="kwCpa"></canvas></div></div>
+     </div>
+     <div class="card"><h2>Spend by ${esc(dimLabel)}</h2><div class="chart-wrap"><canvas id="kwSpend"></canvas></div></div>
+     <div class="card"><div style="overflow-x:auto"><table id="kwTbl"><thead><tr>${sth("k",esc(dimLabel))}${sth("leads",RESULT_LABEL,"num")}${sth("cpa",COST_LABEL,"num")}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${sth("cpc","CPC","num")}</tr></thead>
+       <tbody>${sorted.map(x=>`<tr><td title="${esc(x.k)}">${esc(trunc(x.k,60))}</td><td class="num">${num(x.leads)}</td><td class="num">${cpaFmt(x)}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${cpcFmt(x)}</td></tr>`).join("")
+         ||`<tr><td colspan="8" class="note">No keyword rows in the selected dates.</td></tr>`}</tbody></table></div></div>`;
+  document.getElementById("kwGroup").addEventListener("change",e=>{kwGroup=e.target.value; if(kwGroup2===kwGroup) kwGroup2=""; renderKeywords();});
+  document.getElementById("kwGroup2").addEventListener("change",e=>{kwGroup2=e.target.value; renderKeywords();});
+  document.querySelectorAll("#kwTbl th[data-sort]").forEach(th=>th.addEventListener("click",()=>{ const c=th.dataset.sort; if(kwSort.col===c) kwSort.asc=!kwSort.asc; else { kwSort.col=c; kwSort.asc=(c==="k"||c==="cpa"||c==="cpc"); } renderKeywords(); }));
+  const hbar=(id,items,val,fmt)=>makeChart(id,{type:"bar",data:{labels:items.map(x=>trunc(x.k,40)),datasets:[{data:items.map(val),backgroundColor:items.map((_,i)=>COLORS[i%COLORS.length]),borderRadius:4}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:fmt}}}}});
+  const byRes=out.slice().sort((a,b)=>b.leads-a.leads).slice(0,15), bySpend=out.slice().sort((a,b)=>b.spend-a.spend).slice(0,15);
+  hbar("kwRes",byRes,x=>x.leads,v=>v.toLocaleString());
+  hbar("kwCpa",byRes,x=>x.leads?x.spend/x.leads:0,v=>"$"+(+v).toFixed(2));
+  hbar("kwSpend",bySpend,x=>x.spend,v=>"$"+v.toLocaleString());
+}
+
+/* ── Ad Explorer: searchable, sortable per-ad table; a row opens the detail panel (ported from theunsealed.html) ── */
+let axSort={col:null,asc:true}, axSearch="";
+function renderExplorer(f){
+  let ads=adsAgg(f);
+  const q=axSearch.toLowerCase().trim();
+  if(q) ads=ads.filter(a=>(a.name||"").toLowerCase().indexOf(q)>=0||(a.campaign||"").toLowerCase().indexOf(q)>=0||(a.adset||"").toLowerCase().indexOf(q)>=0);
+  const sval=(a,c)=>["name","campaign","adset","format","funnel"].includes(c)?(a[c]||"").toLowerCase():a[c];
+  if(axSort.col){ const c=axSort.col,s=axSort.asc?1:-1; ads.sort((a,b)=>{const va=sval(a,c),vb=sval(b,c);return va<vb?-s:va>vb?s:0;}); }
+  else ads=bestFirst(ads);
+  const arr=c=>axSort.col===c?(axSort.asc?" ▲":" ▼"):"";
+  const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
+  const head=`<tr><th></th>${sth("name","Ad")}${sth("campaign","Campaign")}${sth("adset","Ad Set")}${sth("format","Format")}${sth("funnel","Funnel")}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${sth("cpc","CPC","num")}${sth("cpm","CPM","num")}${sth("leads",RESULT_LABEL,"num")}`+
+    (IS_ROAS?sth("roas","ROAS","num")+sth("rev","Revenue","num"):sth("cpa","CPA","num"))+sth("lpv","LPV","num")+sth("atc","ATC","num")+`</tr>`;
+  const rows=ads.map(a=>`<tr class="clickable" data-adid="${esc(a.id)}"><td>${a.thumb?`<img class="thumb" src="${esc(a.thumb)}" alt="" onerror="this.style.display='none'">`:""}</td><td class="adname">${esc(a.name||"")}</td><td>${esc(a.campaign||NA)}</td><td>${esc(a.adset||NA)}</td><td><span class="pill">${esc(a.format||NA)}</span></td><td>${esc(a.funnel||NA)}</td>
+    <td class="num">${money(a.spend)}</td><td class="num">${num(a.imp)}</td><td class="num">${num(a.clicks)}</td><td class="num">${pct(a.ctr)}</td><td class="num">${cpcFmt(a)}</td><td class="num">${cpmFmt(a)}</td><td class="num">${num(a.leads)||NA}</td>`+
+    (IS_ROAS?`<td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${roasFmt(a)}</td><td class="num">${money(a.rev)}</td>`:`<td class="num">${cpaFmt(a)}</td>`)+
+    `<td class="num">${num(a.lpv)||NA}</td><td class="num">${num(a.atc)||NA}</td></tr>`).join("")||`<tr><td colspan="17" class="note">No ads match.</td></tr>`;
+  document.getElementById("tab-explorer").innerHTML=
+    `<input type="text" class="search-box" id="axSearch" placeholder="Search by ad, campaign or ad set..." value="${esc(axSearch)}">
+     <div class="card"><h2>All ads <span class="mini">click a row for daily detail</span></h2><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
+  const sb=document.getElementById("axSearch");
+  sb.addEventListener("input",e=>{ axSearch=e.target.value; const pos=sb.selectionStart; renderExplorer(filtered()); const n=document.getElementById("axSearch"); n.focus(); n.setSelectionRange(pos,pos); });
+  document.querySelectorAll("#tab-explorer th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
+    const c=th.dataset.sort; if(axSort.col===c)axSort.asc=!axSort.asc; else {axSort.col=c; axSort.asc=["name","campaign","adset","format","funnel","cpa","cpc","cpm"].includes(c);}
+    renderExplorer(filtered());
+  }));
+  document.querySelectorAll("#tab-explorer tr.clickable").forEach(tr=>tr.addEventListener("click",()=>openAdPanel(tr.dataset.adid)));
+}
+function openAdPanel(adId){
+  const rows=filtered().filter(r=>String(r["Ad ID"])===String(adId));
+  if(!rows.length) return;
+  const a=agg(rows), s=rows[0];
+  document.getElementById("axTitle").textContent=s["Ad Name"]||adId;
+  document.getElementById("axSub").innerHTML=`Campaign: ${esc(s["Campaign"]||NA)} &nbsp;|&nbsp; Ad Set: ${esc(s["Ad Set"]||NA)}`+
+    ` &nbsp;|&nbsp; <a class="ax-link" href="https://www.facebook.com/ads/library/?id=${encodeURIComponent(adId)}" target="_blank" rel="noopener">Open in Facebook Ads Library</a>`;
+  const badges=DERIVED_DIMS.concat(AI_DIMS).map(d=>{ const v=(s[d]||"").toString().trim(); return v?`<span class="badge${DERIVED_DIMS.includes(d)?" dim":""}" title="${esc(d)}">${esc(d)}: ${esc(v)}</span>`:""; }).join("");
+  document.getElementById("axBadges").innerHTML=badges;
+  const noReach=!!state.platform;
+  const tiles=IS_ROAS
+    ? [["Spend",money(a.spend)],["Impressions",num(a.imp)],["Clicks",num(a.clicks)],["CTR",pct(a.ctr)],["CPC",cpcFmt(a)],["CPM",cpmFmt(a)],
+       [RESULT_LABEL,num(a.leads)],["CPA",cpaFmt(a)],["Revenue",money(a.rev)],["ROAS",roasFmt(a)],["Landing Page Views",num(a.lpv)],["Adds to Cart",num(a.atc)]]
+    : [["Spend",money(a.spend)],["Impressions",num(a.imp)],["Reach",noReach?"n/a":num(a.reach)],["Frequency",noReach?"n/a":(a.reach?a.freq.toFixed(2):NA)],["Clicks",num(a.clicks)],["CTR",pct(a.ctr)],
+       ["CPC",cpcFmt(a)],["CPM",cpmFmt(a)],[RESULT_LABEL,num(a.leads)],[COST_LABEL,cpaFmt(a)],["Landing Page Views",num(a.lpv)],["Registrations",num(a.regs)]];
+  document.getElementById("axKpis").innerHTML=tiles.map(([l,v])=>`<div class="ax-kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
+  const by={}; rows.forEach(r=>{ (by[r._date]=by[r._date]||[]).push(r); });
+  const days=Object.keys(by).sort(), d=days.map(k=>agg(by[k]));
+  makeChart("axChart",{type:"bar",data:{labels:days,datasets:[
+      {label:"Spend",data:d.map(x=>x.spend),backgroundColor:COLORS[0],borderRadius:3,yAxisID:"y"},
+      {label:RESULT_LABEL,type:"line",data:d.map(x=>x.leads),borderColor:COLORS[2],backgroundColor:"transparent",yAxisID:"y1",tension:.3,pointRadius:days.length>30?0:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}},
+      scales:{y:{position:"left",beginAtZero:true,ticks:{callback:v=>"$"+(+v).toFixed(0)}},y1:{position:"right",beginAtZero:true,grid:{drawOnChartArea:false},ticks:{precision:0}},x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:25}}}}});
+  document.getElementById("axHead").innerHTML=`<tr><th>Date</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th><th class="num">CPC</th><th class="num">${RESULT_LABEL}</th>`+
+    (IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">CPA</th>`)+`</tr>`;
+  document.getElementById("axBody").innerHTML=days.map((k,i)=>{ const x=d[i]; return `<tr><td>${k}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${cpcFmt(x)}</td><td class="num">${num(x.leads)||NA}</td>`+
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${roasFmt(x)}</td>`:`<td class="num">${cpaFmt(x)}</td>`)+`</tr>`; }).join("");
+  document.getElementById("axOverlay").classList.add("open");
+}
+function closeAdPanel(){ document.getElementById("axOverlay").classList.remove("open"); if(charts.axChart){ charts.axChart.destroy(); delete charts.axChart; } }
+
+/* ── Headlines & Copy ── Meta section from the engine's per-asset tabs (Headline Performance /
+   Primary Text Performance), Google section from the Google RSA asset tabs when configured. ── */
+let hcMin=200, gAssetView="headline", gAssetSort={col:"spend",asc:false};
+function assetTable(rows,title,what){
+  const g={}; rows.forEach(r=>{ if(!r.asset) return; (g[r.asset]=g[r.asset]||[]).push(r); });
+  const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)}));
+  const low=x=>x.spend<hcMin;
+  out.sort((a,b)=>{ const al=low(a)||!(IS_ROAS?a.rev:a.leads), bl=low(b)||!(IS_ROAS?b.rev:b.leads); if(al!==bl) return al?1:-1; if(al) return b.spend-a.spend; return IS_ROAS?b.roas-a.roas:a.cpa-b.cpa; });
+  const tot=agg(rows);
+  const body=out.map(x=>`<tr${low(x)?' class="low"':""}><td style="white-space:normal;max-width:520px;" title="${esc(x.k)}">${esc(x.k.length>220?x.k.slice(0,217)+"...":x.k)}</td><td class="num">${x.ads}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${num(x.leads)||NA}</td>`+
+    `<td class="num">${x.leads?`<span class="${low(x)?"":scoreCls(x,tot)}" style="font-weight:700;">${money(x.cpa)}</span>`:NA}</td>`+
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?`<span class="${low(x)?"":scoreCls(x,tot)}" style="font-weight:700;">${x.roas.toFixed(2)}x</span>`:NA}</td>`:"")+`</tr>`).join("");
+  return `<div class="card"><h2>${title}</h2><div style="overflow-x:auto"><table><thead><tr><th>Text</th><th class="num">Ads</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th><th class="num">${RESULT_LABEL}</th><th class="num">${COST_LABEL}</th>${IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:""}</tr></thead>
+    <tbody>${body||`<tr><td colspan="10" class="note">No ${what} rows for the ads in these dates.</td></tr>`}</tbody></table></div>
+    <div class="note">Per-asset numbers reported by Meta. Revenue at asset level is not guaranteed by Meta.</div></div>`;
+}
+function renderHeadlines(f){
+  const inScope=r=>r._date>=state.from && r._date<=state.to && (!state.campaign||r["Campaign"]===state.campaign) && (!state.adset||r["Ad Set"]===state.adset);
+  const heads=HEADS.filter(inScope), bodies=BODIES.filter(inScope);
+  const tot=agg(f);
+  let meta;
+  if(HEADS.length||BODIES.length){
+    meta=`<div class="bd-bar"><label>Min spend $ <input type="number" id="hcMin" value="${hcMin}" style="width:80px;"></label>
+        <span>Ranked by ${SCORE_NAME}${IS_ROAS?" (highest first)":" (cheapest first)"}. Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b>. ${SCORE_RULE} Rows under the minimum are greyed and unranked.${state.platform?" The platform filter does not apply to asset rows.":""}</span></div>`+
+      assetTable(heads,"By Headline","headline")+assetTable(bodies,"By Primary Text","primary text");
+  } else {
+    // Older sheets: no per-asset tabs yet. Group the filtered ad rows by the ad's first headline / text.
+    const grp=(rows,field)=>{ const g={}; rows.forEach(r=>{ const k=(r[field]||"").toString().trim(); if(!k) return; (g[k]=g[k]||[]).push(r); });
+      return Object.entries(g).map(([k,rs])=>({k,...agg(rs)})).sort(rankBest); };
+    const tbl=out=>`<table><thead><tr><th>Text</th><th class="num">Ads</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${resHeadHtml()}</tr></thead><tbody>`+
+      (out.map(x=>`<tr><td style="white-space:normal;max-width:520px;">${esc(x.k.slice(0,220))}</td><td class="num">${x.ads}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td>${resCellsHtml(x)}</tr>`).join("")||`<tr><td colspan="12" class="note">No ad copy on file for these ads.</td></tr>`)+`</tbody></table>`;
+    meta=`<div class="info-bar">This sheet has no per-asset tabs yet (${HEAD_TAB} / ${BODY_TAB}). Showing each ad under the first headline and primary text Meta lists for it; per-variation delivery is not shown.</div>
+      <div class="card"><h2>By Headline</h2><div style="overflow-x:auto">${tbl(grp(f,"_headline"))}</div></div>
+      <div class="card"><h2>By Primary Text</h2><div style="overflow-x:auto">${tbl(grp(f,"_body"))}</div></div>`;
+  }
+  let google="";
+  if(GOOGLE && (GHEAD.length||GDESC.length)){
+    const rows=(gAssetView==="headline"?GHEAD:GDESC).map(r=>({...r,...agg([r]),k:r.text}));
+    const c=gAssetSort.col, s=gAssetSort.asc?1:-1;
+    rows.sort((a,b)=>{ const va=c==="k"?a.k.toLowerCase():a[c], vb=c==="k"?b.k.toLowerCase():b[c]; return va<vb?-s:va>vb?s:0; });
+    const arr=x=>gAssetSort.col===x?(gAssetSort.asc?" ▲":" ▼"):"";
+    const sth=(x,l,cls)=>`<th class="${cls||""}" data-gsort="${x}">${l}${arr(x)}</th>`;
+    const top=rows.slice().sort((a,b)=>b.spend-a.spend).slice(0,15), trunc=(t,n)=>t.length>n?t.slice(0,n-3)+"...":t;
+    google=`<h2 style="font-size:18px;margin:8px 0 12px;">Google</h2>
+      <div class="info-bar">Google responsive search ad assets, whole history as written by the Google sync (these tabs carry no dates, so the date filter does not apply). Results = the Leads column.</div>
+      <div class="bd-bar"><label>View: <select id="gAssetView"><option value="headline"${gAssetView==="headline"?" selected":""}>Headlines</option><option value="description"${gAssetView==="description"?" selected":""}>Descriptions</option></select></label></div>
+      <div class="chart-row"><div class="card"><h2>${RESULT_LABEL} by asset</h2><div class="chart-wrap"><canvas id="gaRes"></canvas></div></div>
+        <div class="card"><h2>${COST_LABEL} by asset</h2><div class="chart-wrap"><canvas id="gaCpa"></canvas></div></div></div>
+      <div class="card"><h2>Spend by asset</h2><div class="chart-wrap"><canvas id="gaSpend"></canvas></div></div>
+      <div class="card"><div style="overflow-x:auto"><table id="gaTbl"><thead><tr>${sth("k",gAssetView==="headline"?"Headline":"Description")}${sth("leads",RESULT_LABEL,"num")}${sth("cpa",COST_LABEL,"num")}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${sth("cpc","CPC","num")}</tr></thead>
+        <tbody>${rows.map(x=>`<tr><td title="${esc(x.k)}" style="white-space:normal;max-width:420px;">${esc(trunc(x.k,90))}</td><td class="num">${num(x.leads)}</td><td class="num">${cpaFmt(x)}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${cpcFmt(x)}</td></tr>`).join("")||`<tr><td colspan="8" class="note">No Google ${gAssetView} rows.</td></tr>`}</tbody></table></div></div>`;
+    setTimeout(()=>{
+      const hbar=(id,items,val,fmt)=>makeChart(id,{type:"bar",data:{labels:items.map(x=>trunc(x.k,35)),datasets:[{data:items.map(val),backgroundColor:items.map((_,i)=>COLORS[i%COLORS.length]),borderRadius:4}]},
+        options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true,ticks:{callback:fmt}}}}});
+      hbar("gaRes",top,x=>x.leads,v=>v.toLocaleString()); hbar("gaCpa",top,x=>x.leads?x.spend/x.leads:0,v=>"$"+(+v).toFixed(2)); hbar("gaSpend",top,x=>x.spend,v=>"$"+v.toLocaleString());
+      document.getElementById("gAssetView").addEventListener("change",e=>{gAssetView=e.target.value; renderHeadlines(filtered());});
+      document.querySelectorAll("#gaTbl th[data-gsort]").forEach(th=>th.addEventListener("click",()=>{ const x=th.dataset.gsort; if(gAssetSort.col===x) gAssetSort.asc=!gAssetSort.asc; else { gAssetSort.col=x; gAssetSort.asc=(x==="k"||x==="cpa"||x==="cpc"); } renderHeadlines(filtered()); }));
+    },0);
+  }
+  document.getElementById("tab-headlines").innerHTML=`<h2 style="font-size:18px;margin:0 0 12px;">Meta</h2>`+meta+google;
+  const hm=document.getElementById("hcMin"); if(hm) hm.addEventListener("change",e=>{hcMin=Math.max(0,+e.target.value||0); renderHeadlines(filtered());});
+}
+
+/* ── Funnel: step cards + log-scale bar (ported from theunsealed.html), then the By Funnel stage grouping ── */
+function renderFunnel(f){
+  const t=agg(f);
+  const purchases=t.purch||t.leads;
+  const stages=IS_ROAS
+    ? [["Impressions",t.imp],["Clicks",t.clicks],["Landing Page Views",t.lpv],["Adds to Cart",t.atc],["Checkouts Initiated",t.ckt],["Purchases",purchases]]
+    : [["Impressions",t.imp],["Clicks",t.clicks],["Landing Page Views",t.lpv],[RESULT_LABEL,t.leads]].concat(t.regs>0&&RESULT_LABEL!=="Registrations"?[["Registrations",t.regs]]:[]);
+  const imp=stages[0][1]||1;
+  const cards=stages.map(([label,v],i)=>{
+    const prev=i?stages[i-1][1]:0, conv=prev?v/prev*100:0, share=v/imp*100;
+    const w=Math.max(25,Math.min(100,share));
+    return (i?`<div class="funnel-arrow">▼</div>`:"")+
+      `<div class="funnel-stage" style="width:${w}%"><div class="funnel-stage-label">${label}</div><div class="funnel-stage-count">${num(v)}</div>
+        <div class="funnel-stage-pct">${share.toFixed(2)}% of impressions</div>${i?`<div class="funnel-stage-drop">${conv.toFixed(2)}% from ${stages[i-1][0]}</div>`:""}
+        <div class="funnel-stage-cost">Cost per: ${v?money(t.spend/v):NA}</div></div>`; }).join("");
+  const out=aggByDim(f,"Funnel");
+  document.getElementById("tab-funnel").innerHTML=
+    `<div class="card"><h2>Step funnel</h2><div class="funnel-wrap">${cards}</div>
+       <div class="note">Landing page views, adds to cart and checkouts are Meta-attributed pixel counts for the filtered ads. Stages after Clicks are 0 on sheets that predate these columns.</div></div>
+     <div class="card"><h2>Funnel Visualization <span class="mini">log scale</span></h2><div class="chart-wrap" style="height:260px;"><canvas id="funBar"></canvas></div></div>
+     <div class="card"><h2>By Funnel stage</h2><div class="chart-wrap" style="height:260px;"><canvas id="funChart"></canvas></div></div>
+     <div class="card">${dimTable(out,"Funnel stage")}<div class="note">Funnel stage is read from campaign and ad set names (Prospecting / Retargeting / Winback...). Rename in Ads Manager to change it.</div></div>`;
+  makeChart("funBar",{type:"bar",data:{labels:stages.map(s=>s[0]),datasets:[{label:"Count",data:stages.map(s=>s[1]>0?s[1]:null),backgroundColor:stages.map((_,i)=>COLORS[i%COLORS.length]),borderRadius:4}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const v=stages[c.dataIndex][1];return `${num(v)} | cost per: ${v?money(t.spend/v):NA}`;}}}},
+      scales:{x:{type:"logarithmic",min:1,ticks:{callback:v=>[1,10,100,1000,10000,100000,1000000,10000000].includes(v)?v.toLocaleString():""}}}}});
+  dimChart("funChart",out);
+}
+
+/* ── Site Events: Meta ads-attributed pixel events from the Meta Event Detail tab ── */
+function renderSiteEvents(){
+  const inScope=r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset);
+  const cur=EVENTS.filter(r=>inScope(r)&&r._date>=state.from&&r._date<=state.to);
+  const spanDays=Math.round((new Date(state.to+"T00:00:00")-new Date(state.from+"T00:00:00"))/86400000)+1;
+  const pTo=shiftDays(state.from,1), pFrom=shiftDays(state.from,spanDays);
+  const prev=state.cmp?EVENTS.filter(r=>inScope(r)&&r._date>=pFrom&&r._date<=pTo):[];
+  const intro=`<div class="info-bar">Meta ads-attributed pixel events for these dates (7-day click, 1-day view). Not site-wide traffic.${state.platform?" The platform filter does not apply to pixel events.":""}</div>`;
+  if(!cur.length){ document.getElementById("tab-siteevents").innerHTML=intro+`<div class="card"><div class="note">No pixel events in the selected range.</div></div>`; return; }
+  const totals=rows=>{ const t={}; rows.forEach(r=>{ const e=t[r.event]=t[r.event]||{count:0,value:0}; e.count+=r.count; e.value+=r.value; }); return t; };
+  const T=totals(cur), P=totals(prev);
+  const events=Object.keys(T).sort((a,b)=>T[b].count-T[a].count), top=events.slice(0,10);
+  const spend=agg(filteredAdDaily()).spend;
+  const kpis=top.map(e=>{ const c=T[e], p=P[e];
+    const d=p&&p.count?periodDelta(c.count,p.count,false,num).replace("tbl-delta","kpi-delta").replace("<span","<div").replace("</span>","</div>"):"";
+    return `<div class="kpi"><div class="label">${esc(e)}</div><div class="val">${num(c.count)}</div>${d}${c.value?`<div class="sublabel">${money(c.value)} value</div>`:""}</div>`; }).join("");
+  const days=[...new Set(cur.map(r=>r._date))].sort();
+  const byDay={}; cur.forEach(r=>{ byDay[r._date+"|"+r.event]=(byDay[r._date+"|"+r.event]||0)+r.count; });
+  const byCamp={}; cur.forEach(r=>{ const c=r["Campaign"]||"(none)"; const o=byCamp[c]=byCamp[c]||{}; o[r.event]=(o[r.event]||0)+r.count; });
+  const camps=Object.keys(byCamp).sort((a,b)=>Object.values(byCamp[b]).reduce((s,v)=>s+v,0)-Object.values(byCamp[a]).reduce((s,v)=>s+v,0));
+  document.getElementById("tab-siteevents").innerHTML=intro+
+    `<div class="kpis">${kpis}</div>
+     <div class="card"><h2>Daily events</h2><div class="chart-wrap"><canvas id="seChart"></canvas></div></div>
+     <div class="card"><h2>By event</h2><div style="overflow-x:auto"><table><thead><tr><th>Event</th><th class="num">Count</th><th class="num">Value</th><th class="num">Cost per event</th></tr></thead>
+       <tbody>${events.map(e=>`<tr><td>${esc(e)}</td><td class="num">${num(T[e].count)}</td><td class="num">${T[e].value?money(T[e].value):NA}</td><td class="num">${T[e].count&&spend?money(spend/T[e].count):NA}</td></tr>`).join("")}</tbody></table></div>
+       <div class="note">Cost per event = ad spend for the same campaign, ad set and dates (${money(spend)}) divided by the event count. Raw Meta action types that mean the same event are de-duplicated, never summed.</div></div>
+     <div class="card"><h2>By campaign</h2><div style="overflow-x:auto"><table><thead><tr><th>Campaign</th>${top.map(e=>`<th class="num">${esc(e)}</th>`).join("")}</tr></thead>
+       <tbody>${camps.map(c=>`<tr><td class="adname">${esc(c)}</td>${top.map(e=>`<td class="num">${byCamp[c][e]?num(byCamp[c][e]):NA}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+  makeChart("seChart",{type:"bar",data:{labels:days,datasets:top.map((e,i)=>({label:e,backgroundColor:COLORS[i%COLORS.length],data:days.map(d=>byDay[d+"|"+e]||0)}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
+}
+
+/* ── Budget Pacing (ported from birdandbean.html + daily bars) ── */
 function renderPacing(f){
-  // pacing is month-to-date for the current month vs an entered budget
+  // pacing is month-to-date for the current month vs the sheet's Budgets tab (or a typed budget)
   const today=DMAX; const ym=today.slice(0,7); const monthStart=ym+"-01";
   const mtdRows=ROWS.filter(r=>r._date>=monthStart && r._date<=today);
-  const mtd=agg(mtdRows).spend;
+  const m=agg(mtdRows); const mtd=m.spend;
   const dayNum=+today.slice(8,10); const daysInMonth=new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate();
   const projected=dayNum?mtd/dayNum*daysInMonth:0;
   // Precedence: budget typed into the page > sheet Budgets tab > client config.
   const sheetBudget=monthlyBudgetFor(ym);
-  const budget=+(localStorage.getItem("adsBudget_"+CLIENT_KEY)||sheetBudget||CFG.monthlyBudget||0);
+  const override=localStorage.getItem("adsBudget_"+CLIENT_KEY);
+  const budget=+(override||sheetBudget||CFG.monthlyBudget||0);
   const pacePct=budget?projected/budget*100:0;
-  const status=!budget?"—":projected>budget*1.05?"OVER PACE":projected<budget*0.9?"UNDER PACE":"ON TRACK";
+  const status=!budget?NA:projected>budget*1.05?"OVER PACE":projected<budget*0.9?"UNDER PACE":"ON TRACK";
   const statusColor=status==="OVER PACE"?"var(--bad)":status==="UNDER PACE"?"#FFA500":"var(--good)";
+  const byDay={}; mtdRows.forEach(r=>{ byDay[r._date]=(byDay[r._date]||0)+r._spend; });
+  const days=Object.keys(byDay).sort(); let cum=0; const cumSpend=days.map(d=>cum+=byDay[d]);
+  const dailyTarget=budget?budget/daysInMonth:0;
+  const target=budget?days.map(d=>dailyTarget*(+d.slice(8,10))):[];
+  const resTiles=IS_ROAS
+    ? `<div class="kpi"><div class="label">MTD ${RESULT_LABEL}</div><div class="val">${num(m.leads)}</div></div>
+       <div class="kpi"><div class="label">MTD Revenue</div><div class="val">${money(m.rev)}</div></div>
+       <div class="kpi"><div class="label">MTD ROAS</div><div class="val">${roasFmt(m)}</div></div>`
+    : `<div class="kpi"><div class="label">MTD ${RESULT_LABEL}</div><div class="val">${num(m.leads)}</div></div>
+       <div class="kpi"><div class="label">MTD ${COST_LABEL}</div><div class="val">${cpaFmt(m)}</div></div>`;
   document.getElementById("tab-pacing").innerHTML=
-    `<div class="card"><h2>Budget Pacing — ${ym}
-      <label style="float:right;font-size:13px;font-weight:400;">Monthly budget $<input type="number" id="pcBudget" value="${budget||""}" placeholder="0" style="width:110px;font:inherit;padding:4px 7px;border:1px solid var(--border);border-radius:6px;"></label></h2>
+    `<div class="card"><h2>Budget Pacing: ${monthLabel(ym)}
+      <label style="float:right;font-size:13px;font-weight:400;">Monthly budget $<input type="number" id="pcBudget" value="${override||""}" placeholder="${sheetBudget||CFG.monthlyBudget||0}" style="width:110px;font:inherit;padding:4px 7px;border:1px solid var(--border);border-radius:6px;"></label></h2>
       <div class="kpis">
         <div class="kpi"><div class="label">Spent (MTD)</div><div class="val">${money(mtd)}</div></div>
         <div class="kpi"><div class="label">Projected EOM</div><div class="val">${money(projected)}</div></div>
-        <div class="kpi"><div class="label">Budget</div><div class="val">${budget?money(budget):"—"}</div></div>
+        <div class="kpi"><div class="label">Budget</div><div class="val">${budget?money(budget):NA}</div>${budget?`<div class="sublabel">${money(dailyTarget)}/day</div>`:""}</div>
         <div class="kpi"><div class="label">Status</div><div class="val" style="color:${statusColor};font-size:20px;">${status}</div></div>
+        ${resTiles}
       </div>
       <div style="background:var(--header-bg);border-radius:9px;height:26px;overflow:hidden;margin-top:6px;">
         <div style="height:100%;width:${Math.min(pacePct,100)}%;background:${statusColor};"></div></div>
-      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`+(localStorage.getItem("adsBudget_"+CLIENT_KEY)?" · manual override (clear the box to use the sheet)":sheetBudget?" · from the sheet's Budgets tab":""):"Enter a monthly budget here, or add a row to the sheet's Budgets tab (Month, Budget)."}</div>
-    </div>`;
-  document.getElementById("pcBudget").addEventListener("change",e=>{ localStorage.setItem("adsBudget_"+CLIENT_KEY, e.target.value||""); renderPacing(filtered()); });
+      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`+(override?" · manual override (clear the box to use the sheet)":sheetBudget?" · from the sheet's Budgets tab":" · from the client config"):"Enter a monthly budget here, or add a row to the sheet's Budgets tab (Month, Budget)."} Month to date ignores the campaign, ad set and platform filters.</div>
+    </div>
+    <div class="card"><h2>Cumulative spend vs target pace</h2><div class="chart-wrap" style="height:260px;"><canvas id="pcChart"></canvas></div></div>
+    <div class="card"><h2>Daily spend vs daily target</h2><div class="chart-wrap" style="height:240px;"><canvas id="pcDaily"></canvas></div></div>`;
+  document.getElementById("pcBudget").addEventListener("change",e=>{ localStorage.setItem("adsBudget_"+CLIENT_KEY, e.target.value||""); if(!e.target.value) localStorage.removeItem("adsBudget_"+CLIENT_KEY); renderPacing(filtered()); });
+  const dsets=[{label:"Cumulative spend",data:cumSpend,borderColor:COLORS[0],backgroundColor:fade(COLORS[0],.12),fill:true,tension:.2}];
+  if(budget) dsets.push({label:"Target pace",data:target,borderColor:COLORS[1],borderDash:[6,4],pointRadius:0,tension:0});
+  makeChart("pcChart",{type:"line",data:{labels:days,datasets:dsets},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom"}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+  const dd=[{type:"bar",label:"Daily spend",data:days.map(d=>byDay[d]),backgroundColor:days.map(d=>budget&&byDay[d]>dailyTarget*1.05?fade("#E53935",.6):fade(COLORS[0],.6)),borderRadius:3}];
+  if(budget) dd.push({type:"line",label:"Daily target",data:days.map(()=>dailyTarget),borderColor:COLORS[1],borderDash:[6,4],pointRadius:0,borderWidth:2});
+  makeChart("pcDaily",{type:"bar",data:{labels:days,datasets:dd},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom"}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
 }
 
-function kpiHtml(f){
-  const t=agg(f);
-  // previous window of equal length, immediately before the selected range
-  const spanDays=Math.round((new Date(state.to+"T00:00:00")-new Date(state.from+"T00:00:00"))/86400000)+1;
-  const pTo=shiftDays(state.from,1), pFrom=shiftDays(state.from,spanDays);
-  const pRows=state.cmp?scoped().filter(r=>r._date>=pFrom&&r._date<=pTo):[];
-  const pAgg=pRows.length?agg(pRows):null;
-  function kd(cur,prev,invert,absFmt){
-    if(!pAgg||prev==null||!isFinite(prev)||prev===0) return "";
-    const diff=cur-prev, pct=diff/Math.abs(prev);
-    const cls=Math.abs(pct)<0.001?"neutral":(invert?pct<=0:pct>=0)?"good":"bad";
-    const abs=absFmt?` (${diff>=0?"+":"\u2212"}${absFmt(Math.abs(diff))})`:"";
-    return `<div class="kpi-delta ${cls}">${pct>=0?"+":""}${(pct*100).toFixed(1)}% ${pct>=0?"\u2191":"\u2193"}${abs}</div>`;
-  }
-  const resultK=IS_ROAS
-    ? `<div class="kpi"><div class="label">Blended ROAS</div><div class="val">${t.roas.toFixed(2)}x</div>${kd(t.roas,pAgg&&pAgg.roas,false)}</div>
-       <div class="kpi"><div class="label">CPA</div><div class="val">${t.leads?money(t.cpa):"—"}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}</div>
-       <div class="kpi"><div class="label">AOV</div><div class="val">${t.leads?money(t.aov):"—"}</div>${kd(t.aov,pAgg&&pAgg.aov,false,money)}</div>
-       <div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div>${kd(t.rev,pAgg&&pAgg.rev,false,money)}</div>
-       <div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>`
-    : `<div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>
-       <div class="kpi"><div class="label">Blended CPA</div><div class="val">${money(t.cpa)}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}</div>`;
-  return `<div class="kpis">
-    <div class="kpi"><div class="label">Total Spend</div><div class="val">${money(t.spend)}</div>${kd(t.spend,pAgg&&pAgg.spend,false,money)}</div>
-    ${resultK}
-    <div class="kpi"><div class="label">Active Ads</div><div class="val">${t.ads}</div>${kd(t.ads,pAgg&&pAgg.ads,false)}</div></div>`;
-}
-
-function makeChart(id,cfg){ if(charts[id])charts[id].destroy(); const el=document.getElementById(id); if(el)charts[id]=new Chart(el,cfg); }
-function dailySeries(rows){
-  const by={}; rows.forEach(r=>{ const d=r._date; const b=by[d]=by[d]||{spend:0,leads:0,rev:0}; b.spend+=r._spend; b.leads+=r._leads; b.rev+=r._rev; });
-  const days=Object.keys(by).sort();
-  return {days, spend:days.map(d=>by[d].spend), result:days.map(d=>IS_ROAS?by[d].rev:by[d].leads)};
-}
-
-/* ── Overview period tables: week-over-week + month-over-month, all campaigns ── */
-const MONTH_NAMES=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-function fmtDate(x){ return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0"); }
-function weekKey(d){ const x=new Date(d+"T00:00:00"); if(isNaN(x))return d; const day=x.getDay(); x.setDate(x.getDate()-(day===0?6:day-1)); return fmtDate(x); }
-function monthKey(d){ return String(d).slice(0,7); }
-function monthLabel(k){ const p=k.split("-"); return p.length===2?(MONTH_NAMES[+p[1]-1]||p[1])+" "+p[0]:k; }
-// % change vs the previous (older) period; invert flips good/bad for cost metrics.
-function periodDelta(cur,prev,invert,absFmt){
-  if(prev==null||!isFinite(prev)||prev===0) return "";
-  const diff=cur-prev, pct=diff/Math.abs(prev);
-  const cls=Math.abs(pct)<0.001?"neutral":(invert?pct<=0:pct>=0)?"good":"bad";
-  const abs=absFmt?` (${diff>=0?"+":"−"}${absFmt(Math.abs(diff))})`:"";
-  return `<span class="tbl-delta ${cls}">${pct>=0?"+":""}${(pct*100).toFixed(1)}% ${pct>=0?"↑":"↓"}${abs}</span>`;
-}
-// Like-for-like period comparison (Amy, 2026-09-17): a partial period (this week so far, month to
-// date, or a period clipped by the date filter) is compared with the SAME days of the previous
-// period, never with the whole previous period.
-function periodStart(key, isMonth) { return isMonth ? key + '-01' : key; }
-function dayDiff(a, b) { return Math.round((new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000); }
-function periodOffset(key, isMonth, ds) { return dayDiff(periodStart(key, isMonth), ds); }
-function periodWindow(key, isMonth, fMin, fMax) {
-  const s = periodStart(key, isMonth);
-  const len = isMonth ? new Date(+key.slice(0, 4), +key.slice(5, 7), 0).getDate() : 7;
-  const lo = Math.max(0, dayDiff(s, fMin)), hi = Math.min(len - 1, dayDiff(s, fMax));
-  return { lo: lo, hi: hi, len: len, days: hi - lo + 1, partial: (hi - lo + 1) < len };
-}
-// Key of the period immediately before `key` (week keys are Monday dates, month keys are YYYY-MM).
-function prevPeriodKey(key, isMonth) {
-  if (isMonth) { const y = +key.slice(0, 4), m = +key.slice(5, 7); return m === 1 ? (y - 1) + '-12' : y + '-' + String(m - 1).padStart(2, '0'); }
-  const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() - 7);
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function periodTable(rows,keyFn,colLabel,labelFn){
-  const isMonth=keyFn===monthKey; let fMin=null,fMax=null; rows.forEach(r=>{ if(!fMin||r._date<fMin)fMin=r._date; if(!fMax||r._date>fMax)fMax=r._date; });
-  const allByKey={}; scoped().forEach(r=>{ const k=keyFn(r._date); (allByKey[k]=allByKey[k]||[]).push(r); });
-  const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
-  const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs),ctr:0})).sort((a,b)=>b.k.localeCompare(a.k));
-  out.forEach(x=>{ x.ctr=x.imp?x.clicks/x.imp*100:0; });
-  const rh=IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
-  const body=out.map((x,i)=>{
-    // Comparison period comes from ALL data (campaign / ad set filters kept, date filter dropped), so a
-    // period still gets its change when the prior period sits outside the selected dates.
-    let p=null, lfl="";
-    const w=fMin?periodWindow(x.k,isMonth,fMin,fMax):null;
-    if(w){ const pk=prevPeriodKey(x.k,isMonth);
-      const slice=(allByKey[pk]||[]).filter(r=>{ if(!w.partial) return true; const o=periodOffset(pk,isMonth,r._date); return o>=w.lo&&o<=w.hi; });
-      if(slice.length){ p={k:pk,...agg(slice)}; p.ctr=p.imp?p.clicks/p.imp*100:0; }
-      if(w.partial) lfl=`<span class="tbl-delta neutral">${w.days} of ${w.len} days, vs same days prior ${isMonth?"month":"week"}</span>`; }
-    const d=(cur,prev,inv,absFmt)=>p?periodDelta(cur,prev,inv,absFmt):"";
-    return `<tr><td>${labelFn?labelFn(x.k):x.k}${lfl}</td><td class="num">${money(x.spend)}${d(x.spend,p&&p.spend,false,money)}</td><td class="num">${num(x.imp)}</td>`+
-      `<td class="num">${num(x.clicks)}${d(x.clicks,p&&p.clicks,false,num)}</td><td class="num">${x.ctr.toFixed(2)}%${d(x.ctr,p&&p.ctr,false)}</td>`+
-      (IS_ROAS?`<td class="num">${money(x.rev)}${d(x.rev,p&&p.rev,false,money)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}${d(x.roas,p&&p.roas,false)}</td><td class="num">${x.leads?money(x.cpa):"—"}${x.leads&&p&&p.leads?periodDelta(x.cpa,p.cpa,true,money):""}</td><td class="num">${x.leads?money(x.aov):"—"}${x.leads&&p&&p.leads?periodDelta(x.aov,p.aov,false,money):""}</td>`
-              :`<td class="num">${num(x.leads)||"—"}${d(x.leads,p&&p.leads,false,num)}</td><td class="num">${x.leads?money(x.cpa):"—"}${x.leads&&p&&p.leads?periodDelta(x.cpa,p.cpa,true,money):""}</td>`)+`</tr>`;
-  }).join("");
-  return `<table><thead><tr><th>${colLabel}</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
-}
-
-function renderOverview(f){
-  const s=dailySeries(f);
-  document.getElementById("tab-overview").innerHTML=kpiHtml(f)+
-    `<div class="card"><h2>Spend & ${RESULT_LABEL} over time</h2><div class="chart-wrap"><canvas id="ovTrend"></canvas></div></div>
-     <div class="card"><h2>Week over Week — all campaigns</h2><div style="overflow-x:auto">${periodTable(f,weekKey,"Week of")}</div></div>
-     <div class="card"><h2>Month over Month — all campaigns</h2><div style="overflow-x:auto">${periodTable(f,monthKey,"Month",monthLabel)}</div></div>`;
-  makeChart("ovTrend",{ type:"line",
-    data:{ labels:s.days, datasets:[
-      {label:"Spend",data:s.spend,borderColor:COLORS[0],backgroundColor:"rgba(32,157,80,.1)",yAxisID:"y",tension:.25,fill:true},
-      {label:RESULT_LABEL,data:s.result,borderColor:COLORS[1],yAxisID:"y1",tension:.25}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
-      scales:{y:{position:"left",ticks:{callback:v=>"$"+v.toLocaleString()}},y1:{position:"right",grid:{drawOnChartArea:false}}}}});
-}
-
-function renderTrends(f){
-  const s=dailySeries(f);
-  const by={}; f.forEach(r=>{const d=r._date;const b=by[d]=by[d]||{spend:0,leads:0,rev:0};b.spend+=r._spend;b.leads+=r._leads;b.rev+=r._rev;});
-  const days=Object.keys(by).sort();
-  // Rolling figure = revenue over spend (ROAS) or spend over results (cost per result), each summed across
-  // the last N days. Windows with fewer than MIN_RESULTS results are left blank: one or two results in a
-  // week turn into a $1,000 "cost per result" that is noise, not a trend. The 4x-longer window is the slow
-  // trend (a straight regression across months of structural changes misleads). Trends here is daily only.
-  // Nothing is hidden by default: hidden datasets render crossed out in the legend.
-  const rollWin=7, slowWin=28, MIN_RESULTS=5;
-  const rolling=win=>days.map((d,i)=>{ let sp=0,le=0,rv=0;
-    for(let j=Math.max(0,i-win+1);j<=i;j++){ const b=by[days[j]]; sp+=b.spend; le+=b.leads; rv+=b.rev; }
-    if(le<MIN_RESULTS) return null;
-    return IS_ROAS?(sp>0?rv/sp:null):sp/le; });
-  document.getElementById("tab-trends").innerHTML=
-    `<div class="chart-row">
-      <div class="card"><h2>Spend by day</h2><div class="chart-wrap"><canvas id="trSpend"></canvas></div></div>
-      <div class="card"><h2>${RESULT_LABEL} by day</h2><div class="chart-wrap"><canvas id="trResult"></canvas></div></div>
-     </div>
-     <div class="card"><h2>${IS_ROAS?"ROAS":"Cost per "+RESULT_ONE} by day</h2><div class="chart-wrap"><canvas id="trEff"></canvas></div></div>`;
-  makeChart("trSpend",{type:"bar",data:{labels:s.days,datasets:[{label:"Spend",data:s.spend,backgroundColor:COLORS[0]}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
-  makeChart("trResult",{type:"bar",data:{labels:s.days,datasets:[{label:RESULT_LABEL,data:s.result,backgroundColor:COLORS[1]}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
-  makeChart("trEff",{type:"line",data:{labels:days,datasets:[
-      {label:IS_ROAS?"7-day ROAS":"7-day Cost per "+RESULT_ONE,data:rolling(rollWin),borderColor:COLORS[2],backgroundColor:"transparent",borderWidth:3,tension:.25,pointRadius:0,spanGaps:false},
-      {label:"28-day trend",data:rolling(slowWin),borderColor:"#9B59B6",backgroundColor:"transparent",borderDash:[6,4],borderWidth:2.5,tension:.25,pointRadius:0,spanGaps:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}},scales:{y:{beginAtZero:true,ticks:{callback:v=>IS_ROAS?v.toFixed(2)+"x":"$"+v.toFixed(0)}}}}});
-}
-
-let bdDim=BREAKDOWN_DIMS[0], bdView="coverage", bdMin=500, bdA="", bdB="";
-function specialBrkRows(dim){
-  if(dim==="Device") return BRK.device;
-  if(dim==="Age"||dim==="Gender") return BRK.demo.filter(r=>r[dim] && r[dim]!=="(all)");
-  if(dim==="Hour of Day") return BRK.hourly;
-  if(dim==="PMax Channel") return BRK.pmax;
-  return null;
-}
-// Scoring follows the client's metric: ROAS (higher is better) or cost per result (lower is better).
-const resHeadHtml=()=>IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
-const resCellsHtml=x=>IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?x.roas.toFixed(2)+"x":"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td><td class="num">${x.leads?money(x.aov):"—"}</td>`
-  :`<td class="num">${num(x.leads)||"—"}</td><td class="num">${x.leads?money(x.cpa):"—"}</td>`;
-const scoreTxt=x=>IS_ROAS?(x.rev?x.roas.toFixed(2)+"x":"—"):(x.leads?money(x.cpa):"no "+RESULT_LABEL.toLowerCase());
-const scoreCls=(x,t)=>IS_ROAS?(!x.rev?"":x.roas>=t.roas*1.1?"good":x.roas<t.roas*0.8?"bad":""):(!x.leads||!t.cpa?"":x.cpa<=t.cpa*0.9?"good":x.cpa>=t.cpa*1.25?"bad":"");
-const rankBest=(a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:(a.rev?-1:b.rev?1:b.spend-a.spend)):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend));
-const SCORE_NAME=IS_ROAS?"ROAS":"cost per "+RESULT_ONE;
-const SCORE_RULE=IS_ROAS?"Green = at least 10% above it, red = more than 20% below.":"Green = at least 10% cheaper than that, red = at least 25% more expensive.";
-function bdBar(extra){
-  const seg=[["coverage","Themes"],["detail","Theme detail"]].map(([k,l])=>`<button data-bdv="${k}" class="${bdView===k?"on":""}">${l}</button>`).join("");
-  return `<div class="bd-bar"><span class="seg">${seg}</span>${extra||""}
-    <label>Min spend $ <input type="number" id="bdMinIn" value="${bdMin}" style="width:80px;"></label>
-    <span>Anything under the minimum is greyed out and not scored.</span></div>`;
-}
-function detailPickers(){
-  const special=!!specialBrkRows(bdDim);
-  const o1=BREAKDOWN_DIMS.map(d=>`<option value="${d}"${d===bdDim?" selected":""}>${d}</option>`).join("");
-  const o2=`<option value="">None</option>`+BREAKDOWN_DIMS.filter(d=>!specialBrkRows(d)&&d!==bdDim).map(d=>`<option value="${d}"${d===bdB?" selected":""}>${d}</option>`).join("");
-  return `<label>Theme <select id="bdSel">${o1}</select></label><label>Compare with <select id="bdB"${special?" disabled":""}>${o2}</select></label>`;
-}
-function wireDetailPickers(){
-  document.getElementById("bdSel").addEventListener("change",e=>{bdDim=e.target.value; if(bdB===bdDim) bdB=""; renderBreakdowns(filtered());});
-  document.getElementById("bdB").addEventListener("change",e=>{bdB=e.target.value; renderBreakdowns(filtered());});
-}
-function wireBdBar(){
-  document.querySelectorAll("#tab-breakdowns [data-bdv]").forEach(b=>b.addEventListener("click",()=>{bdView=b.dataset.bdv; renderBreakdowns(filtered());}));
-  const m=document.getElementById("bdMinIn"); if(m) m.addEventListener("change",e=>{bdMin=Math.max(0,+e.target.value||0); renderBreakdowns(filtered());});
-}
-/* Deal outcomes for the Meta ads in a set of rows: CRM deals whose contact first clicked one of
-   those ads (deals tab "Ad" column), created inside the page's date range. Used by the theme views. */
-function dealsForRows(rows){
-  const names={}; rows.forEach(r=>{ const n=(r["Ad Name"]||"").toString().trim().toLowerCase(); if(n) names[n]=1; });
-  const out={deals:0,won:0,wonValue:0};
-  if(!Object.keys(names).length) return out;
-  dealsData.forEach(d=>{ if(!d.ad||d.bucket!=="Paid Social (Meta)") return;
-    if(!names[String(d.ad).trim().toLowerCase()]) return;
-    if((state.from&&d.created<state.from)||(state.to&&d.created>state.to)) return;
-    out.deals++; if(d.outcome==="Won"){ out.won++; out.wonValue+=d.value; } });
-  return out;
-}
-function dealsLine(x){ return x.deals?`${num(x.deals)} deal${x.deals===1?"":"s"} · ${num(x.won)} won${x.wonValue?" · "+money(x.wonValue):""}`:""; }
-function renderBreakdowns(f){
-  if(bdView==="coverage") return renderCoverage(f);
-  if(bdB && bdB!==bdDim && !specialBrkRows(bdDim)){ bdA=bdDim; return renderCombo(f); }
-  const sp=specialBrkRows(bdDim); let spNote="";
-  if(sp){ f=sp.filter(r=>r._date>=state.from && r._date<=state.to && (!state.campaign||!r.Campaign||r.Campaign===state.campaign));
-    if(state.adset||(state.campaign&&bdDim==="Hour of Day")) spNote=`<div class="note" style="margin:-4px 0 12px;">${bdDim} is not available by ${bdDim==="Hour of Day"&&state.campaign?"campaign or ad set":"ad set"}, so that filter does not apply to it.</div>`; }
-  const g=groupBy(f,bdDim);
-  let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows),...dealsForRows(rows)}));
-  out=out.filter(x=>x.k!=="(none)" || out.length===1);
-  if(bdDim==="Hour of Day") out.sort((a,b)=>a.k<b.k?-1:1); else out.sort(rankBest);
-  // Deal outcome columns only when this client has a deals tab loaded.
-  const hasDeals=dealsData.length>0;
-  const dealsHead=hasDeals?`<th class="num" title="${dealsCrmName()} deals created in these dates whose contact first clicked a Meta ad in this group">Deals</th><th class="num">Won</th><th class="num">Won Value</th>`:"";
-  const dealsCells=x=>hasDeals?`<td class="num">${x.deals?num(x.deals):""}</td><td class="num">${x.won?num(x.won):""}</td><td class="num">${x.wonValue?money(x.wonValue):""}</td>`:"";
-  const body=out.map(x=>`<tr${x.spend<bdMin?' style="color:var(--muted)"':""}><td>${x.k}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}${dealsCells(x)}</tr>`).join("");
-  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+spNote+
-    `<div class="card"><h2>${bdDim}</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||(THEMES.find(t=>t.dim===bdDim)||{}).hint||""}</div>
-       <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
-     <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${bdDim}</th><th class="num">Spend</th>${resHeadHtml()}${dealsHead}</tr></thead><tbody>${body}</tbody></table></div></div>`;
-  wireDetailPickers(); wireBdBar(); dimChart("bdChart",out);
-}
-function renderCoverage(f){
-  const tot=agg(f);
-  const themeHtml=(t,src)=>{
-    const g=groupBy(src,t.dim); const seen=Object.keys(g).filter(k=>k!=="(none)");
-    const vals=t.values.length?t.values.concat(seen.filter(k=>!t.values.includes(k))):seen;
-    // Order: real boxes by spend (highest first), then under-minimum boxes, then "nothing running" last.
-    const cells=vals.map(v=>({v,x:agg(g[v]||[])}));
-    cells.sort((a,b)=>{ const ra=!a.x.spend?2:a.x.spend<bdMin?1:0, rb=!b.x.spend?2:b.x.spend<bdMin?1:0; return ra!==rb?ra-rb:b.x.spend-a.x.spend; });
-    const boxes=cells.map(({v,x})=>{
-      if(!x.spend) return NEUTRAL.has(v)?"":`<div class="cov-box gap"><div class="l">${v}</div><div class="n">Nothing running here.</div></div>`;
-      if(x.spend<bdMin) return `<div class="cov-box low"><div class="l">${v}</div><div class="n">${money(x.spend)} spent. Too little to judge.</div></div>`;
-      const share=tot.spend?x.spend/tot.spend*100:0, dl=dealsLine(dealsForRows(g[v]||[]));
-      return `<div class="cov-box"><div class="l">${v}</div><div class="t"><i style="width:${share.toFixed(0)}%"></i></div>
-        <div class="r"><span>${share.toFixed(0)}% of spend</span><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span></div>
-        <div class="n">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()} · ${x.ads} ad${x.ads===1?"":"s"}</div>${dl?`<div class="n" style="color:var(--good);font-weight:600;">${dl}</div>`:""}</div>`; }).join("");
-    const un=agg(g["(none)"]||[]);
-    return `<div class="cov-theme"><h3>${t.dim}</h3><div class="q">${THEME_Q[t.dim]||t.hint||""}</div><div class="cov-grid">${boxes}</div>
-      ${un.spend?`<div class="note">${money(un.spend)} of spend is on ads not tagged for this theme yet.</div>`:""}</div>`; };
-  const main=THEMES.filter(t=>t.type!=="manual"), vid=f.filter(isVideoRow);
-  const manHtml=THEMES.filter(t=>t.type==="manual"&&vid.some(r=>(r[t.dim]||"").toString().trim())).map(t=>themeHtml(t,vid)).join("");
-  const totDeals=dealsForRows(f);
-  document.getElementById("tab-breakdowns").innerHTML=bdBar()+
-    `<div class="note" style="margin:-6px 0 14px;">Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b> on ${money(tot.spend)}. ${SCORE_RULE}${totDeals.deals?` Green line in a box = ${dealsCrmName()} deals created in these dates whose contact first clicked an ad in that group. All Meta ads: <b>${dealsLine(totDeals)}</b>.`:""}</div>
-     ${main.length?`<div class="card">${main.map(t=>themeHtml(t,f)).join("")}</div>`:`<div class="card"><div class="note">No creative themes are set up for this client yet.</div></div>`}
-     ${manHtml?`<div class="card"><div class="cov-group">Video details</div>${manHtml}</div>`:""}`;
-  wireBdBar();
-}
-function renderCombo(f){
-  const tot=agg(f), key=(r,d)=>(r[d]||"").toString().trim()||"(none)", cell={}, rowT={}, colT={};
-  f.forEach(r=>{ const a=key(r,bdA), b=key(r,bdB); if(a==="(none)"||b==="(none)") return;
-    (cell[a+"|"+b]=cell[a+"|"+b]||[]).push(r); (rowT[a]=rowT[a]||[]).push(r); (colT[b]=colT[b]||[]).push(r); });
-  const bySpend=o=>Object.keys(o).sort((x,y)=>agg(o[y]).spend-agg(o[x]).spend);
-  const rowsK=bySpend(rowT), colsK=bySpend(colT).slice(0,8);
-  const td=(x,rs)=>{ if(!x.spend) return `<td class="gap">not tested</td>`;
-     if(x.spend<bdMin) return `<td class="low"><span class="s">${money(x.spend)}<br>too little</span></td>`;
-     const dl=dealsLine(dealsForRows(rs||[]));
-     return `<td><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span><span class="s">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()}${dl?"<br>"+dl:""}</span></td>`; };
-  const head=`<tr><th>${bdA} ↓ &nbsp; ${bdB} →</th>${colsK.map(c=>`<th>${c}</th>`).join("")}<th>All</th></tr>`;
-  const body=rowsK.map(a=>`<tr><td>${a}</td>${colsK.map(b=>td(agg(cell[a+"|"+b]||[]),cell[a+"|"+b])).join("")}${td(agg(rowT[a]),rowT[a])}</tr>`).join("")+
-    `<tr><td>All</td>${colsK.map(b=>td(agg(colT[b]),colT[b])).join("")}${td(tot,f)}</tr>`;
-  const pairs=Object.entries(cell).map(([k,rs])=>({k:k.replace("|"," + "),...agg(rs)})).filter(x=>x.spend>=bdMin).sort(rankBest);
-  const under=Object.keys(cell).length-pairs.length;
-  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+
-    `<div class="card"><h2>${bdA} and ${bdB} together</h2>
-       <div class="note" style="margin:-8px 0 12px;">Each cell is ${SCORE_NAME} for ads that are both. Account: <b>${scoreTxt(tot)}</b>.</div>
-       <div style="overflow-x:auto"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
-     <div class="card"><h2>Pairs ranked by ${SCORE_NAME}</h2>
-       <div style="overflow-x:auto"><table><thead><tr><th>${bdA} + ${bdB}</th><th class="num">Spend</th>${resHeadHtml()}</tr></thead><tbody>${
-         pairs.map(x=>`<tr><td>${x.k}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}</tr>`).join("")||`<tr><td colspan="6" class="note">No pair has reached the minimum spend in these dates.</td></tr>`}</tbody></table></div>
-       ${under?`<div class="note">${under} more pair${under===1?"":"s"} ran under the ${money(bdMin)} minimum and are left out of the ranking.</div>`:""}</div>`;
-  wireDetailPickers(); wireBdBar();
-}
-
-let crSort={col:null,asc:true};
+/* ── Creative: tagging surface (birdandbean.html version + the sog.html bulk-edit bar) ── */
+let crSort={col:null,asc:true}, crNeeds=false;
 function renderCreative(f){
-  // aggregate filtered daily rows per ad
-  const byAd={};
-  f.forEach(r=>{ const id=r["Ad ID"]; const a=byAd[id]||(byAd[id]={id,name:r["Ad Name"],format:r["Format"],funnel:r["Funnel"],
-    spend:0,leads:0,rev:0,tags:r}); a.spend+=r._spend; a.leads+=r._leads; a.rev+=r._rev; });
-  let ads=Object.values(byAd).map(a=>({...a, cpa:a.leads?a.spend/a.leads:0, roas:a.spend&&a.rev?a.rev/a.spend:0, aov:a.leads?a.rev/a.leads:0}));
-  const smart=(a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:b.spend-a.spend):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend));
-  const sval=(a,c)=>{ if(c==="spend")return a.spend; if(c==="leads")return a.leads; if(c==="rev")return a.rev;
-    if(c==="cpa")return a.cpa; if(c==="roas")return a.roas; if(c==="aov")return a.aov; if(c==="name")return (a.name||"").toLowerCase();
-    if(c==="format")return (a.format||"").toLowerCase(); if(c==="funnel")return (a.funnel||"").toLowerCase();
+  let ads=adsAgg(f);
+  const sval=(a,c)=>{ if(["spend","leads","rev","cpa","roas","aov"].includes(c)) return a[c]; if(c==="name") return (a.name||"").toLowerCase();
+    if(c==="format") return (a.format||"").toLowerCase(); if(c==="funnel") return (a.funnel||"").toLowerCase();
     return (a.tags[c]||"").toString().toLowerCase(); };
-  ads.sort(crSort.col?((a,b)=>{const va=sval(a,crSort.col),vb=sval(b,crSort.col),s=crSort.asc?1:-1;return va<vb?-s:va>vb?s:0;}):smart);
+  ads.sort(crSort.col?((a,b)=>{const va=sval(a,crSort.col),vb=sval(b,crSort.col),s=crSort.asc?1:-1;return va<vb?-s:va>vb?s:0;}):rankBest);
   const arr=c=>crSort.col===c?(crSort.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
   const aiCols=AI_DIMS;
-  const resultHead=IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("cpa","CPA","num")+sth("aov","AOV","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
-  const head=`<tr>${sth("name","Ad")}${sth("format","Format")}${sth("funnel","Funnel")}`+
-    aiCols.map(d=>sth(d,d,"ai")).join("")+sth("spend","Spend","num")+resultHead+`</tr>`;
-  const rows=ads.map(a=>{
-    const resultCells=IS_ROAS
-      ? `<td class="num">${money(a.rev)}</td><td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${a.rev?a.roas.toFixed(2)+"x":"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td><td class="num">${a.leads?money(a.aov):"—"}</td>`
-      : `<td class="num">${num(a.leads)||"—"}</td><td class="num">${a.leads?money(a.cpa):"—"}</td>`;
-    return `<tr><td class="adname">${a.name||""}</td><td><span class="pill">${a.format||"—"}</span></td><td>${a.funnel||"—"}</td>`+
-      aiCols.map(d=>`<td class="ai edit" data-adid="${a.id}" data-field="${d}">${d===aiCols[0]?'<span class="ai-pill">'+(a.tags[d]||"—")+'</span>':(a.tags[d]||"—")}</td>`).join("")+
-      `<td class="num">${money(a.spend)}</td>${resultCells}</tr>`;
-  }).join("");
+  const MAN=manualDims();
+  const needs=a=>isVideoRow(a.tags) && MAN.some(d=>!(a.tags[d]||"").toString().trim());
+  const needN=ads.filter(needs).length;
+  if(crNeeds) ads=ads.filter(needs);
+  const resultHead=IS_ROAS?sth("leads",RESULT_LABEL,"num")+sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("cpa","CPA","num")+sth("aov","AOV","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
+  const head=`<tr><th><input type="checkbox" id="crSelAll" title="Select all"></th><th></th>${sth("name","Ad")}${sth("format","Format")}${sth("funnel","Funnel")}`+
+    aiCols.map(d=>sth(d,esc(d),"ai")).join("")+sth("spend","Spend","num")+resultHead+`</tr>`;
+  const rows=ads.map(a=>
+    `<tr><td><input type="checkbox" class="cr-chk" data-adid="${esc(a.id)}"></td><td>${a.thumb?`<img class="thumb" src="${esc(a.thumb)}" alt="" onerror="this.style.display='none'">`:""}</td><td class="adname">${esc(a.name||"")}</td><td><span class="pill">${esc(a.format||NA)}</span></td><td>${esc(a.funnel||NA)}</td>`+
+      aiCols.map(d=>(MAN.includes(d)&&!isVideoRow(a.tags))?`<td class="ai na">n/a</td>`
+        :`<td class="ai edit" data-adid="${esc(a.id)}" data-field="${esc(d)}">${d===aiCols[0]?'<span class="ai-pill">'+esc(a.tags[d]||NA)+'</span>':(a.tags[d]?esc(a.tags[d]):(MAN.includes(d)?'<span class="pill">not reviewed</span>':NA))}</td>`).join("")+
+      `<td class="num">${money(a.spend)}</td>${resCellsHtml(a)}</tr>`).join("");
+  const bf=Object.keys(EDIT_OPTIONS);
+  const bulk=bf.length?`<div class="cr-bulk" id="crBulk" style="display:none"><b id="crBulkN">0 selected</b> · Set <select id="crBulkField">${bf.map(d=>`<option>${esc(d)}</option>`).join("")}</select> to <select id="crBulkVal">${EDIT_OPTIONS[bf[0]].map(v=>`<option>${esc(v)}</option>`).join("")}</select>
+      <button id="crBulkApply">Apply to selected</button> <button class="sec" id="crBulkClear">Clear</button></div>`:"";
   document.getElementById("tab-creative").innerHTML=kpiHtml(f)+
-    `<div class="card"><h2>Ads — ranked by ${IS_ROAS?"ROAS":"cost per "+RESULT_ONE}
-       <span class="aimark">✨ creative tagged by Claude</span></h2>
-       <div class="warn-bar">✎ Click any AI tag to edit it. Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL?"":" (saving not configured for this client yet)"}.</div>
-       <div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
+    `<div class="card"><h2>Ads ranked by ${SCORE_NAME}
+       <span class="aimark">✨ themes tagged by Claude</span></h2>
+       ${MAN.length&&(needN||crNeeds)?`<div class="needs-bar"><span><b>${needN}</b> video${needN===1?"":"s"} not yet reviewed for: ${MAN.map(esc).join(", ")}.</span><button id="crNeedsBtn">${crNeeds?"Show all ads":"Show only these"}</button></div>`:""}
+       <div class="warn-bar">✎ Click any tag to edit it, or tick rows to set one tag on several ads at once. Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL?"":" (saving not configured for this client yet)"}.</div>
+       ${bulk}
+       <div style="overflow-x:auto"><table id="crTbl"><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
   document.querySelectorAll("#tab-creative th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
-    const c=th.dataset.sort;
+    const c=th.dataset.sort; if(!c) return;
     if(crSort.col===c)crSort.asc=!crSort.asc; else {crSort.col=c; crSort.asc=(c==="name"||c==="format"||c==="funnel"||c==="cpa"||AI_DIMS.includes(c));}
     renderCreative(filtered());
   }));
+  const nb=document.getElementById("crNeedsBtn"); if(nb) nb.addEventListener("click",()=>{crNeeds=!crNeeds; renderCreative(filtered());});
   wireCreativeEdit();
 }
 
-/* ── Inline tag editing (Creative tab), saved back via the client webhook ── */
+/* ── Inline + bulk tag editing (Creative tab), saved back via the client webhook ── */
 let _warned=false;
+function confirmThenEdit(fn){
+  if(_warned){ fn(); return; }
+  const m=document.getElementById("editWarn"); m.classList.add("show");
+  document.getElementById("warnOk").onclick=()=>{ if(document.getElementById("dontWarn").checked)_warned=true; m.classList.remove("show"); fn(); };
+  document.getElementById("warnCancel").onclick=()=>m.classList.remove("show");
+}
 function wireCreativeEdit(){
   const el=document.getElementById("tab-creative");
   if(!el || el._wired) return; el._wired=true;   // delegate once; survives re-renders
   el.addEventListener("click", e=>{
-    const cell=e.target.closest("td.edit");
+    const t=e.target;
+    if(t.id==="crBulkApply"){ confirmThenEdit(applyBulk); return; }
+    if(t.id==="crBulkClear"){ el.querySelectorAll(".cr-chk").forEach(c=>c.checked=false); const sa=document.getElementById("crSelAll"); if(sa) sa.checked=false; updateBulk(); return; }
+    const cell=t.closest("td.edit");
     if(!cell || cell.querySelector(".cell-edit")) return;
-    if(_warned){ beginEdit(cell); return; }
-    const m=document.getElementById("editWarn"); m.classList.add("show");
-    document.getElementById("warnOk").onclick=()=>{ if(document.getElementById("dontWarn").checked)_warned=true; m.classList.remove("show"); beginEdit(cell); };
-    document.getElementById("warnCancel").onclick=()=>m.classList.remove("show");
+    confirmThenEdit(()=>beginEdit(cell));
   });
+  el.addEventListener("change", e=>{
+    const t=e.target;
+    if(t.id==="crSelAll"){ el.querySelectorAll(".cr-chk").forEach(c=>c.checked=t.checked); updateBulk(); }
+    else if(t.classList.contains("cr-chk")) updateBulk();
+    else if(t.id==="crBulkField"){ const s=document.getElementById("crBulkVal"); if(s) s.innerHTML=(EDIT_OPTIONS[t.value]||[]).map(v=>`<option>${esc(v)}</option>`).join(""); }
+  });
+}
+function updateBulk(){
+  const n=document.querySelectorAll("#tab-creative .cr-chk:checked").length;
+  const bar=document.getElementById("crBulk"); if(!bar) return;
+  bar.style.display=n?"flex":"none";
+  document.getElementById("crBulkN").textContent=n+" selected";
+}
+function saveTag(adid,field,value){
+  if(!WEBHOOK_URL) return Promise.reject();
+  return fetch(WEBHOOK_URL,{method:"POST",mode:"no-cors",body:new URLSearchParams({ad_id:adid,field:field,value:value})});
+}
+function applyBulk(){
+  const field=document.getElementById("crBulkField").value, value=document.getElementById("crBulkVal").value;
+  const ids=[...document.querySelectorAll("#tab-creative .cr-chk:checked")].map(c=>c.dataset.adid);
+  if(!ids.length) return;
+  ids.forEach(aid=>{
+    ROWS.concat(PROWS).forEach(r=>{ if(String(r["Ad ID"])===String(aid)) r[field]=value; });
+    const cell=document.querySelector(`#tab-creative td.edit[data-adid="${aid}"][data-field="${CSS.escape(field)}"]`);
+    if(cell){ cell.innerHTML=field===AI_DIMS[0]?'<span class="ai-pill">'+esc(value||NA)+'</span>':esc(value||NA); cell.classList.remove("saved"); cell.classList.add("unsaved");
+      saveTag(aid,field,value).then(()=>{cell.classList.remove("unsaved");cell.classList.add("saved");}).catch(()=>{}); }
+    else saveTag(aid,field,value).catch(()=>{});
+  });
+  document.querySelectorAll("#tab-creative .cr-chk").forEach(c=>c.checked=false); const sa=document.getElementById("crSelAll"); if(sa) sa.checked=false; updateBulk();
 }
 function beginEdit(cell){
   const field=cell.dataset.field, cur=cell.textContent.trim(), opts=EDIT_OPTIONS[field];
   let inp;
   if(opts){ inp=document.createElement("select"); inp.className="cell-edit";
     opts.forEach(o=>{const op=document.createElement("option");op.value=o;op.textContent=o;if(o===cur)op.selected=true;inp.appendChild(op);}); }
-  else { inp=document.createElement("input"); inp.className="cell-edit"; inp.value=(cur==="—"?"":cur); inp.size=24; }
+  else { inp=document.createElement("input"); inp.className="cell-edit"; inp.value=(cur===NA||cur==="not reviewed"?"":cur); inp.size=24; }
   cell.innerHTML=""; cell.appendChild(inp); inp.focus();
   const commit=()=>commitEdit(cell,field,inp.value);
   inp.addEventListener("blur",commit,{once:true});
@@ -1514,13 +2049,12 @@ function beginEdit(cell){
 }
 function commitEdit(cell,field,value){
   const adid=cell.dataset.adid; value=(value||"").trim();
-  if(field===AI_DIMS[0]) cell.innerHTML='<span class="ai-pill">'+(value||"—")+'</span>'; else cell.textContent=value||"—";
-  ROWS.forEach(r=>{ if(String(r["Ad ID"])===String(adid)) r[field]=value; });   // so breakdowns recompute
+  if(field===AI_DIMS[0]) cell.innerHTML='<span class="ai-pill">'+esc(value||NA)+'</span>'; else cell.textContent=value||NA;
+  ROWS.concat(PROWS).forEach(r=>{ if(String(r["Ad ID"])===String(adid)) r[field]=value; });   // so breakdowns recompute
   cell.classList.remove("saved"); cell.classList.add("unsaved");
-  if(!WEBHOOK_URL) return;
-  fetch(WEBHOOK_URL,{method:"POST",mode:"no-cors",body:new URLSearchParams({ad_id:adid,field:field,value:value})})
-    .then(()=>{cell.classList.remove("unsaved");cell.classList.add("saved");}).catch(()=>{});
+  saveTag(adid,field,value).then(()=>{cell.classList.remove("unsaved");cell.classList.add("saved");}).catch(()=>{});
 }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeAdPanel(); });
 </script>
 
 <div class="modal-bg" id="editWarn">
@@ -1529,6 +2063,17 @@ function commitEdit(cell,field,value){
     <p>This replaces the tag Claude generated and saves it to your tagging sheet. The AI won't change it back unless you run a full re-tag.</p>
     <label><input type="checkbox" id="dontWarn"> Don't warn me again this session</label>
     <div class="row"><button id="warnCancel">Cancel</button><button class="primary" id="warnOk">Got it, edit</button></div>
+  </div>
+</div>
+<div class="ax-overlay" id="axOverlay" onclick="if(event.target===this) closeAdPanel()">
+  <div class="ax-panel">
+    <div class="ax-head"><div><div class="ax-title" id="axTitle"></div><div class="ax-sub" id="axSub"></div><div id="axBadges" style="margin-top:8px;"></div></div>
+      <button class="ax-close" onclick="closeAdPanel()" title="Close">&times;</button></div>
+    <div class="ax-body">
+      <div class="ax-kpis" id="axKpis"></div>
+      <div class="card"><h2>Daily Performance</h2><div class="chart-wrap" style="height:240px;"><canvas id="axChart"></canvas></div></div>
+      <div class="card"><div style="overflow-x:auto"><table><thead id="axHead"></thead><tbody id="axBody"></tbody></table></div></div>
+    </div>
   </div>
 </div>
 </body>
