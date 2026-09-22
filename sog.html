@@ -976,7 +976,7 @@ tr:hover td{background:#fafaf8;}
       HubSpot deals joined to ad spend. Paid sources are a <b>floor</b>: an ad click that arrives without campaign
       tracking is recorded as Direct and cannot be recovered. Recent months are still maturing because open deals
       have not converted yet, so read the trend, not the newest month. Revenue = the HubSpot <b>Deal Value</b> field.
-      The date filter above does not apply to this tab.
+      The date range above sets the window: deals by create date, spend by month.
     </div>
     <div id="dealsAsOf" style="font-size:12px;color:#888;margin-bottom:12px;"></div>
     <div class="filter-group" style="margin-bottom:16px;gap:14px;">
@@ -984,11 +984,6 @@ tr:hover td{background:#fafaf8;}
       <select class="filter-select" id="dealsAttrib">
         <option value="Original">Original source (first touch)</option>
         <option value="Latest">Latest source (last touch)</option>
-      </select>
-      <span class="filter-label">Window</span>
-      <select class="filter-select" id="dealsWin">
-        <option value="ytd">Year to date</option>
-        <option value="12m">Last 12 months</option>
       </select>
     </div>
 
@@ -1004,7 +999,7 @@ tr:hover td{background:#fafaf8;}
     </div>
 
     <div class="chart-container">
-      <div class="chart-title">Cumulative Won Value by Month Won, Google vs Meta (dashed = maturing months)</div>
+      <div class="chart-title">Cumulative Won Value by Month Won in the date range, Google vs Meta (dashed = maturing months)</div>
       <div class="chart-wrap" style="height:280px;"><canvas id="chartDealsCum"></canvas></div>
     </div>
 
@@ -2645,6 +2640,25 @@ const THEME_Q = { 'Selling angle': 'The main reason the creative gives someone t
   'Shape': "From the file's pixel size", 'Video length': 'From the video file', 'Story type': 'What kind of story the creative tells',
   "Shows SOG's own work": 'Whether an actual Shades of Green project is shown',
   'Brand in first 3 sec': 'Videos only', 'Works with sound off': 'Videos only', 'Audio': 'Videos only' };
+// Deal outcomes for the Meta ads in a set of rows: HubSpot deals whose contact first
+// clicked one of those ads (HS Deals "Ad" column), created inside the page's date range.
+function dealsForRows(rows) {
+  var names = {}; rows.forEach(function(r) { if (r.adName) names[String(r.adName).trim().toLowerCase()] = 1; });
+  var fs = getFilterState(), out = { deals: 0, won: 0, wonValue: 0 };
+  if (!Object.keys(names).length) return out;
+  dealsData.forEach(function(d) {
+    if (!d.ad || d.bucket !== 'Paid Social (Meta)') return;
+    if (!names[String(d.ad).trim().toLowerCase()]) return;
+    if (fs.from && d.created < fs.from) return;
+    if (fs.to && d.created > fs.to) return;
+    out.deals++; if (d.outcome === 'Won') { out.won++; out.wonValue += d.value; }
+  });
+  return out;
+}
+function dealsLine(x) {
+  if (!x.deals) return '';
+  return formatNumber(x.deals) + ' deal' + (x.deals === 1 ? '' : 's') + ' · ' + formatNumber(x.won) + ' won' + (x.wonValue ? ' · ' + formatCurrency(x.wonValue) : '');
+}
 function cpcCls(x, base) { if (!x.callsBooked || !base) return ''; return x.costPerLead <= base * 0.9 ? 'good' : x.costPerLead >= base * 1.25 ? 'bad' : ''; }
 function themeMetaRows() { return getFilteredAdDetail().filter(function(r) { return r.platform === 'meta'; }); }
 function renderThemesGrid() {
@@ -2657,7 +2671,8 @@ function renderThemesGrid() {
     var share = tot.spend ? x.spend / tot.spend * 100 : 0, ads = {}; x._rows.forEach(function(r) { ads[r.adName] = 1; });
     return '<div class="cov-box"><div class="l">' + v + '</div><div class="t"><i style="width:' + share.toFixed(0) + '%"></i></div>' +
       '<div class="r"><span>' + share.toFixed(0) + '% of spend</span><span class="v ' + cpcCls(x, tot.costPerLead) + '">' + (x.callsBooked ? formatCurrency(x.costPerLead) : 'no calls') + '</span></div>' +
-      '<div class="n">' + formatCurrency(x.spend) + ' · ' + formatNumber(x.callsBooked) + ' calls · ' + Object.keys(ads).length + ' ads</div></div>';
+      '<div class="n">' + formatCurrency(x.spend) + ' · ' + formatNumber(x.callsBooked) + ' calls · ' + Object.keys(ads).length + ' ads</div>' +
+      (function() { var dl = dealsLine(dealsForRows(x._rows)); return dl ? '<div class="n" style="color:#209D50;font-weight:600;">' + dl + '</div>' : ''; })() + '</div>';
   }
   function theme(t, src) {
     var g = {}; src.forEach(function(r) { var k = (r[t.key] || '').trim() || '(none)'; (g[k] = g[k] || []).push(r); });
@@ -2672,8 +2687,10 @@ function renderThemesGrid() {
   var main = THEME_DEFS.filter(function(t) { return t.type !== 'manual'; });
   var vids = rows.filter(function(r) { var v = r[themeKey('Video length')] || ''; return v && v !== 'Not a video'; });
   var manHtml = manual.filter(function(t) { return vids.some(function(r) { return (r[t.key] || '').trim(); }); }).map(function(t) { return theme(t, vids); }).join('');
+  var totDeals = dealsForRows(rows);
   el.innerHTML = '<div class="cov-note">Meta ads only. Cost per call for these dates: <b>' + (tot.callsBooked ? formatCurrency(tot.costPerLead) : '—') + '</b> on ' + formatCurrency(tot.spend) +
-    '. Green = at least 10% cheaper than that, red = at least 25% more expensive.</div>' +
+    '. Green = at least 10% cheaper than that, red = at least 25% more expensive.' +
+    (totDeals.deals ? ' Green line in a box = HubSpot deals created in these dates whose contact first clicked an ad in that group. All Meta ads: <b>' + dealsLine(totDeals) + '</b>.' : '') + '</div>' +
     '<div class="cov-card">' + main.map(function(t) { return theme(t, rows); }).join('') + '</div>' +
     (manHtml ? '<div class="cov-card"><div class="q" style="font-weight:700;text-transform:uppercase;letter-spacing:.6px;">Video details</div>' + manHtml + '</div>' : '');
 }
@@ -2688,7 +2705,8 @@ function renderPairMatrix(data, dim, dim2, labels) {
   function td(rs) { var x = aggregateRows(rs || []);
     if (!x.spend) return '<td class="gap">not tested</td>';
     if (x.spend < bdMin) return '<td class="low"><span class="s">' + formatCurrency(x.spend) + '<br>too little</span></td>';
-    return '<td><span class="v ' + cpcCls(x, tot.costPerLead) + '">' + (x.callsBooked ? formatCurrency(x.costPerLead) : 'no calls') + '</span><span class="s">' + formatCurrency(x.spend) + ' · ' + formatNumber(x.callsBooked) + ' calls</span></td>'; }
+    var dl = dealsLine(dealsForRows(rs || []));
+    return '<td><span class="v ' + cpcCls(x, tot.costPerLead) + '">' + (x.callsBooked ? formatCurrency(x.costPerLead) : 'no calls') + '</span><span class="s">' + formatCurrency(x.spend) + ' · ' + formatNumber(x.callsBooked) + ' calls' + (dl ? '<br>' + dl : '') + '</span></td>'; }
   el.innerHTML = '<div class="cov-card"><h3 style="font-size:15px;margin-bottom:4px;">' + (labels[dim] || dim) + ' and ' + (labels[dim2] || dim2) + ' together</h3>' +
     '<div class="cov-note" style="margin:0 0 12px;">Each cell is cost per call for ads that are both. Overall: <b>' + (tot.callsBooked ? formatCurrency(tot.costPerLead) : '—') + '</b>.</div>' +
     '<div style="overflow-x:auto"><table class="mx"><thead><tr><th>' + (labels[dim] || dim) + ' ↓ &nbsp; ' + (labels[dim2] || dim2) + ' →</th>' + ck.map(function(c) { return '<th>' + c + '</th>'; }).join('') + '<th>All</th></tr></thead><tbody>' +
@@ -2751,6 +2769,8 @@ function renderBreakdowns() {
   renderBreakdownTrends(filtered, dim, dim2, dimLabel);
 
   var grouped = groupBy(relevantData, keyFn);
+  var rowsByKey = {}; relevantData.forEach(function(r) { var k = keyFn(r) || '(none)'; (rowsByKey[k] = rowsByKey[k] || []).push(r); });
+  grouped.forEach(function(g) { var dx = dealsForRows(rowsByKey[g.key] || []); g.deals = dx.deals; g.won = dx.won; g.wonValue = dx.wonValue; });
   renderPairMatrix(relevantData, dim, dim2, dimLabels);
 
   var chartSorted = grouped.slice().sort(function(a, b) { return b.spend - a.spend; }).slice(0, 15);
@@ -2808,7 +2828,10 @@ function renderBreakdowns() {
     '<th data-col="impressions">Imp</th>' +
     '<th data-col="clicks">Clicks</th>' +
     '<th data-col="ctr">CTR</th>' +
-    '<th data-col="cpc">CPC</th>';
+    '<th data-col="cpc">CPC</th>' +
+    '<th data-col="deals" title="HubSpot deals created in these dates whose contact first clicked a Meta ad in this group">Deals</th>' +
+    '<th data-col="won">Won</th>' +
+    '<th data-col="wonValue">Won Value</th>';
 
   var tableSorted = grouped.slice().sort(function(a, b) {
     var va, vb;
@@ -2832,7 +2855,10 @@ function renderBreakdowns() {
       '<td>' + formatNumber(g.impressions) + '</td>' +
       '<td>' + formatNumber(g.clicks) + '</td>' +
       '<td>' + formatPct(g.ctr) + '</td>' +
-      '<td>' + formatCurrency(g.cpc) + '</td>';
+      '<td>' + formatCurrency(g.cpc) + '</td>' +
+      '<td>' + (g.deals ? formatNumber(g.deals) : '') + '</td>' +
+      '<td>' + (g.won ? formatNumber(g.won) : '') + '</td>' +
+      '<td>' + (g.wonValue ? formatCurrency(g.wonValue) : '') + '</td>';
     tbody.appendChild(tr);
   });
 
@@ -3953,10 +3979,10 @@ function dealsMetricCells(a, maxes) {
 }
 
 function renderDeals() {
-  var ctl = ['dealsAttrib', 'dealsWin', 'dealsFunnelView', 'dealsDim'].map(function(id) {
+  var ctl = ['dealsAttrib', 'dealsFunnelView', 'dealsDim'].map(function(id) {
     var el = document.getElementById(id); el.onchange = renderDeals; return el;
   });
-  var attrib = ctl[0].value, winMode = ctl[1].value, funnelView = ctl[2].value, dim = ctl[3].value;
+  var attrib = ctl[0].value, funnelView = ctl[1].value, dim = ctl[2].value;
 
   var asOfEl = document.getElementById('dealsAsOf');
   if (!dealsData.length) { asOfEl.textContent = 'No deal data loaded yet (HS Deals tab is empty).'; return; }
@@ -3970,12 +3996,13 @@ function renderDeals() {
   var todayStr = formatDateStr(new Date());
   var curMonth = todayStr.slice(0, 7);
   var maturingFrom = dealsShiftMonth(curMonth, -(DEALS_MATURING_MONTHS - 1));
-  var winFrom = winMode === 'ytd' ? curMonth.slice(0, 4) + '-01-01'
-                                  : formatDateStr(new Date(new Date().setFullYear(new Date().getFullYear() - 1)));
-  var winLabel = winMode === 'ytd' ? 'deals created ' + curMonth.slice(0, 4) + ' to date' : 'deals created in the last 12 months';
-  document.getElementById('dealsScoreTitle').textContent = '(' + winLabel + ')';
+  var fsDeals = getFilterState();
+  var winFrom = fsDeals.from || '2026-01-01';
+  var winTo = fsDeals.to || todayStr;
+  var winToMonth = winTo.slice(0, 7) < curMonth ? winTo.slice(0, 7) : curMonth;
+  document.getElementById('dealsScoreTitle').textContent = '(deals created ' + winFrom + ' to ' + winTo + ')';
   document.getElementById('dealsScoreNote').textContent = 'Deals attributed by HubSpot source. Win rate rises as open deals close.' +
-    (winFrom < '2026-01-01' ? ' Spend on this sheet starts Jan 2026, so deals created before that carry no spend and cost figures read low for the 12-month window.' : '');
+    (winFrom < '2026-01-01' ? ' Spend on this sheet starts Jan 2026, so deals created before that carry no spend and cost figures read low.' : '');
 
   // Attribution view + paid-only working set
   var deals = dealsData.map(function(r) {
@@ -3984,7 +4011,7 @@ function renderDeals() {
              plat: dealsPlatform(useLatest ? r.latestBucket : r.bucket) };
   });
   var paid = deals.filter(function(d) { return d.plat; });
-  var inWin = paid.filter(function(d) { return d.r.created >= winFrom; });
+  var inWin = paid.filter(function(d) { return d.r.created >= winFrom && d.r.created <= winTo; });
 
   // Spend: by (month, bucket) from Modeled Metrics; by (date, campaign) from Campaign Breakdown;
   // by (date, keyword) from Keywords.
@@ -3994,21 +4021,23 @@ function renderDeals() {
     var p = dealsPlatform(m.source) || (m.source === 'Google - Other' ? 'google' : null);
     if (p) spendPlat[m.month + '|' + p] = (spendPlat[m.month + '|' + p] || 0) + m.spend;
   });
+  // Platform spend inside the exact date range from the daily campaign rows (Modeled Metrics
+  // is monthly and would overstate spend for a partial month).
   function spendPlatWindow(p) {
     var t = 0;
-    Object.keys(spendPlat).forEach(function(k) { if (k.split('|')[1] === p && k.slice(0, 7) >= winFrom.slice(0, 7)) t += spendPlat[k]; });
+    campaignData.forEach(function(c) { if (c.platform === p && c.date >= winFrom && c.date <= winTo) t += c.spend; });
     return t;
   }
   var campSpendWin = {}, campSpendMonth = {};
   campaignData.forEach(function(c) {
     var key = c.platform + '|' + dealsNormName(c.campaign);
-    if (c.date >= winFrom) campSpendWin[key] = (campSpendWin[key] || 0) + c.spend;
+    if (c.date >= winFrom && c.date <= winTo) campSpendWin[key] = (campSpendWin[key] || 0) + c.spend;
     var mk = c.date.slice(0, 7) + '|' + key;
     campSpendMonth[mk] = (campSpendMonth[mk] || 0) + c.spend;
   });
   var kwSpendWin = {};
   keywordData.forEach(function(k) {
-    if (k.date >= winFrom) kwSpendWin[dealsNormName(k.keyword)] = (kwSpendWin[dealsNormName(k.keyword)] || 0) + k.spend;
+    if (k.date >= winFrom && k.date <= winTo) kwSpendWin[dealsNormName(k.keyword)] = (kwSpendWin[dealsNormName(k.keyword)] || 0) + k.spend;
   });
   function platformCampaignName(d) {
     return dealsAlias(d.plat, dealsNormName(d.vc));
@@ -4028,12 +4057,12 @@ function renderDeals() {
 
   // ── Cumulative won value by month won (paid, since Jan 2026) ──
   var months = [];
-  for (var ym = '2026-01'; ym <= curMonth; ym = dealsShiftMonth(ym, 1)) months.push(ym);
+  for (var ym = winFrom.slice(0, 7); ym <= winToMonth; ym = dealsShiftMonth(ym, 1)) months.push(ym);
   var wonByMonth = { google: {}, meta: {} };
   paid.forEach(function(d) {
     if (d.r.outcome !== 'Won') return;
     var m = (d.r.wonDate || d.r.closeDate || '').slice(0, 7);
-    if (m) wonByMonth[d.plat][m] = (wonByMonth[d.plat][m] || 0) + d.r.value;
+    if (m && m >= winFrom.slice(0, 7) && m <= winToMonth) wonByMonth[d.plat][m] = (wonByMonth[d.plat][m] || 0) + d.r.value;
   });
   function cumulative(p) {
     var t = 0;
