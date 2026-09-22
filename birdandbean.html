@@ -703,29 +703,65 @@ function renderOverview(f){
       scales:{y:{position:"left",ticks:{callback:v=>"$"+v.toLocaleString()}},y1:{position:"right",grid:{drawOnChartArea:false},ticks:{callback:v=>(+v).toFixed(1)+"x"}}}}});
 }
 
+// Trailing 7-day ratio (sum num / sum den over the window) and a straight least-squares
+// trend line through it, so the Trends charts show direction instead of daily noise.
+function rollRatio(num,den,n){ return num.map((_,i)=>{ let a=0,b=0; for(let k=Math.max(0,i-n+1);k<=i;k++){a+=num[k]||0;b+=den[k]||0;} return b?a/b:null; }); }
+function rollAvg(v,n){ return v.map((_,i)=>{ let a=0,c=0; for(let k=Math.max(0,i-n+1);k<=i;k++){a+=v[k]||0;c++;} return c?a/c:null; }); }
+function trendLine(v){
+  const pts=v.map((y,x)=>[x,y]).filter(p=>p[1]!=null&&isFinite(p[1]));
+  if(pts.length<3) return v.map(()=>null);
+  const n=pts.length, sx=pts.reduce((a,p)=>a+p[0],0), sy=pts.reduce((a,p)=>a+p[1],0),
+        sxx=pts.reduce((a,p)=>a+p[0]*p[0],0), sxy=pts.reduce((a,p)=>a+p[0]*p[1],0);
+  const m=(n*sxy-sx*sy)/((n*sxx-sx*sx)||1), b=(sy-m*sx)/n;
+  return v.map((_,x)=>Math.max(0,m*x+b));
+}
+// "trending up, 1.52x to 1.91x": start vs end of the trend line. lowerIsBetter flips the colour (CPA).
+function trendTag(t,lowerIsBetter,fmt){
+  const a=t.find(x=>x!=null), z=[...t].reverse().find(x=>x!=null);
+  if(a==null||z==null) return "";
+  const avg=t.filter(x=>x!=null).reduce((p,x)=>p+x,0)/t.filter(x=>x!=null).length||1;
+  const span=`${fmt(a)} to ${fmt(z)}`;
+  if(Math.abs(z-a)/avg<0.03) return `<span style="font-weight:400;font-size:13px;color:var(--text-muted);">· flat, ${span}</span>`;
+  const up=z>a, good=lowerIsBetter?!up:up;
+  return `<span style="font-weight:600;font-size:13px;color:${good?"#2E8B57":"#C0392B"};">· trending ${up?"up":"down"}, ${span}</span>`;
+}
 function renderTrends(f){
   const s=dailySeries(f);
+  // The 7-day line reaches 6 days back before the range, so its first points are real 7-day values.
+  const pre=fmtDate(new Date(new Date(state.from+"T00:00:00").getTime()-6*864e5));
+  const e=dailySeries(scoped().filter(r=>r._date>=pre&&r._date<=state.to));
+  const off=Math.max(0,e.days.findIndex(d=>d>=state.from)), cut=a=>a.slice(off);
+  const r7=cut(rollRatio(e.rev,e.spend,7)), c7=cut(rollRatio(e.spend,e.purchases,7)), a7=cut(rollRatio(e.rev,e.purchases,7));
+  const sp7=cut(rollAvg(e.spend,7)), pu7=cut(rollAvg(e.purchases,7));
+  const tR=trendLine(r7), tC=trendLine(c7), tA=trendLine(a7), tS=trendLine(sp7), tP=trendLine(pu7);
   document.getElementById("tab-trends").innerHTML=
-    `<div class="chart-row">
-      <div class="card"><h2>Spend by day</h2><div class="chart-wrap"><canvas id="trSpend"></canvas></div></div>
-      <div class="card"><h2>${RESULT_LABEL} by day</h2><div class="chart-wrap"><canvas id="trResult"></canvas></div></div>
+    `<div class="note" style="margin:0 0 12px;">Dots = each day. Solid line = trailing 7 days (smooths out daily swings). Dashed line = the overall trend across the dates you picked; the label gives its start and end value (spend and purchases are per day).</div>
+     <div class="chart-row">
+      <div class="card"><h2>Spend by day ${trendTag(tS,false,v=>"$"+(+v).toFixed(0))}</h2><div class="chart-wrap"><canvas id="trSpend"></canvas></div></div>
+      <div class="card"><h2>${RESULT_LABEL} by day ${trendTag(tP,false,v=>(+v).toFixed(1))}</h2><div class="chart-wrap"><canvas id="trResult"></canvas></div></div>
      </div>
      <div class="chart-row">
-      <div class="card"><h2>ROAS by day</h2><div class="chart-wrap"><canvas id="trRoas"></canvas></div></div>
-      <div class="card"><h2>CPA by day</h2><div class="chart-wrap"><canvas id="trCpa"></canvas></div></div>
+      <div class="card"><h2>ROAS ${trendTag(tR,false,v=>(+v).toFixed(2)+"x")}</h2><div class="chart-wrap"><canvas id="trRoas"></canvas></div></div>
+      <div class="card"><h2>CPA ${trendTag(tC,true,v=>"$"+(+v).toFixed(0))}</h2><div class="chart-wrap"><canvas id="trCpa"></canvas></div></div>
      </div>
-     <div class="card"><h2>AOV by day</h2><div class="chart-wrap" style="height:240px;"><canvas id="trAov"></canvas></div>
-       <div class="note">Days with no attributed purchase are left blank on the CPA and AOV lines.</div></div>`;
-  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
-  makeChart("trSpend",{type:"bar",data:{labels:s.days,datasets:[{label:"Spend",data:s.spend,backgroundColor:COLORS[0]}]},
-    options:{...base,scales:{y:{ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
-  makeChart("trResult",{type:"bar",data:{labels:s.days,datasets:[{label:RESULT_LABEL,data:s.purchases,backgroundColor:COLORS[1]}]},
-    options:{...base,scales:{y:{ticks:{precision:0}}}}});
-  makeChart("trRoas",{type:"line",data:{labels:s.days,datasets:[{label:"ROAS",data:s.roas,borderColor:COLORS[5],tension:.25}]},
+     <div class="card"><h2>AOV ${trendTag(tA,false,v=>"$"+(+v).toFixed(0))}</h2><div class="chart-wrap" style="height:240px;"><canvas id="trAov"></canvas></div>
+       <div class="note">Days with no attributed purchase have no dot on the CPA and AOV charts; the 7-day line still counts their spend.</div></div>`;
+  const base={responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+    plugins:{legend:{position:"bottom",labels:{boxWidth:14,font:{size:11}}}}};
+  const dots=(label,data,c)=>({type:"line",label,data,borderColor:"transparent",backgroundColor:c,pointRadius:2.5,pointHoverRadius:4,showLine:false,order:3});
+  const roll=(data,c)=>({type:"line",label:"7-day",data,borderColor:c,borderWidth:2.5,pointRadius:0,tension:.3,spanGaps:true,order:1});
+  const trend=data=>({type:"line",label:"Trend",data,borderColor:"#2E3A4F",borderWidth:1.5,borderDash:[6,4],pointRadius:0,order:0});
+  const bars=(label,data,c)=>({type:"bar",label,data,backgroundColor:c,order:4});
+  const fade=(hex,a)=>hex+Math.round(a*255).toString(16).padStart(2,"0");
+  makeChart("trSpend",{type:"bar",data:{labels:s.days,datasets:[bars("Spend",s.spend,fade(COLORS[0],.35)),roll(sp7,COLORS[0]),trend(tS)]},
+    options:{...base,scales:{y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
+  makeChart("trResult",{type:"bar",data:{labels:s.days,datasets:[bars(RESULT_LABEL,s.purchases,fade(COLORS[1],.35)),roll(pu7,COLORS[1]),trend(tP)]},
+    options:{...base,scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  makeChart("trRoas",{type:"line",data:{labels:s.days,datasets:[dots("Daily ROAS",s.roas,fade(COLORS[5],.45)),roll(r7,COLORS[5]),trend(tR)]},
     options:{...base,scales:{y:{beginAtZero:true,ticks:{callback:v=>(+v).toFixed(2)+"x"}}}}});
-  makeChart("trCpa",{type:"line",data:{labels:s.days,datasets:[{label:"CPA",data:s.cpa,borderColor:COLORS[6],tension:.25,spanGaps:false}]},
+  makeChart("trCpa",{type:"line",data:{labels:s.days,datasets:[dots("Daily CPA",s.cpa,fade(COLORS[6],.45)),roll(c7,COLORS[6]),trend(tC)]},
     options:{...base,scales:{y:{beginAtZero:true,ticks:{callback:v=>"$"+(+v).toFixed(0)}}}}});
-  makeChart("trAov",{type:"line",data:{labels:s.days,datasets:[{label:"AOV",data:s.aov,borderColor:COLORS[3],tension:.25,spanGaps:false}]},
+  makeChart("trAov",{type:"line",data:{labels:s.days,datasets:[dots("Daily AOV",s.aov,fade(COLORS[3],.45)),roll(a7,COLORS[3]),trend(tA)]},
     options:{...base,scales:{y:{beginAtZero:true,ticks:{callback:v=>"$"+(+v).toFixed(0)}}}}});
 }
 
@@ -782,7 +818,9 @@ function renderCoverage(f){
   const tot=agg(f);
   const themeHtml=t=>{
     const g=groupBy(f,t.dim); const seen=Object.keys(g).filter(k=>k!=="(none)");
-    const vals=t.values.length?t.values.concat(seen.filter(k=>!t.values.includes(k))):seen;
+    // Biggest spend first; values with nothing running sink to the end.
+    const vals=(t.values.length?t.values.concat(seen.filter(k=>!t.values.includes(k))):seen)
+      .map((v,i)=>({v,i,sp:agg(g[v]||[]).spend})).sort((a,b)=>b.sp-a.sp||a.i-b.i).map(o=>o.v);
     const boxes=vals.map(v=>{ const x=agg(g[v]||[]);
       if(!x.spend){ return NEUTRAL.has(v)?"":`<div class="cov-box gap"><div class="l">${v}</div><div class="n">Nothing running here.</div></div>`; }
       if(x.spend<bdMin) return `<div class="cov-box low"><div class="l">${v}</div><div class="n">${money(x.spend)} spent. Too little to judge.</div></div>`;
