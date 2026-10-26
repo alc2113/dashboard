@@ -272,6 +272,10 @@ const MANAGE_TAGS=!!CFG.manageTags;         // Creative tab "Manage tags" dialog
 const MODELED=CFG.modeled||null;            // CRM truth layer config (optional)
 const SPARKLOOP=CFG.sparkloop||null;        // SparkLoop Earn tabs config (optional)
 const DEALS=CFG.deals||null;                // CRM pipeline + revenue config (optional)
+// In-store (offline) purchases (optional, registry `instore: {since}`): Ad Daily "In-Store Purchases" /
+// "In-Store Revenue". Shown beside web results plus Total ROAS = (web + in-store revenue) / spend.
+// No In-Store ROAS on purpose (Amy 2026-10-26): there is no in-store-specific spend.
+const INSTORE=(IS_ROAS&&CFG.instore)||null;
 const DERIVED_DIMS=["Format","Audience","Funnel","Placement","Objective","CTA"];
 let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);
 // Creative themes v2: the live theme list (names, allowed values, who fills them) comes from the
@@ -337,6 +341,9 @@ const pv=v=>{ if(v==null||v==="") return 0; if(typeof v==="number") return v; re
 const esc=s=>{ const d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; };
 const fade=(hex,a)=>hex+Math.round(a*255).toString(16).padStart(2,"0");
 const roasFmt=x=>x.rev?x.roas.toFixed(2)+"x":NA;
+const totRoasFmt=x=>x.spend&&(x.rev||x.isrev)?x.totRoas.toFixed(2)+"x":NA;
+const isNumFmt=x=>x.hasIS?(num(x.isp)||"0"):NA;
+const isMoneyFmt=x=>x.hasIS?money(x.isrev):NA;
 const cpaFmt=x=>x.leads?money(x.cpa):NA;
 const aovFmt=x=>x.leads?money(x.aov):NA;
 const cpcFmt=x=>x.clicks?money(x.cpc):NA;
@@ -512,7 +519,9 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
      o._spend=pv(o["Spend"]); o._imp=pv(o["Impressions"]); o._reach=pv(o["Reach"]); o._clicks=pv(o["Clicks"]);
      o._leads=pv(o["Leads"]); o._rev=pv(o["Revenue"]); o._lpv=pv(o["Landing Page Views"]); o._atc=pv(o["Adds to Cart"]);
      o._ckt=pv(o["Checkouts Initiated"]); o._purch=pv(o["Purchases"]); o._regs=pv(o["Registrations"]);
-     o._leadev=pv(o["Lead Events"]); o._cv=pv(o["Content Views"]); o._sec=SECONDARY?pv(o[SEC_COL]):0; };
+     o._leadev=pv(o["Lead Events"]); o._cv=pv(o["Content Views"]); o._sec=SECONDARY?pv(o[SEC_COL]):0;
+     // Before the tracking start date the column exists but is blank, which is "not tracked", not $0.
+     if(INSTORE&&("In-Store Purchases" in o)&&(!INSTORE.start||String(o["Date"]).slice(0,10)>=INSTORE.start)){ o._isp=pv(o["In-Store Purchases"]); o._isrev=pv(o["In-Store Revenue"]); } };
    ROWS=daily.map(r=>{
      const id=String(r["Ad ID"]).trim();
      const o=Object.assign({}, r, tags[id]||{});
@@ -651,9 +660,12 @@ const metaOnlyNote=what=>GROWS.length?`<div class="note" style="margin:0 0 10px;
 // Ad Daily rows under the same campaign / ad set / date filter, ignoring the platform filter
 // (used where a metric is not reported per platform, e.g. reach, or for pixel-event cost).
 function filteredAdDaily(){ return ROWS.filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)&&r._date>=state.from&&r._date<=state.to); }
-function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0,reach=0,lpv=0,atc=0,ckt=0,purch=0,regs=0,sec=0;
-  rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;reach+=r._reach||0;lpv+=r._lpv||0;atc+=r._atc||0;ckt+=r._ckt||0;purch+=r._purch||0;regs+=r._regs||0;sec+=r._sec||0;});
-  return {spend,leads,rev,imp,clicks,reach,lpv,atc,ckt,purch,regs,sec,cpa:leads?spend/leads:0,cps:sec?spend/sec:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,
+function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0,reach=0,lpv=0,atc=0,ckt=0,purch=0,regs=0,sec=0,isp=0,isrev=0,hasIS=false;
+  rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;reach+=r._reach||0;lpv+=r._lpv||0;atc+=r._atc||0;ckt+=r._ckt||0;purch+=r._purch||0;regs+=r._regs||0;sec+=r._sec||0;
+    if(r._isp!==undefined){ hasIS=true; isp+=r._isp; isrev+=r._isrev||0; }});
+  // In-store figures exist only on Ad Daily rows (not Platform Daily or the Meta breakdown tabs): hasIS=false shows "-".
+  return {spend,leads,rev,imp,clicks,reach,lpv,atc,ckt,purch,regs,sec,isp,isrev,hasIS,totRev:rev+isrev,totRoas:spend?(rev+isrev)/spend:0,
+    cpa:leads?spend/leads:0,cps:sec?spend/sec:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,
     ctr:imp?clicks/imp*100:0,cpc:clicks?spend/clicks:0,cpm:imp?spend/imp*1000:0,freq:reach?imp/reach:0,ads:new Set(rows.map(r=>r["Ad ID"])).size};
 }
 // Keyword Theme classifier (registry google.keywordThemes): substrings against the lower-cased keyword
@@ -673,11 +685,13 @@ const scoreCls=(x,t)=>IS_ROAS?(!x.rev?"":x.roas>=t.roas*1.1?"good":x.roas<t.roas
 const rankBest=(a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:(a.rev?-1:b.rev?1:b.spend-a.spend)):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend));
 const SCORE_NAME=IS_ROAS?"ROAS":"cost per "+RESULT_ONE;
 const SCORE_RULE=IS_ROAS?"Green = at least 10% above it, red = more than 20% below.":"Green = at least 10% cheaper than that, red = at least 25% more expensive.";
-// Result columns shared by the simple dimension tables (+ the secondary result when configured)
+// Result columns shared by the simple dimension tables (+ in-store, + the secondary result when configured)
+const isHeadHtml=()=>INSTORE?`<th class="num" title="In-store purchases (uploaded store sales) credited to these ads">In-Store Purch.</th><th class="num">In-Store Rev.</th><th class="num" title="(Web revenue + in-store revenue) / spend">Total ROAS</th>`:"";
+const isCellsHtml=x=>INSTORE?`<td class="num">${isNumFmt(x)}</td><td class="num">${isMoneyFmt(x)}</td><td class="num">${x.hasIS?totRoasFmt(x):NA}</td>`:"";
 const secHeadHtml=()=>SECONDARY?`<th class="num">${SEC_LABEL}</th><th class="num">${SEC_COST_LABEL}</th>`:"";
 const secCellsHtml=x=>SECONDARY?`<td class="num">${num(x.sec)||NA}</td><td class="num">${cpsFmt(x)}</td>`:"";
-const resHeadHtml=()=>(IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`)+secHeadHtml();
-const resCellsHtml=x=>(IS_ROAS?`<td class="num">${num(x.leads)||NA}</td><td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${cpaFmt(x)}</td><td class="num">${aovFmt(x)}</td>`
+const resHeadHtml=()=>(IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`+isHeadHtml():`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`)+secHeadHtml();
+const resCellsHtml=x=>(IS_ROAS?`<td class="num">${num(x.leads)||NA}</td><td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${cpaFmt(x)}</td><td class="num">${aovFmt(x)}</td>`+isCellsHtml(x)
   :`<td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`)+secCellsHtml(x);
 
 /* ── Shell (controls + tabs) ─────────────────────────────────────── */
@@ -808,10 +822,10 @@ function groupTable(rows,key,label,tid){
   const arr=c=>st.col===c?(st.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
   const head=`<tr>${sth("k",label)}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${sth("cpc","CPC","num")}${sth("cpm","CPM","num")}${sth("leads",RESULT_LABEL,"num")}${sth("cpa","CPA","num")}`+
-    (IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("aov","AOV","num"):"")+(SECONDARY?sth("sec",SEC_LABEL,"num")+sth("cps",SEC_COST_LABEL,"num"):"")+`</tr>`;
+    (IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("aov","AOV","num"):"")+(INSTORE?sth("isp","In-Store Purch.","num")+sth("isrev","In-Store Rev.","num")+sth("totRoas","Total ROAS","num"):"")+(SECONDARY?sth("sec",SEC_LABEL,"num")+sth("cps",SEC_COST_LABEL,"num"):"")+`</tr>`;
   const body=out.map(x=>`<tr><td class="adname">${esc(x.k)}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${cpcFmt(x)}</td><td class="num">${cpmFmt(x)}</td><td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`+
-    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${aovFmt(x)}</td>`:"")+secCellsHtml(x)+`</tr>`).join("")
-    ||`<tr><td colspan="14" class="note">Nothing matches.</td></tr>`;
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${aovFmt(x)}</td>`:"")+isCellsHtml(x)+secCellsHtml(x)+`</tr>`).join("")
+    ||`<tr><td colspan="17" class="note">Nothing matches.</td></tr>`;
   return {html:`<div style="overflow-x:auto"><table id="${tid}"><thead>${head}</thead><tbody>${body}</tbody></table></div>`, out};
 }
 function renderCampaigns(f){
@@ -889,12 +903,18 @@ function kpiHtml(f, pre){
     const abs=absFmt?` (${diff>=0?"+":"−"}${absFmt(Math.abs(diff))})`:"";
     return `<div class="kpi-delta ${cls}">${pc>=0?"+":""}${(pc*100).toFixed(1)}% ${pc>=0?"↑":"↓"}${abs}</div>`;
   }
+  const isSub=INSTORE?`<div class="sublabel">${t.hasIS||!state.platform?"store sales tracked from "+INSTORE.since:"not split by platform"}</div>`:"";
+  const isK=INSTORE
+    ? `<div class="kpi"><div class="label">Total ROAS</div><div class="val">${t.hasIS?totRoasFmt(t):NA}</div>${t.hasIS&&pAgg&&pAgg.hasIS?kd(t.totRoas,pAgg&&pAgg.totRoas,false):""}<div class="sublabel">web + in-store</div></div>
+       <div class="kpi"><div class="label">In-Store Revenue</div><div class="val">${isMoneyFmt(t)}</div>${t.hasIS&&pAgg&&pAgg.hasIS?kd(t.isrev,pAgg&&pAgg.isrev,false,money):""}${isSub}</div>
+       <div class="kpi"><div class="label">In-Store ${RESULT_LABEL}</div><div class="val">${isNumFmt(t)}</div>${t.hasIS&&pAgg&&pAgg.hasIS?kd(t.isp,pAgg&&pAgg.isp,false,num):""}</div>`
+    : "";
   const resultK=IS_ROAS
-    ? `<div class="kpi"><div class="label">Blended ROAS</div><div class="val">${t.roas.toFixed(2)}x</div>${kd(t.roas,pAgg&&pAgg.roas,false)}</div>
+    ? isK+`<div class="kpi"><div class="label">${INSTORE?"Web ROAS":"Blended ROAS"}</div><div class="val">${t.roas.toFixed(2)}x</div>${kd(t.roas,pAgg&&pAgg.roas,false)}</div>
        <div class="kpi"><div class="label">CPA</div><div class="val">${cpaFmt(t)}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}<div class="sublabel">cost per ${RESULT_ONE}</div></div>
        <div class="kpi"><div class="label">AOV</div><div class="val">${aovFmt(t)}</div>${kd(t.aov,pAgg&&pAgg.aov,false,money)}</div>
-       <div class="kpi"><div class="label">Revenue</div><div class="val">${money(t.rev)}</div>${kd(t.rev,pAgg&&pAgg.rev,false,money)}</div>
-       <div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>`
+       <div class="kpi"><div class="label">${INSTORE?"Web Revenue":"Revenue"}</div><div class="val">${money(t.rev)}</div>${kd(t.rev,pAgg&&pAgg.rev,false,money)}</div>
+       <div class="kpi"><div class="label">${INSTORE?"Web "+RESULT_LABEL:RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>`
     : `<div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>
        <div class="kpi"><div class="label">Blended CPA</div><div class="val">${cpaFmt(t)}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}</div>`;
   const secK=SECONDARY?`<div class="kpi"><div class="label">${SEC_LABEL}</div><div class="val">${num(t.sec)}</div>${kd(t.sec,pAgg&&pAgg.sec,false,num)}</div>
@@ -953,7 +973,7 @@ function periodTable(rows,keyFn,colLabel,labelFn){
   const allByKey={}; scoped().forEach(r=>{ const k=keyFn(r._date); (allByKey[k]=allByKey[k]||[]).push(r); });
   const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
   const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)})).sort((a,b)=>b.k.localeCompare(a.k));
-  const rh=(IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`)+secHeadHtml();
+  const rh=resHeadHtml();
   const body=out.map(x=>{
     // Comparison period comes from ALL data (campaign / ad set filters kept, date filter dropped), so a
     // period still gets its change when the prior period sits outside the selected dates.
@@ -969,7 +989,7 @@ function periodTable(rows,keyFn,colLabel,labelFn){
       `<td class="num">${num(x.leads)||NA}${d(x.leads,p&&p.leads,false,num)}</td>`+
       (IS_ROAS?`<td class="num">${money(x.rev)}${d(x.rev,p&&p.rev,false,money)}</td><td class="num">${roasFmt(x)}${x.rev?d(x.roas,p&&p.roas,false):""}</td>`:"")+
       `<td class="num">${cpaFmt(x)}${x.leads&&p&&p.leads?periodDelta(x.cpa,p.cpa,true,money):""}</td>`+
-      (IS_ROAS?`<td class="num">${aovFmt(x)}${x.leads&&p&&p.leads?periodDelta(x.aov,p.aov,false,money):""}</td>`:"")+
+      (IS_ROAS?`<td class="num">${aovFmt(x)}${x.leads&&p&&p.leads?periodDelta(x.aov,p.aov,false,money):""}</td>`:"")+isCellsHtml(x)+
       (SECONDARY?`<td class="num">${num(x.sec)||NA}${d(x.sec,p&&p.sec,false,num)}</td><td class="num">${cpsFmt(x)}${x.sec&&p&&p.sec?periodDelta(x.cps,p.cps,true,money):""}</td>`:"")+`</tr>`;
   }).join("");
   return `<table><thead><tr><th>${colLabel}</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
@@ -1858,11 +1878,11 @@ function renderExplorer(f){
   const arr=c=>axSort.col===c?(axSort.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
   const head=`<tr><th></th>${sth("name","Ad")}${sth("campaign","Campaign")}${sth("adset","Ad Set")}${sth("format","Format")}${sth("funnel","Funnel")}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${sth("cpc","CPC","num")}${sth("cpm","CPM","num")}${sth("leads",RESULT_LABEL,"num")}`+
-    (IS_ROAS?sth("roas","ROAS","num")+sth("rev","Revenue","num"):sth("cpa","CPA","num"))+(SECONDARY?sth("sec",SEC_LABEL,"num")+sth("cps",SEC_COST_LABEL,"num"):"")+sth("lpv","LPV","num")+sth("atc","ATC","num")+`</tr>`;
+    (IS_ROAS?sth("roas","ROAS","num")+sth("rev","Revenue","num"):sth("cpa","CPA","num"))+(INSTORE?sth("isp","In-Store Purch.","num")+sth("isrev","In-Store Rev.","num")+sth("totRoas","Total ROAS","num"):"")+(SECONDARY?sth("sec",SEC_LABEL,"num")+sth("cps",SEC_COST_LABEL,"num"):"")+sth("lpv","LPV","num")+sth("atc","ATC","num")+`</tr>`;
   const rows=ads.map(a=>`<tr class="clickable" data-adid="${esc(a.id)}"><td>${a.thumb?`<img class="thumb" src="${esc(a.thumb)}" alt="" onerror="this.style.display='none'">`:""}</td><td class="adname">${esc(a.name||"")}</td><td>${esc(a.campaign||NA)}</td><td>${esc(a.adset||NA)}</td><td><span class="pill">${esc(a.format||NA)}</span></td><td>${esc(a.funnel||NA)}</td>
     <td class="num">${money(a.spend)}</td><td class="num">${num(a.imp)}</td><td class="num">${num(a.clicks)}</td><td class="num">${pct(a.ctr)}</td><td class="num">${cpcFmt(a)}</td><td class="num">${cpmFmt(a)}</td><td class="num">${num(a.leads)||NA}</td>`+
-    (IS_ROAS?`<td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${roasFmt(a)}</td><td class="num">${money(a.rev)}</td>`:`<td class="num">${cpaFmt(a)}</td>`)+secCellsHtml(a)+
-    `<td class="num">${num(a.lpv)||NA}</td><td class="num">${num(a.atc)||NA}</td></tr>`).join("")||`<tr><td colspan="19" class="note">No ads match.</td></tr>`;
+    (IS_ROAS?`<td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${roasFmt(a)}</td><td class="num">${money(a.rev)}</td>`:`<td class="num">${cpaFmt(a)}</td>`)+isCellsHtml(a)+secCellsHtml(a)+
+    `<td class="num">${num(a.lpv)||NA}</td><td class="num">${num(a.atc)||NA}</td></tr>`).join("")||`<tr><td colspan="22" class="note">No ads match.</td></tr>`;
   document.getElementById("tab-explorer").innerHTML=
     `<input type="text" class="search-box" id="axSearch" placeholder="Search by ad, campaign or ad set..." value="${esc(axSearch)}">
      <div class="card"><h2>All ads <span class="mini">click a row for daily detail</span></h2>${GROWS.length?`<div class="note" style="margin:-8px 0 10px;">Google ad groups appear as "Ad Group (Google RSA)" rows with Platform Google. LPV and ATC are Meta pixel counts, so they are blank on Google rows.</div>`:""}<div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
@@ -1890,6 +1910,7 @@ function openAdPanel(adId){
   const tiles=IS_ROAS
     ? [["Spend",money(a.spend)],["Impressions",num(a.imp)],["Clicks",num(a.clicks)],["CTR",pct(a.ctr)],["CPC",cpcFmt(a)],["CPM",cpmFmt(a)],
        [RESULT_LABEL,num(a.leads)],["CPA",cpaFmt(a)],["Revenue",money(a.rev)],["ROAS",roasFmt(a)]].concat(secTiles,[["Landing Page Views",isG?"n/a":num(a.lpv)],["Adds to Cart",isG?"n/a":num(a.atc)]])
+      .concat(INSTORE?[["In-Store "+RESULT_LABEL,isNumFmt(a)],["In-Store Revenue",isMoneyFmt(a)],["Total ROAS",a.hasIS?totRoasFmt(a):NA]]:[])
     : [["Spend",money(a.spend)],["Impressions",num(a.imp)],["Reach",noReach?"n/a":num(a.reach)],["Frequency",noReach?"n/a":(a.reach?a.freq.toFixed(2):NA)],["Clicks",num(a.clicks)],["CTR",pct(a.ctr)],
        ["CPC",cpcFmt(a)],["CPM",cpmFmt(a)],[RESULT_LABEL,num(a.leads)],[COST_LABEL,cpaFmt(a)]].concat(secTiles,[["Landing Page Views",isG?"n/a":num(a.lpv)]]);
   document.getElementById("axKpis").innerHTML=tiles.map(([l,v])=>`<div class="ax-kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
@@ -1901,9 +1922,9 @@ function openAdPanel(adId){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}},
       scales:{y:{position:"left",beginAtZero:true,ticks:{callback:v=>"$"+(+v).toFixed(0)}},y1:{position:"right",beginAtZero:true,grid:{drawOnChartArea:false},ticks:{precision:0}},x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:25}}}}});
   document.getElementById("axHead").innerHTML=`<tr><th>Date</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th><th class="num">CPC</th><th class="num">${RESULT_LABEL}</th>`+
-    (IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">CPA</th>`)+secHeadHtml()+`</tr>`;
+    (IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">CPA</th>`)+isHeadHtml()+secHeadHtml()+`</tr>`;
   document.getElementById("axBody").innerHTML=days.map((k,i)=>{ const x=d[i]; return `<tr><td>${k}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${cpcFmt(x)}</td><td class="num">${num(x.leads)||NA}</td>`+
-    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${roasFmt(x)}</td>`:`<td class="num">${cpaFmt(x)}</td>`)+secCellsHtml(x)+`</tr>`; }).join("");
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${roasFmt(x)}</td>`:`<td class="num">${cpaFmt(x)}</td>`)+isCellsHtml(x)+secCellsHtml(x)+`</tr>`; }).join("");
   document.getElementById("axOverlay").classList.add("open");
 }
 function closeAdPanel(){ document.getElementById("axOverlay").classList.remove("open"); if(charts.axChart){ charts.axChart.destroy(); delete charts.axChart; } }
@@ -2119,7 +2140,8 @@ function renderPacing(f){
   const resTiles=IS_ROAS
     ? `<div class="kpi"><div class="label">MTD ${RESULT_LABEL}</div><div class="val">${num(m.leads)}</div></div>
        <div class="kpi"><div class="label">MTD Revenue</div><div class="val">${money(m.rev)}</div></div>
-       <div class="kpi"><div class="label">MTD ROAS</div><div class="val">${roasFmt(m)}</div></div>`
+       <div class="kpi"><div class="label">MTD ${INSTORE?"Web ":""}ROAS</div><div class="val">${roasFmt(m)}</div></div>`+
+      (INSTORE?`<div class="kpi"><div class="label">MTD Total ROAS</div><div class="val">${m.hasIS?totRoasFmt(m):NA}</div><div class="sublabel">web + in-store</div></div>`:"")
     : `<div class="kpi"><div class="label">MTD ${RESULT_LABEL}</div><div class="val">${num(m.leads)}</div></div>
        <div class="kpi"><div class="label">MTD ${COST_LABEL}</div><div class="val">${cpaFmt(m)}</div></div>`;
   document.getElementById("tab-pacing").innerHTML=
@@ -2156,7 +2178,7 @@ let crSort={col:null,asc:true}, crNeeds=false;
 function renderCreative(f){
   f=metaOnly(f);   // Google rows carry no creative themes
   let ads=adsAgg(f);
-  const sval=(a,c)=>{ if(["spend","leads","rev","cpa","roas","aov"].includes(c)) return a[c]; if(c==="name") return (a.name||"").toLowerCase();
+  const sval=(a,c)=>{ if(["spend","leads","rev","cpa","roas","aov","isp","isrev","totRoas","sec","cps"].includes(c)) return a[c]; if(c==="name") return (a.name||"").toLowerCase();
     if(c==="format") return (a.format||"").toLowerCase(); if(c==="funnel") return (a.funnel||"").toLowerCase();
     return (a.tags[c]||"").toString().toLowerCase(); };
   ads.sort(crSort.col?((a,b)=>{const va=sval(a,crSort.col),vb=sval(b,crSort.col),s=crSort.asc?1:-1;return va<vb?-s:va>vb?s:0;}):rankBest);
@@ -2167,7 +2189,7 @@ function renderCreative(f){
   const needs=a=>isVideoRow(a.tags) && MAN.some(d=>!(a.tags[d]||"").toString().trim());
   const needN=ads.filter(needs).length;
   if(crNeeds) ads=ads.filter(needs);
-  const resultHead=IS_ROAS?sth("leads",RESULT_LABEL,"num")+sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("cpa","CPA","num")+sth("aov","AOV","num"):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num");
+  const resultHead=(IS_ROAS?sth("leads",RESULT_LABEL,"num")+sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("cpa","CPA","num")+sth("aov","AOV","num")+(INSTORE?sth("isp","In-Store Purch.","num")+sth("isrev","In-Store Rev.","num")+sth("totRoas","Total ROAS","num"):""):sth("leads",RESULT_LABEL,"num")+sth("cpa","CPA","num"))+(SECONDARY?sth("sec",SEC_LABEL,"num")+sth("cps",SEC_COST_LABEL,"num"):"");
   const head=`<tr><th><input type="checkbox" id="crSelAll" title="Select all"></th><th></th>${sth("name","Ad")}${sth("format","Format")}${sth("funnel","Funnel")}`+
     aiCols.map(d=>sth(d,esc(d),"ai")).join("")+sth("spend","Spend","num")+resultHead+`</tr>`;
   const rows=ads.map(a=>
