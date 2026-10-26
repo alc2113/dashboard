@@ -154,6 +154,8 @@ window.AD_CLIENTS = {
     webhookUrl: "https://script.google.com/macros/s/AKfycbwHPIxdHxfJok4DxZySyev12tWqUerxx29UcF00JLoXYvbYvAXpaPb3NAXRe-q9KaQBwQ/exec",
     resultMetric: "roas",
     resultLabel: "Purchases",
+    // In-store (Shopify POS) sales uploaded to Meta as offline events; ads track them from 2026-10-24.
+    instore: { since: "Oct 24, 2026" },
     // Fallback only. The live theme list comes from the sheet's Taxonomy tab.
     aiDims: ["Selling angle", "Look", "What's shown", "Text on the creative", "AI-made", "Who's talking",
              "Shape", "Video length", "Hook", "Product line", "Background color", "Offer type", "Landing Page"],
