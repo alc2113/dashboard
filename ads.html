@@ -798,7 +798,7 @@ function kpiHtml(f){
     const abs=absFmt?` (${diff>=0?"+":"−"}${absFmt(Math.abs(diff))})`:"";
     return `<div class="kpi-delta ${cls}">${pc>=0?"+":""}${(pc*100).toFixed(1)}% ${pc>=0?"↑":"↓"}${abs}</div>`;
   }
-  const isSub=`<div class="sublabel">${t.hasIS||!state.platform?"store sales tracked from "+INSTORE.since:"not split by platform"}</div>`;
+  const isSub=INSTORE?`<div class="sublabel">${t.hasIS||!state.platform?"store sales tracked from "+INSTORE.since:"not split by platform"}</div>`:"";
   const isK=INSTORE
     ? `<div class="kpi"><div class="label">Total ROAS</div><div class="val">${t.hasIS?totRoasFmt(t):NA}</div>${t.hasIS&&pAgg&&pAgg.hasIS?kd(t.totRoas,pAgg&&pAgg.totRoas,false):""}<div class="sublabel">web + in-store</div></div>
        <div class="kpi"><div class="label">In-Store Revenue</div><div class="val">${isMoneyFmt(t)}</div>${t.hasIS&&pAgg&&pAgg.hasIS?kd(t.isrev,pAgg&&pAgg.isrev,false,money):""}${isSub}</div>
