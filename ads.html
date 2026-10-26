@@ -473,7 +473,8 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
      o._ckt=pv(o["Checkouts Initiated"]); o._purch=pv(o["Purchases"]); o._regs=pv(o["Registrations"]);
      o._leadev=pv(o["Lead Events"]); o._cv=pv(o["Content Views"]);
      // Only when the sheet has the column (engine 2026-10-26+); older frozen rows with a blank cell read as 0.
-     if(INSTORE&&("In-Store Purchases" in o)){ o._isp=pv(o["In-Store Purchases"]); o._isrev=pv(o["In-Store Revenue"]); } };
+     // Before the tracking start date the column exists but is blank, which is "not tracked", not $0.
+     if(INSTORE&&("In-Store Purchases" in o)&&(!INSTORE.start||String(o["Date"]).slice(0,10)>=INSTORE.start)){ o._isp=pv(o["In-Store Purchases"]); o._isrev=pv(o["In-Store Revenue"]); } };
    ROWS=daily.map(r=>{
      const id=String(r["Ad ID"]).trim();
      const o=Object.assign({}, r, tags[id]||{});
