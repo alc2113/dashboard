@@ -11,6 +11,8 @@
   --primary:#209D50; --primary-dark:#1a8a44;
   --bg:#E1DFD9; --card:#fff; --border:#C8C5BE; --header-bg:#F5F4F1;
   --text:#1a1a1a; --muted:#666; --good:#209D50; --bad:#E53935;
+  /* brand.colors overrides (registry): accent follows primary unless the client sets one */
+  --accent:var(--primary); --secondary:#50C8D9;
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   background:var(--bg); color:var(--text); line-height:1.5; padding:24px;}
@@ -20,6 +22,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .brand .dot{width:30px; height:30px; border-radius:7px; background:var(--primary);
   display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; font-size:15px;}
 .brand .name{font-size:15px; font-weight:700; letter-spacing:2px; color:var(--primary);}
+.brand img.logo{width:38px; height:38px; border-radius:50%; display:block;}   /* registry brand.logo */
 .title{font-size:22px; font-weight:700;}
 .sub{font-size:13px; color:var(--muted); margin-bottom:16px;}
 .head-right{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
@@ -52,7 +55,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .cov-box.gap{background:#FFF7E6; border-color:#F0C36D;}
 .cov-box .l{font-size:13px; font-weight:600;}
 .cov-box .t{height:4px; border-radius:2px; background:var(--header-bg); margin-top:7px; overflow:hidden;}
-.cov-box .t i{display:block; height:100%; background:var(--primary);}
+.cov-box .t i{display:block; height:100%; background:var(--accent);}
 .cov-box .r{display:flex; justify-content:space-between; align-items:baseline; margin-top:6px; font-size:12px; color:var(--muted);}
 .cov-box .v{font-size:16px; font-weight:700; color:var(--text);}
 .cov-box .n{font-size:11.5px; color:var(--muted); margin-top:6px;}
@@ -77,6 +80,8 @@ td.na{color:var(--muted); font-size:12px;}
 .login-btn{width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px;}
 .login-btn:hover{background:var(--primary-dark);}
 .login-err{color:var(--bad);font-size:13px;margin-top:12px;min-height:20px;}
+.login-wordmark{width:300px;max-width:82%;height:auto;display:block;margin:0 auto 6px;}   /* registry brand.wordmark */
+.login-foot{font-size:11px;color:var(--muted);margin-top:22px;letter-spacing:.5px;}        /* registry brand.loginFooter */
 
 /* Tabs */
 .tabs{display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px;}
@@ -198,22 +203,33 @@ select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid
 .modal .row{display:flex; gap:10px; justify-content:flex-end;}
 .modal button{padding:8px 16px; border-radius:8px; border:1px solid var(--border); background:#fff; cursor:pointer; font-size:13px;}
 .modal button.primary{background:var(--primary); color:#fff; border-color:var(--primary);}
+/* Manage tag dimensions dialog (registry `manageTags`; ported from sog.html) */
+.modal.wide{max-width:720px; width:92vw; max-height:82vh; overflow:auto;}
+.cr-tools{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+.cr-managebtn{font:inherit; font-size:12px; padding:4px 10px; border-radius:6px; border:1px solid var(--border); background:#fff; cursor:pointer;}
+.cr-mtbl{width:100%; border-collapse:collapse; font-size:12.5px; margin:8px 0;}
+.cr-mtbl th{text-align:left; font-size:10.5px; text-transform:uppercase; color:#888; padding:2px 4px; cursor:default;}
+.cr-mtbl td{padding:3px 4px; border-bottom:1px solid #eee; white-space:normal;}
+.cr-mtbl input,.cr-mtbl select{font:inherit; padding:3px 5px; border:1px solid #ccc; border-radius:5px; width:100%;}
+.modal .cr-mtbl .m-del{width:auto; color:#c00; border:1px solid #eccccc; cursor:pointer; background:#fff; border-radius:5px; padding:2px 8px;}
 </style>
 </head>
 <body>
 <div id="loginWrap" class="login-wrap" style="display:none;">
   <div class="login-card">
+    <img id="loginWordmark" class="login-wordmark" alt="" style="display:none;">
     <div class="login-brand" id="loginBrand">CASSA STRATEGY</div>
     <div class="login-sub">Ads Dashboard</div>
     <div class="login-client" id="loginClient">Ad Performance</div>
     <input type="password" id="loginPw" class="login-input" placeholder="Enter password">
     <button id="loginBtn" class="login-btn">Sign In</button>
     <div id="loginErr" class="login-err"></div>
+    <div id="loginFoot" class="login-foot" style="display:none;"></div>
   </div>
 </div>
 <div class="wrap" id="app">
   <div class="head">
-    <div class="brand"><div class="dot" id="brandDot">C</div><div class="name" id="brandName">CASSA STRATEGY</div></div>
+    <div class="brand"><img id="brandLogo" class="logo" alt="" style="display:none;"><div class="dot" id="brandDot">C</div><div class="name" id="brandName">CASSA STRATEGY</div></div>
     <div class="head-right"><div class="sub" id="range" style="margin:0;"></div><div class="stamp" id="stamp"></div></div>
   </div>
   <div class="title" id="clientTitle">Ad Performance</div>
@@ -252,6 +268,7 @@ const IS_ROAS=CFG.resultMetric==="roas";
 let AI_DIMS=CFG.aiDims||[];
 let EDIT_OPTIONS=CFG.editOptions||{};       // controlled-dim dropdown values; others edit as text
 const WEBHOOK_URL=CFG.webhookUrl||"";       // Apps Script /exec to save tag edits back
+const MANAGE_TAGS=!!CFG.manageTags;         // Creative tab "Manage tags" dialog (needs a webhook that accepts tax_set / tax_del)
 const MODELED=CFG.modeled||null;            // CRM truth layer config (optional)
 const SPARKLOOP=CFG.sparkloop||null;        // SparkLoop Earn tabs config (optional)
 const DEALS=CFG.deals||null;                // CRM pipeline + revenue config (optional)
@@ -260,6 +277,7 @@ let BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS);
 // Creative themes v2: the live theme list (names, allowed values, who fills them) comes from the
 // sheet's Taxonomy tab; the registry's aiDims/editOptions are only the fallback.
 let THEMES=[];   // [{dim, type: select|auto|manual, values[], hint}]
+let TAX_ROWS=[]; // every Taxonomy row (text rows included), for the Manage tags dialog
 const NEUTRAL=new Set(["None","No one","Varies","Not a video","No","No product shown"]);
 const THEME_Q={"Selling angle":"The main reason the creative gives someone to act","Look":"How the creative was made",
   "What's shown":"Who or what is in the frame","Text on the creative":"Strongest text element on the image or video",
@@ -271,17 +289,47 @@ const manualDims=()=>THEMES.filter(t=>t.type==="manual").map(t=>t.dim);
 const RESULT_LABEL=CFG.resultLabel || (IS_ROAS?"Purchases":"Leads");
 const RESULT_ONE=RESULT_LABEL.replace(/s$/,"").toLowerCase();   // "lead" / "purchase"
 const COST_LABEL="Cost per "+RESULT_ONE;
+// Secondary conversion (optional, registry `secondaryResult`): a second result column on Ad Daily +
+// Platform Daily shown beside the primary result. The asset tabs never carry it.
+const SECONDARY=(CFG.secondaryResult&&CFG.secondaryResult.col)?CFG.secondaryResult:null;
+const SEC_COL=SECONDARY?SECONDARY.col:"", SEC_LABEL=SECONDARY?(SECONDARY.label||SECONDARY.col):"";
+const SEC_ONE=SEC_LABEL.replace(/s$/,"").toLowerCase();          // "registration"
+const SEC_COST_LABEL="Cost per "+SEC_ONE;
+const SEC_ABBR=SECONDARY?(SECONDARY.abbr||"CR"):"";              // short tag on the SparkLoop tab, "(CR)" for Registrations
+// GA4 site-wide events (optional, registry `ga4Events`): all-traffic site events + campaign-level
+// Meta pixel events on the same sheet, shown side by side on the Site Events tab, never summed.
+const GA4E=CFG.ga4Events||null;
 const NA="-";   // empty-cell placeholder
 
-document.getElementById("brandName").textContent=BRAND.name;
-document.getElementById("brandDot").textContent=BRAND.initial;
-document.getElementById("brandDot").style.background=BRAND.color;
-document.getElementById("clientTitle").textContent=CFG.title||"Ad Performance";
-if(CFG.subtitle) document.getElementById("clientSub").textContent=CFG.subtitle;
-document.documentElement.style.setProperty("--primary",BRAND.color);
-document.title=CFG.title||"Ad Performance";
-
 const COLORS=["#209D50","#4A90D9","#FF6B6B","#FFA500","#9D50D9","#50C8D9","#D4A843","#E8527A","#7BC67E","#6B8DE3"];
+/* Branding (registry `brand`). name / initial / color are the base every client has; logo, wordmark,
+   font, colors, headerName and loginFooter are the optional client rebrand (sog.html carried them). */
+(function applyBrand(){
+  const b=BRAND, root=document.documentElement.style;
+  document.getElementById("brandName").textContent=b.headerName||b.name;
+  const dot=document.getElementById("brandDot"), logo=document.getElementById("brandLogo");
+  dot.textContent=b.initial; dot.style.background=b.color;
+  if(b.logo){ logo.src=b.logo; logo.style.display="block"; dot.style.display="none"; }   // header image instead of the initial square
+  document.getElementById("clientTitle").textContent=CFG.title||"Ad Performance";
+  if(CFG.subtitle) document.getElementById("clientSub").textContent=CFG.subtitle;
+  document.title=CFG.title||"Ad Performance";
+  root.setProperty("--primary",b.color);
+  // CSS variable overrides, only the keys given. primary / secondary / accent also take the first three
+  // chart palette slots so charts follow the brand (sog.html palette order: primary, teal, coral).
+  const c=b.colors||{}, VARS={primary:"--primary",primaryDark:"--primary-dark",accent:"--accent",secondary:"--secondary",good:"--good",bad:"--bad"};
+  Object.keys(VARS).forEach(k=>{ if(c[k]) root.setProperty(VARS[k],c[k]); });
+  if(c.primary) COLORS[0]=c.primary;
+  if(c.secondary) COLORS[1]=c.secondary;
+  if(c.accent) COLORS[2]=c.accent;
+  // Google Fonts family, loaded on demand; the system stack stays as the fallback.
+  if(b.font){
+    const fam=encodeURIComponent(b.font).replace(/%20/g,"+");
+    [["preconnect","https://fonts.googleapis.com",false],["preconnect","https://fonts.gstatic.com",true],
+     ["stylesheet","https://fonts.googleapis.com/css2?family="+fam+":wght@400;500;600;700&display=swap",false]].forEach(([rel,href,cors])=>{
+      const l=document.createElement("link"); l.rel=rel; l.href=href; if(cors) l.crossOrigin="anonymous"; document.head.appendChild(l); });
+    document.body.style.fontFamily="'"+b.font.replace(/'/g,"")+"',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
+  }
+})();
 const money=v=>"$"+(+v||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 const num=v=>Math.round(+v||0).toLocaleString();
 const pct=v=>(+v||0).toFixed(2)+"%";
@@ -293,6 +341,7 @@ const cpaFmt=x=>x.leads?money(x.cpa):NA;
 const aovFmt=x=>x.leads?money(x.aov):NA;
 const cpcFmt=x=>x.clicks?money(x.cpc):NA;
 const cpmFmt=x=>x.imp?money(x.cpm):NA;
+const cpsFmt=x=>x.sec?money(x.cps):NA;   // cost per secondary result
 
 // gviz with headers=1 (pins header to row 1 so upsert-frozen string rows aren't dropped).
 function gvizUrlFor(sheetId,tab){ return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(tab)}&t=${Date.now()}`; }
@@ -315,10 +364,12 @@ function tabRows(text, required){
 const fetchTab=(sheetId,tab)=>fetch(gvizUrlFor(sheetId,tab)).then(r=>r.ok?r.text():"").catch(()=>"");
 
 let ROWS=[], PROWS=[], DMIN="", DMAX="", charts={};
+let GROWS=[];              // Google Ad Detail rows as "<Ad Group> (Google RSA)" pseudo-ads (registry google.adDetailTab)
 let state={from:"",to:"",tab:"overview",campaign:"",adset:"",platform:"",cmp:true};
 let PLATFORMS=[];          // distinct Platform values from Platform Daily
 let EVENTS=[];             // Meta Event Detail, de-duplicated per ad + day + event
 let HAS_EVENT_TAB=false;
+let GA4={rows:[],meta:[]}; // GA4 site events (all traffic) + campaign-level Meta pixel events, when `ga4Events` is configured
 let HEADS=[], BODIES=[];   // Headline Performance / Primary Text Performance (Meta asset rows)
 let GKW=[], GHEAD=[], GDESC=[];   // Google layer: Keywords / Headline Performance / Description Performance
 let SYNC={};               // Sync Status: synced_at, data_through, client, engine_version
@@ -375,6 +426,8 @@ if(PASSWORD && !EMBED){
   document.getElementById("app").style.display="none";
   document.getElementById("loginWrap").style.display="flex";
   document.getElementById("loginBrand").textContent=BRAND.name;
+  if(BRAND.wordmark){ const w=document.getElementById("loginWordmark"); w.src=BRAND.wordmark; w.style.display="block"; document.getElementById("loginBrand").style.display="none"; }
+  if(BRAND.loginFooter){ const lf=document.getElementById("loginFoot"); lf.textContent=BRAND.loginFooter; lf.style.display="block"; }
   document.getElementById("loginClient").textContent=CFG.title||"Ad Performance";
   document.getElementById("loginBtn").addEventListener("click",doLogin);
   document.getElementById("loginPw").addEventListener("keydown",e=>{ if(e.key==="Enter") doLogin(); });
@@ -404,17 +457,12 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
              fetchTab(SHEET_ID,SYNC_TAB),
              GOOGLE?fetchTab(GS,GOOGLE.keywordsTab||"Keywords"):Promise.resolve(""),
              GOOGLE?fetchTab(GS,GOOGLE.headlineTab||"Headline Performance"):Promise.resolve(""),
-             GOOGLE?fetchTab(GS,GOOGLE.descriptionTab||"Description Performance"):Promise.resolve("")])
- .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT, dealsT, taxT, platT, evT, headT, bodyT, syncT, gKwT, gHeadT, gDescT])=>{
-   // Themes from the Taxonomy tab (first row per dimension wins; the tab can carry duplicates)
-   const seenDim={};
-   THEMES=tabRows(taxT,["Dimension","Type"]).map(r=>({dim:String(r["Dimension"]||"").trim(), type:String(r["Type"]||"select").trim().toLowerCase(),
-       values:String(r["Values"]||"").split(",").map(v=>v.trim()).filter(Boolean), hint:String(r["Hint"]||"")}))
-     .filter(t=>{ if(!t.dim || !["select","auto","manual"].includes(t.type) || seenDim[t.dim]) return false; seenDim[t.dim]=1; return true; });
-   if(!THEMES.length) THEMES=AI_DIMS.map(d=>({dim:d,type:"select",values:EDIT_OPTIONS[d]||[],hint:""}));
-   AI_DIMS=THEMES.map(t=>t.dim);
-   EDIT_OPTIONS={}; THEMES.forEach(t=>{ if(t.type!=="auto" && t.values.length) EDIT_OPTIONS[t.dim]=t.values; });
-   BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS); bdDim=AI_DIMS[0]||BREAKDOWN_DIMS[0]; bdA=bdDim; bdB="";
+             GOOGLE?fetchTab(GS,GOOGLE.descriptionTab||"Description Performance"):Promise.resolve(""),
+             GOOGLE?fetchTab(GS,GOOGLE.adDetailTab||"Google Ad Detail"):Promise.resolve(""),
+             GA4E?fetchTab(GA4E.sheetId||SHEET_ID,GA4E.tab||"Site Events"):Promise.resolve(""),
+             GA4E?fetchTab(GA4E.sheetId||SHEET_ID,GA4E.metaTab||"Meta Event Detail"):Promise.resolve("")])
+ .then(([dailyT, tagT, perfT, budgetT, deviceT, demoT, hourlyT, pmaxT, modeledT, ga4T, slPayT, slParT, dealsT, taxT, platT, evT, headT, bodyT, syncT, gKwT, gHeadT, gDescT, gAdT, ga4EvT, ga4MetaT])=>{
+   applyTaxonomy(taxT);
    // Sync Status (Key / Value)
    SYNC={}; tabRows(syncT,["Key","Value"]).forEach(r=>{ const k=String(r["Key"]||"").trim(); if(k) SYNC[k]=String(r["Value"]==null?"":r["Value"]).trim(); });
    // CRM deal snapshot (optional; Pipeline & Revenue tab)
@@ -464,7 +512,7 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
      o._spend=pv(o["Spend"]); o._imp=pv(o["Impressions"]); o._reach=pv(o["Reach"]); o._clicks=pv(o["Clicks"]);
      o._leads=pv(o["Leads"]); o._rev=pv(o["Revenue"]); o._lpv=pv(o["Landing Page Views"]); o._atc=pv(o["Adds to Cart"]);
      o._ckt=pv(o["Checkouts Initiated"]); o._purch=pv(o["Purchases"]); o._regs=pv(o["Registrations"]);
-     o._leadev=pv(o["Lead Events"]); o._cv=pv(o["Content Views"]); };
+     o._leadev=pv(o["Lead Events"]); o._cv=pv(o["Content Views"]); o._sec=SECONDARY?pv(o[SEC_COL]):0; };
    ROWS=daily.map(r=>{
      const id=String(r["Ad ID"]).trim();
      const o=Object.assign({}, r, tags[id]||{});
@@ -510,13 +558,34 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
    // Google layer (optional): keywords + RSA asset tables, as written by sog_sync.py
    const MT={"2":"Exact","3":"Phrase","4":"Broad","EXACT":"Exact","PHRASE":"Phrase","BROAD":"Broad"};
    GKW=tabRows(gKwT,["Date","Keyword","Spend"]).filter(r=>r["Date"]&&r["Keyword"]).map(r=>{ const mt=String(r["Match Type"]||"").trim();
+     const kw=String(r["Keyword"]||"").trim();
      return {_date:String(r["Date"]).slice(0,10), campaign:String(r["Campaign"]||"").trim(), ad_group:String(r["Ad Group"]||"").trim(),
-       keyword:String(r["Keyword"]||"").trim(), match_type:MT[mt]||mt||"(none)", _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _clicks:pv(r["Clicks"]),
+       keyword:kw, match_type:MT[mt]||mt||"(none)", keyword_theme:keywordTheme(kw), _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _clicks:pv(r["Clicks"]),
        _leads:pv(r["Conversions"])}; });
    const gAsset=(rows,col)=>rows.filter(r=>r[col] && (!r["Platform"] || String(r["Platform"]).trim().toLowerCase()==="google")).map(r=>({
      text:String(r[col]).trim(), _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _clicks:pv(r["Clicks"]), _leads:pv(r["Leads"]!==undefined?r["Leads"]:r["Conversions"])}));
    GHEAD=gAsset(tabRows(gHeadT,["Headline","Spend"]),"Headline");
    GDESC=gAsset(tabRows(gDescT,["Description","Spend"]),"Description");
+   // Google Ad Detail (one row per ad group x day) merged into the base ad rows as pseudo-ads, the way
+   // sog.html shows them: "<Ad Group> (Google RSA)", Ad Set = Ad Group, Platform "Google", Format "RSA",
+   // Funnel from the sheet when it has one else "Prospecting", results = Leads (or Conversions).
+   // No reach, pixel events, revenue, themes or platform split: those views stay Meta-only.
+   GROWS=tabRows(gAdT,["Date","Campaign","Ad Group","Spend"]).filter(r=>r["Date"]&&(r["Ad Group"]||r["Campaign"])).map(r=>{
+     const camp=String(r["Campaign"]||"").trim(), grp=String(r["Ad Group"]||"").trim()||"(no ad group)";
+     const o={"Ad ID":"google|"+camp+"|"+grp, "Ad Name":grp+" (Google RSA)", Campaign:camp, "Ad Set":grp,
+       Objective:String(r["Campaign Type"]||"").trim(), Format:"RSA", CTA:"", Audience:"", Placement:"",
+       Funnel:String(r["Funnel"]||"").trim()||"Prospecting", Platform:"Google",
+       _headline:"", _body:"", _thumb:"", _date:String(r["Date"]).slice(0,10), _isGoogle:true,
+       _spend:pv(r["Spend"]), _imp:pv(r["Impressions"]), _reach:0, _clicks:pv(r["Clicks"]),
+       _leads:pv(r["Leads"]!==undefined&&r["Leads"]!==null?r["Leads"]:r["Conversions"]), _rev:pv(r["Revenue"]),
+       _lpv:0,_atc:0,_ckt:0,_purch:0,_regs:0,_leadev:0,_cv:0,_sec:0};
+     return o; });
+   // GA4 site-wide events + campaign-level Meta pixel events (optional, registry `ga4Events`)
+   GA4={rows:[],meta:[]};
+   tabRows(ga4EvT,["Date","Event","Count"]).forEach(r=>{ if(!r["Date"]||!r["Event"]) return;
+     GA4.rows.push({_date:String(r["Date"]).slice(0,10), event:String(r["Event"]).trim(), source:String(r["Source"]||"").trim(), count:pv(r["Count"]), revenue:pv(r["Revenue"])}); });
+   tabRows(ga4MetaT,["Date","Event","Count"]).forEach(r=>{ if(!r["Date"]||!r["Event"]) return;
+     GA4.meta.push({_date:String(r["Date"]).slice(0,10), Campaign:String(r["Campaign"]||"").trim(), event:String(r["Event"]).trim(), count:pv(r["Count"]), value:pv(r["Value"])}); });
 
    const ds=ROWS.map(r=>r._date).filter(Boolean).sort();
    DMIN=ds[0]||""; DMAX=ds[ds.length-1]||"";
@@ -535,9 +604,11 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
      _leads:pv(r["Leads"]!==undefined?r["Leads"]:r["Results"])}));
 
    // Fold near-duplicate values across every row set at once so filters and groupings agree.
-   const all=[].concat(ROWS, PROWS, EVENTS, HEADS, BODIES, BRK.device, BRK.demo, BRK.hourly, BRK.pmax);
+   const all=[].concat(ROWS, GROWS, PROWS, EVENTS, GA4.meta, HEADS, BODIES, BRK.device, BRK.demo, BRK.hourly, BRK.pmax);
    cleanRowValues(all, ["Campaign","Ad Set","Placement","Platform"].concat(DERIVED_DIMS.filter(d=>d!=="Placement"), AI_DIMS));
+   // Platform picker: the Meta platform values from Platform Daily, then "Google" (every Google row) when configured.
    PLATFORMS=[...new Set(PROWS.map(r=>r["Platform"]))].filter(Boolean).sort();
+   if(GROWS.length) PLATFORMS.push("Google");
 
    if(BRK.device.length) BREAKDOWN_DIMS.push("Device");
    if(BRK.demo.length) BREAKDOWN_DIMS.push("Age","Gender");
@@ -552,18 +623,47 @@ Promise.all([fetch(gvizUrl(DAILY_TAB)).then(r=>r.text()),
    `<div class="err">Couldn't load the data.<br><span class="note">If the sheet isn't shared link-readable, the dashboard can't read it. (${e})</span></div>`; });
 }
 
+// Themes from the Taxonomy tab (first row per dimension wins; the tab can carry duplicates). Also
+// re-run after the Manage tags dialog saves, so the Creative columns follow the sheet without a reload.
+function applyTaxonomy(taxT){
+  const seenDim={};
+  TAX_ROWS=tabRows(taxT,["Dimension","Type"]).map(r=>({dim:String(r["Dimension"]||"").trim(), type:String(r["Type"]||"select").trim().toLowerCase()||"select",
+      values:String(r["Values"]||"").split(",").map(v=>v.trim()).filter(Boolean), hint:String(r["Hint"]||"")}))
+    .filter(t=>{ if(!t.dim || seenDim[t.dim]) return false; seenDim[t.dim]=1; return true; });
+  // Free-text rows (type text) stay out of the theme tabs, as before; the Manage tags dialog still lists them.
+  THEMES=TAX_ROWS.filter(t=>["select","auto","manual"].includes(t.type));
+  if(!THEMES.length) THEMES=(CFG.aiDims||[]).map(d=>({dim:d,type:"select",values:(CFG.editOptions||{})[d]||[],hint:""}));
+  AI_DIMS=THEMES.map(t=>t.dim);
+  EDIT_OPTIONS={}; THEMES.forEach(t=>{ if(t.type!=="auto" && t.values.length) EDIT_OPTIONS[t.dim]=t.values; });
+  BREAKDOWN_DIMS=DERIVED_DIMS.concat(AI_DIMS); bdDim=AI_DIMS[0]||BREAKDOWN_DIMS[0]; bdA=bdDim; bdB="";
+}
+
 /* ── Aggregation helpers ─────────────────────────────────────────── */
-// Base rows: Ad Daily, or Platform Daily rows for one platform when the Platform filter is set.
-function baseRows(){ return state.platform?PROWS.filter(r=>r["Platform"]===state.platform):ROWS; }
+// Every ad-level row: Ad Daily (Meta) plus the Google pseudo-ads when configured. "All Platforms" = Meta + Google.
+function allBase(){ return GROWS.length?ROWS.concat(GROWS):ROWS; }
+// Base rows: all ad-level rows; Platform Daily rows for one Meta platform, or the Google rows, when the Platform filter is set.
+function baseRows(){ return state.platform==="Google"?GROWS:state.platform?PROWS.filter(r=>r["Platform"]===state.platform):allBase(); }
 function scoped(){ return baseRows().filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)); }
 function filtered(){ return scoped().filter(r=>r._date>=state.from && r._date<=state.to); }
+// Meta rows only (Google rows carry no themes, pixel events, reach or platform split).
+const metaOnly=rows=>GROWS.length?rows.filter(r=>!r._isGoogle):rows;
+const metaOnlyNote=what=>GROWS.length?`<div class="note" style="margin:0 0 10px;">Meta ads only. Google rows carry no ${what}.</div>`:"";
 // Ad Daily rows under the same campaign / ad set / date filter, ignoring the platform filter
 // (used where a metric is not reported per platform, e.g. reach, or for pixel-event cost).
 function filteredAdDaily(){ return ROWS.filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)&&r._date>=state.from&&r._date<=state.to); }
-function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0,reach=0,lpv=0,atc=0,ckt=0,purch=0,regs=0;
-  rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;reach+=r._reach||0;lpv+=r._lpv||0;atc+=r._atc||0;ckt+=r._ckt||0;purch+=r._purch||0;regs+=r._regs||0;});
-  return {spend,leads,rev,imp,clicks,reach,lpv,atc,ckt,purch,regs,cpa:leads?spend/leads:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,
+function agg(rows){ let spend=0,leads=0,rev=0,imp=0,clicks=0,reach=0,lpv=0,atc=0,ckt=0,purch=0,regs=0,sec=0;
+  rows.forEach(r=>{spend+=r._spend;leads+=r._leads;rev+=r._rev;imp+=r._imp;clicks+=r._clicks;reach+=r._reach||0;lpv+=r._lpv||0;atc+=r._atc||0;ckt+=r._ckt||0;purch+=r._purch||0;regs+=r._regs||0;sec+=r._sec||0;});
+  return {spend,leads,rev,imp,clicks,reach,lpv,atc,ckt,purch,regs,sec,cpa:leads?spend/leads:0,cps:sec?spend/sec:0,roas:spend&&rev?rev/spend:0,aov:leads?rev/leads:0,
     ctr:imp?clicks/imp*100:0,cpc:clicks?spend/clicks:0,cpm:imp?spend/imp*1000:0,freq:reach?imp/reach:0,ads:new Set(rows.map(r=>r["Ad ID"])).size};
+}
+// Keyword Theme classifier (registry google.keywordThemes): substrings against the lower-cased keyword
+// padded with spaces so " sog " matches a whole word. Several themes can match; none = "Other".
+const KW_THEMES=(GOOGLE&&Array.isArray(GOOGLE.keywordThemes))?GOOGLE.keywordThemes.filter(t=>t&&t.name&&Array.isArray(t.match)):[];
+function keywordTheme(kw){
+  if(!KW_THEMES.length) return "";
+  const k=" "+String(kw||"").toLowerCase()+" ";
+  const hits=KW_THEMES.filter(t=>t.match.some(m=>m&&k.indexOf(String(m).toLowerCase())>=0)).map(t=>t.name);
+  return hits.length?hits.join(", "):"Other";
 }
 function groupBy(rows,key){ const g={}; rows.forEach(r=>{ const k=(r[key]||"").toString().trim()||"(none)"; (g[k]=g[k]||[]).push(r); }); return g; }
 // The one figure each client is judged on: ROAS (higher is better) or cost per result (lower is better).
@@ -573,21 +673,23 @@ const scoreCls=(x,t)=>IS_ROAS?(!x.rev?"":x.roas>=t.roas*1.1?"good":x.roas<t.roas
 const rankBest=(a,b)=>IS_ROAS?((a.rev&&b.rev)?b.roas-a.roas:(a.rev?-1:b.rev?1:b.spend-a.spend)):((a.leads&&b.leads)?a.cpa-b.cpa:(a.leads?-1:b.leads?1:b.spend-a.spend));
 const SCORE_NAME=IS_ROAS?"ROAS":"cost per "+RESULT_ONE;
 const SCORE_RULE=IS_ROAS?"Green = at least 10% above it, red = more than 20% below.":"Green = at least 10% cheaper than that, red = at least 25% more expensive.";
-// Result columns shared by the simple dimension tables
-const resHeadHtml=()=>IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
-const resCellsHtml=x=>IS_ROAS?`<td class="num">${num(x.leads)||NA}</td><td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${cpaFmt(x)}</td><td class="num">${aovFmt(x)}</td>`
-  :`<td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`;
+// Result columns shared by the simple dimension tables (+ the secondary result when configured)
+const secHeadHtml=()=>SECONDARY?`<th class="num">${SEC_LABEL}</th><th class="num">${SEC_COST_LABEL}</th>`:"";
+const secCellsHtml=x=>SECONDARY?`<td class="num">${num(x.sec)||NA}</td><td class="num">${cpsFmt(x)}</td>`:"";
+const resHeadHtml=()=>(IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`)+secHeadHtml();
+const resCellsHtml=x=>(IS_ROAS?`<td class="num">${num(x.leads)||NA}</td><td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${cpaFmt(x)}</td><td class="num">${aovFmt(x)}</td>`
+  :`<td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`)+secCellsHtml(x);
 
 /* ── Shell (controls + tabs) ─────────────────────────────────────── */
 function buildShell(){
   const presets=["7d","14d","30d","This Mo","Last Mo","All"].map(p=>`<button class="preset${p==="30d"?" active":""}" data-preset="${p}">${p}</button>`).join("");
-  const bySpendKey=key=>{ const m={}; ROWS.forEach(r=>{ const k=(r[key]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; }); return Object.keys(m).sort((x,y)=>m[y]-m[x]); };
+  const bySpendKey=key=>{ const m={}; allBase().forEach(r=>{ const k=(r[key]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; }); return Object.keys(m).sort((x,y)=>m[y]-m[x]); };
   const campOpts=`<option value="">All Campaigns</option>`+bySpendKey("Campaign").map(c=>`<option>${esc(c)}</option>`).join("");
-  const platOpts=`<option value="">All Platforms</option>`+PLATFORMS.map(p=>`<option>${esc(p)}</option>`).join("");
+  const platOpts=`<option value="">All Platforms</option>`+PLATFORMS.map(p=>`<option>${esc(p)}</option>`).join("");   // All = Meta + Google when Google rows are merged
   const tabs=[["overview","Overview"],["trends","Trends"],["leaderboard","Leaderboard"],["campaigns","Campaigns"],["breakdowns","Breakdowns"]];
   if(GOOGLE && GKW.length) tabs.push(["keywords","Keywords"]);
   tabs.push(["explorer","Ad Explorer"],["headlines","Headlines &amp; Copy"],["funnel","Funnel"]);
-  if(HAS_EVENT_TAB) tabs.push(["siteevents","Site Events"]);
+  if(HAS_EVENT_TAB || GA4.rows.length) tabs.push(["siteevents","Site Events"]);
   if(MOD.rows.length) tabs.push(["modeled","Cost per "+(MODELED.noun||"Booking")]);
   if(DEALS) tabs.push(["deals","Pipeline &amp; Revenue"]);
   if(SL.payouts.length) tabs.push(["sparkloop","SparkLoop"]);
@@ -632,7 +734,7 @@ function buildShell(){
 }
 function clearPreset(){ document.querySelectorAll(".preset[data-preset]").forEach(b=>b.classList.remove("active")); }
 function fillAdsets(){
-  const m={}; ROWS.forEach(r=>{ if(state.campaign&&r["Campaign"]!==state.campaign) return; const k=(r["Ad Set"]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; });
+  const m={}; allBase().forEach(r=>{ if(state.campaign&&r["Campaign"]!==state.campaign) return; const k=(r["Ad Set"]||"").toString(); if(k) m[k]=(m[k]||0)+r._spend; });
   const el=document.getElementById("cAdset"); if(!el) return;
   el.innerHTML=`<option value="">All Ad Sets</option>`+Object.keys(m).sort((x,y)=>m[y]-m[x]).map(a=>`<option${a===state.adset?" selected":""}>${esc(a)}</option>`).join("");
 }
@@ -652,7 +754,9 @@ function render(){
   const f=filtered();
   document.getElementById("rowNote").textContent=`${f.length} rows · ${state.from} to ${state.to}`+(state.campaign?` · ${state.campaign}`:"")+(state.adset?` · ${state.adset}`:"")+(state.platform?` · ${state.platform}`:"");
   document.getElementById("range").textContent=`${state.from}  to  ${state.to}`;
-  document.getElementById("platNote").innerHTML=state.platform
+  document.getElementById("platNote").innerHTML=state.platform==="Google"
+    ? `<div class="info-bar">Showing <b>Google</b> only, from the Google Ad Detail tab: one row per ad group, listed as "Ad Group (Google RSA)". Google rows carry no reach, landing page views, pixel events, creative themes or platform split, so Breakdowns, Site Events, Creative and the Meta headline section stay Meta-only and read empty here.</div>`
+    : state.platform
     ? `<div class="info-bar">Showing <b>${esc(state.platform)}</b> only, from the Platform Daily tab. Reach and frequency are not reported per platform, so they are blank here. Device, age, gender and hour breakdowns, headline and text assets, keywords and pixel events are not split by platform and ignore this filter.</div>`:"";
   if(state.tab==="overview") renderOverview(f);
   else if(state.tab==="trends") renderTrends(f);
@@ -704,10 +808,10 @@ function groupTable(rows,key,label,tid){
   const arr=c=>st.col===c?(st.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
   const head=`<tr>${sth("k",label)}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${sth("cpc","CPC","num")}${sth("cpm","CPM","num")}${sth("leads",RESULT_LABEL,"num")}${sth("cpa","CPA","num")}`+
-    (IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("aov","AOV","num"):"")+`</tr>`;
+    (IS_ROAS?sth("rev","Revenue","num")+sth("roas","ROAS","num")+sth("aov","AOV","num"):"")+(SECONDARY?sth("sec",SEC_LABEL,"num")+sth("cps",SEC_COST_LABEL,"num"):"")+`</tr>`;
   const body=out.map(x=>`<tr><td class="adname">${esc(x.k)}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${cpcFmt(x)}</td><td class="num">${cpmFmt(x)}</td><td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`+
-    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${aovFmt(x)}</td>`:"")+`</tr>`).join("")
-    ||`<tr><td colspan="12" class="note">Nothing matches.</td></tr>`;
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num ${x.rev?(x.roas>=1?"good":"bad"):""}">${roasFmt(x)}</td><td class="num">${aovFmt(x)}</td>`:"")+secCellsHtml(x)+`</tr>`).join("")
+    ||`<tr><td colspan="14" class="note">Nothing matches.</td></tr>`;
   return {html:`<div style="overflow-x:auto"><table id="${tid}"><thead>${head}</thead><tbody>${body}</tbody></table></div>`, out};
 }
 function renderCampaigns(f){
@@ -721,7 +825,7 @@ function renderCampaigns(f){
   const sb=document.getElementById("grpSearch");
   sb.addEventListener("input",e=>{ grpSearch=e.target.value; const pos=sb.selectionStart; renderCampaigns(filtered()); const n=document.getElementById("grpSearch"); n.focus(); n.setSelectionRange(pos,pos); });
   [["campTbl","Campaign"],["adsetTbl","Ad Set"]].forEach(([tid,key])=>document.querySelectorAll(`#${tid} th[data-sort]`).forEach(th=>th.addEventListener("click",()=>{
-    const c=th.dataset.sort, st=grpSort[key]; if(st.col===c) st.asc=!st.asc; else { st.col=c; st.asc=(c==="k"||c==="cpa"||c==="cpc"||c==="cpm"); }
+    const c=th.dataset.sort, st=grpSort[key]; if(st.col===c) st.asc=!st.asc; else { st.col=c; st.asc=(c==="k"||c==="cpa"||c==="cpc"||c==="cpm"||c==="cps"); }
     renderCampaigns(filtered()); })));
 }
 
@@ -737,11 +841,11 @@ function bestFirst(ads){ return ads.slice().sort(rankBest); }
 
 /* ── Leaderboard: Top 5 / Bottom 5 ads on a chosen metric + bubble chart (ported from theunsealed.html) ── */
 let lbMetric=IS_ROAS?"roas":"cpa", lbMinSpend=10;
-const LB_METRICS=()=>[[IS_ROAS?"roas":"cpa",IS_ROAS?"ROAS":COST_LABEL],["cpc","CPC"],["cpm","CPM"],["ctr","CTR"]];
+const LB_METRICS=()=>[[IS_ROAS?"roas":"cpa",IS_ROAS?"ROAS":COST_LABEL]].concat(SECONDARY?[["cps",SEC_COST_LABEL]]:[],[["cpc","CPC"],["cpm","CPM"],["ctr","CTR"]]);
 function lbFmt(m,v){ return m==="roas"?v.toFixed(2)+"x":m==="ctr"?pct(v):money(v); }
 function renderLeaderboard(f){
   const ads=adsAgg(f);
-  const isCost=lbMetric==="cpa"||lbMetric==="cpc"||lbMetric==="cpm";
+  const isCost=lbMetric==="cpa"||lbMetric==="cps"||lbMetric==="cpc"||lbMetric==="cpm";
   const valid=ads.filter(a=>a.spend>=lbMinSpend && isFinite(a[lbMetric]) && a[lbMetric]>0);
   const sorted=valid.slice().sort((a,b)=>isCost?a[lbMetric]-b[lbMetric]:b[lbMetric]-a[lbMetric]);
   const top5=sorted.slice(0,5), bottom5=sorted.length>5?sorted.slice(-5).reverse():[];
@@ -751,6 +855,7 @@ function renderLeaderboard(f){
       <div class="leader-card-rank">#${i+1}</div><div class="leader-card-name">${esc(a.name||"")}</div>
       <div class="leader-card-stats"><div class="leader-card-stat">${label}: <b>${lbFmt(lbMetric,a[lbMetric])}</b></div>
         <div class="leader-card-stat">Spend: <b>${money(a.spend)}</b></div><div class="leader-card-stat">${RESULT_LABEL}: <b>${num(a.leads)}</b></div>
+        ${SECONDARY?`<div class="leader-card-stat">${SEC_LABEL}: <b>${num(a.sec)}</b></div>`:""}
         <div class="leader-card-stat">Clicks: <b>${num(a.clicks)}</b></div><div class="leader-card-stat">CTR: <b>${pct(a.ctr)}</b></div></div></div></div>`).join("")
     ||`<div class="note">${items===top5?"No ad meets the minimum spend with a usable "+label+".":"Fewer than six ads qualify, so there is no bottom five."}</div>`)+`</div>`;
   document.getElementById("tab-leaderboard").innerHTML=
@@ -769,12 +874,13 @@ function renderLeaderboard(f){
 }
 
 /* ── KPI tiles (Overview + Creative) ── */
-function kpiHtml(f){
+function kpiHtml(f, pre){
   const t=agg(f);
-  // previous window of equal length, immediately before the selected range
+  // previous window of equal length, immediately before the selected range (`pre` narrows it the
+  // same way the caller narrowed f, e.g. Meta-only on the Creative tab)
   const spanDays=Math.round((new Date(state.to+"T00:00:00")-new Date(state.from+"T00:00:00"))/86400000)+1;
   const pTo=shiftDays(state.from,1), pFrom=shiftDays(state.from,spanDays);
-  const pRows=state.cmp?scoped().filter(r=>r._date>=pFrom&&r._date<=pTo):[];
+  const pRows=state.cmp?(pre?pre(scoped()):scoped()).filter(r=>r._date>=pFrom&&r._date<=pTo):[];
   const pAgg=pRows.length?agg(pRows):null;
   function kd(cur,prev,invert,absFmt){
     if(!pAgg||prev==null||!isFinite(prev)||prev===0) return "";
@@ -791,9 +897,11 @@ function kpiHtml(f){
        <div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>`
     : `<div class="kpi"><div class="label">${RESULT_LABEL}</div><div class="val">${num(t.leads)}</div>${kd(t.leads,pAgg&&pAgg.leads,false,num)}</div>
        <div class="kpi"><div class="label">Blended CPA</div><div class="val">${cpaFmt(t)}</div>${kd(t.cpa,pAgg&&pAgg.cpa,true,money)}</div>`;
+  const secK=SECONDARY?`<div class="kpi"><div class="label">${SEC_LABEL}</div><div class="val">${num(t.sec)}</div>${kd(t.sec,pAgg&&pAgg.sec,false,num)}</div>
+       <div class="kpi"><div class="label">${SEC_COST_LABEL}</div><div class="val">${cpsFmt(t)}</div>${kd(t.cps,pAgg&&pAgg.cps,true,money)}</div>`:"";
   return `<div class="kpis">
     <div class="kpi"><div class="label">Total Spend</div><div class="val">${money(t.spend)}</div>${kd(t.spend,pAgg&&pAgg.spend,false,money)}</div>
-    ${resultK}
+    ${resultK}${secK}
     <div class="kpi"><div class="label">CTR</div><div class="val">${pct(t.ctr)}</div>${kd(t.ctr,pAgg&&pAgg.ctr,false)}</div>
     <div class="kpi"><div class="label">CPC</div><div class="val">${cpcFmt(t)}</div>${kd(t.cpc,pAgg&&pAgg.cpc,true,money)}</div>
     <div class="kpi"><div class="label">CPM</div><div class="val">${cpmFmt(t)}</div>${kd(t.cpm,pAgg&&pAgg.cpm,true,money)}</div>
@@ -845,7 +953,7 @@ function periodTable(rows,keyFn,colLabel,labelFn){
   const allByKey={}; scoped().forEach(r=>{ const k=keyFn(r._date); (allByKey[k]=allByKey[k]||[]).push(r); });
   const g={}; rows.forEach(r=>{ const k=keyFn(r._date); (g[k]=g[k]||[]).push(r); });
   const out=Object.entries(g).map(([k,rs])=>({k,...agg(rs)})).sort((a,b)=>b.k.localeCompare(a.k));
-  const rh=IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`;
+  const rh=(IS_ROAS?`<th class="num">${RESULT_LABEL}</th><th class="num">Revenue</th><th class="num">ROAS</th><th class="num">CPA</th><th class="num">AOV</th>`:`<th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>`)+secHeadHtml();
   const body=out.map(x=>{
     // Comparison period comes from ALL data (campaign / ad set filters kept, date filter dropped), so a
     // period still gets its change when the prior period sits outside the selected dates.
@@ -861,7 +969,8 @@ function periodTable(rows,keyFn,colLabel,labelFn){
       `<td class="num">${num(x.leads)||NA}${d(x.leads,p&&p.leads,false,num)}</td>`+
       (IS_ROAS?`<td class="num">${money(x.rev)}${d(x.rev,p&&p.rev,false,money)}</td><td class="num">${roasFmt(x)}${x.rev?d(x.roas,p&&p.roas,false):""}</td>`:"")+
       `<td class="num">${cpaFmt(x)}${x.leads&&p&&p.leads?periodDelta(x.cpa,p.cpa,true,money):""}</td>`+
-      (IS_ROAS?`<td class="num">${aovFmt(x)}${x.leads&&p&&p.leads?periodDelta(x.aov,p.aov,false,money):""}</td>`:"")+`</tr>`;
+      (IS_ROAS?`<td class="num">${aovFmt(x)}${x.leads&&p&&p.leads?periodDelta(x.aov,p.aov,false,money):""}</td>`:"")+
+      (SECONDARY?`<td class="num">${num(x.sec)||NA}${d(x.sec,p&&p.sec,false,num)}</td><td class="num">${cpsFmt(x)}${x.sec&&p&&p.sec?periodDelta(x.cps,p.cps,true,money):""}</td>`:"")+`</tr>`;
   }).join("");
   return `<table><thead><tr><th>${colLabel}</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th>${rh}</tr></thead><tbody>${body}</tbody></table>`;
 }
@@ -900,10 +1009,10 @@ function periodSeries(gran,n){
   const firstKey=keyOf(state.from);
   // Periods inside the range are clipped to the selected dates; earlier periods use every day.
   const ext=scoped().filter(r=>r._date>=pre && r._date<=state.to && (keyOf(r._date)<firstKey || r._date>=state.from));
-  const by={}; ext.forEach(r=>{ const k=keyOf(r._date); const b=by[k]=by[k]||{spend:0,leads:0,rev:0,imp:0,clicks:0}; b.spend+=r._spend; b.leads+=r._leads; b.rev+=r._rev; b.imp+=r._imp; b.clicks+=r._clicks; });
+  const by={}; ext.forEach(r=>{ const k=keyOf(r._date); const b=by[k]=by[k]||{spend:0,leads:0,rev:0,imp:0,clicks:0,sec:0}; b.spend+=r._spend; b.leads+=r._leads; b.rev+=r._rev; b.imp+=r._imp; b.clicks+=r._clicks; b.sec+=r._sec||0; });
   const keys=Object.keys(by).sort(); let off=keys.findIndex(k=>k>=firstKey); if(off<0) off=keys.length;
   const col=k=>keys.map(x=>by[x][k]);
-  const spend=col("spend"), leads=col("leads"), rev=col("rev"), imp=col("imp"), clicks=col("clicks");
+  const spend=col("spend"), leads=col("leads"), rev=col("rev"), imp=col("imp"), clicks=col("clicks"), sec=col("sec");
   const cut=a=>a.slice(off);
   const labelOf=k=>gran==="weekly"?"Wk of "+k:gran==="monthly"?monthLabel(k):k;
   return {
@@ -915,15 +1024,27 @@ function periodSeries(gran,n){
     aov:cut(keys.map((k,i)=>leads[i]?rev[i]/leads[i]:null)),
     rSpend:cut(rollAvg(spend,n)), rResult:cut(rollAvg(leads,n)),
     rEff:cut(IS_ROAS?rollRatio(rev,spend,n):rollRatio(spend,leads,n)),
-    rCpc:cut(rollRatio(spend,clicks,n)), rCpm:cut(rollRatio(spend.map(v=>v*1000),imp,n)), rAov:cut(rollRatio(rev,leads,n))
+    rCpc:cut(rollRatio(spend,clicks,n)), rCpm:cut(rollRatio(spend.map(v=>v*1000),imp,n)), rAov:cut(rollRatio(rev,leads,n)),
+    sec:cut(sec), rSec:cut(rollAvg(sec,n))
   };
+}
+// Overview "By platform" table (only when Google rows are merged in): Meta / Google / Total for the
+// filtered rows. Spend, results and cost per result; revenue and ROAS in roas mode.
+function platformTableHtml(f){
+  if(!GROWS.length) return "";
+  const meta=agg(f.filter(r=>!r._isGoogle)), goog=agg(f.filter(r=>r._isGoogle)), tot=agg(f);
+  const row=(l,x,b)=>`<tr${b?' style="font-weight:600;"':""}><td>${l}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`+
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${roasFmt(x)}</td>`:"")+`</tr>`;
+  return `<div class="card"><h2>By platform</h2><div style="overflow-x:auto"><table><thead><tr><th>Platform</th><th class="num">Spend</th><th class="num">${RESULT_LABEL}</th><th class="num">${COST_LABEL}</th>${IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:""}</tr></thead>
+    <tbody>${row("Meta",meta)}${row("Google",goog)}${row("Total",tot,true)}</tbody></table></div>
+    <div class="note">Google = the Google Ad Detail rows (one per ad group and day); Meta = the Ad Daily rows. Both follow the date, campaign, ad set and platform filters above. Each platform reports its own attributed ${RESULT_LABEL.toLowerCase()}, so the total is platform-claimed, not de-duplicated.</div></div>`;
 }
 
 function renderOverview(f){
   const s=dailySeries(f);
   const e=periodSeries("daily",7);   // trailing 7-day ROAS / cost per result, warmed up before the range
   const effLabel=IS_ROAS?"7-day ROAS":"7-day "+COST_LABEL.toLowerCase();
-  document.getElementById("tab-overview").innerHTML=kpiHtml(f)+
+  document.getElementById("tab-overview").innerHTML=kpiHtml(f)+platformTableHtml(f)+
     `<div class="card"><h2>Spend and ${RESULT_LABEL} over time <span class="mini">dashed line = trailing ${effLabel}</span></h2><div class="chart-wrap"><canvas id="ovTrend"></canvas></div></div>
      <div class="card"><h2>Week over Week, all campaigns</h2><div style="overflow-x:auto">${periodTable(f,weekKey,"Week of")}</div></div>
      <div class="card"><h2>Month over Month, all campaigns</h2><div style="overflow-x:auto">${periodTable(f,monthKey,"Month",monthLabel)}</div></div>`;
@@ -943,7 +1064,7 @@ function renderTrends(f){
   const n=trGran==="daily"?7:trGran==="weekly"?4:3, unit=trGran==="daily"?"day":trGran==="weekly"?"week":"month";
   const rollName=`${n}-${unit}`;
   const s=periodSeries(trGran,n);
-  const tS=trendLine(s.rSpend), tR=trendLine(s.rResult), tE=trendLine(s.rEff), tC=trendLine(s.rCpc), tM=trendLine(s.rCpm), tA=trendLine(s.rAov);
+  const tS=trendLine(s.rSpend), tR=trendLine(s.rResult), tE=trendLine(s.rEff), tC=trendLine(s.rCpc), tM=trendLine(s.rCpm), tA=trendLine(s.rAov), tX=SECONDARY?trendLine(s.rSec):[];
   const seg=[["daily","Daily"],["weekly","Weekly"],["monthly","Monthly"]].map(([k,l])=>`<button data-gran="${k}" class="${trGran===k?"on":""}">${l}</button>`).join("");
   const effTitle=IS_ROAS?"ROAS":COST_LABEL;
   document.getElementById("tab-trends").innerHTML=
@@ -958,7 +1079,9 @@ function renderTrends(f){
      </div>
      ${IS_ROAS?`<div class="card"><h2>AOV${trendTag(tA,false,v=>"$"+(+v).toFixed(0))}</h2><div class="chart-wrap" style="height:240px;"><canvas id="trAov"></canvas></div>
        <div class="note">Periods with no attributed ${RESULT_ONE} have no dot on the ${effTitle} and AOV charts; the rolling line still counts their spend.</div></div>`:
-       `<div class="note" style="margin:-8px 0 12px;">Periods with no ${RESULT_ONE} have no dot on the ${effTitle} chart; the rolling line still counts their spend.</div>`}`;
+       `<div class="note" style="margin:-8px 0 12px;">Periods with no ${RESULT_ONE} have no dot on the ${effTitle} chart; the rolling line still counts their spend.</div>`}
+     ${SECONDARY?`<div class="card"><h2>${SEC_LABEL} by ${unit}${trendTag(tX,false,v=>(+v).toFixed(1))}</h2><div class="chart-wrap" style="height:240px;"><canvas id="trSec"></canvas></div>
+       <div class="note">${SEC_LABEL} are the secondary result; ${RESULT_LABEL.toLowerCase()} above stay the primary one.</div></div>`:""}`;
   document.querySelectorAll("#tab-trends [data-gran]").forEach(b=>b.addEventListener("click",()=>{trGran=b.dataset.gran; renderTrends(filtered());}));
   const many=s.labels.length>60;
   const base={responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
@@ -981,6 +1104,8 @@ function renderTrends(f){
       y1:{position:"right",beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:"CPM ($)"},ticks:{callback:v=>"$"+(+v).toFixed(2)}}}}});
   if(IS_ROAS) makeChart("trAov",{type:"line",data:{labels:s.labels,datasets:[dots("Each "+unit,s.aov,fade(COLORS[4],.45)),roll(rollName,s.rAov,COLORS[4]),trend("Trend",tA)]},
     options:withY(base,{beginAtZero:true,ticks:{callback:v=>"$"+(+v).toFixed(0)}})});
+  if(SECONDARY) makeChart("trSec",{type:"bar",data:{labels:s.labels,datasets:[bars(SEC_LABEL,s.sec,fade(COLORS[6],.35)),roll(rollName,s.rSec,COLORS[6]),trend("Trend",tX)]},
+    options:withY(base,{beginAtZero:true,ticks:{precision:0}})});
 }
 
 /* ── Breakdowns: Themes grid, Theme detail, two-theme combinations ── */
@@ -1027,7 +1152,9 @@ function dealsForRows(rows){
   return out;
 }
 function dealsLine(x){ return x.deals?`${num(x.deals)} deal${x.deals===1?"":"s"} · ${num(x.won)} won${x.wonValue?" · "+money(x.wonValue):""}`:""; }
+const BD_NOTE=()=>metaOnlyNote("creative themes or platform split");
 function renderBreakdowns(f){
+  f=metaOnly(f);   // Google rows carry no themes
   if(bdView==="coverage") return renderCoverage(f);
   if(bdB && bdB!==bdDim && !specialBrkRows(bdDim)){ bdA=bdDim; return renderCombo(f); }
   const sp=specialBrkRows(bdDim); let spNote="";
@@ -1050,7 +1177,7 @@ function renderBreakdowns(f){
   const dealsHead=hasDeals?`<th class="num" title="${dealsCrmName()} deals created in these dates whose contact first clicked a Meta ad in this group">Deals</th><th class="num">Won</th><th class="num">Won Value</th>`:"";
   const dealsCells=x=>hasDeals?`<td class="num">${x.deals?num(x.deals):""}</td><td class="num">${x.won?num(x.won):""}</td><td class="num">${x.wonValue?money(x.wonValue):""}</td>`:"";
   const body=out.map(x=>`<tr${x.spend<bdMin?' class="low"':""}><td>${esc(x.k)}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}${dealsCells(x)}</tr>`).join("");
-  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+spNote+
+  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+BD_NOTE()+spNote+
     `<div class="card"><h2>${esc(bdDim)}</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||(THEMES.find(t=>t.dim===bdDim)||{}).hint||""}</div>
        <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
      <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${esc(bdDim)}</th><th class="num">Spend</th>${resHeadHtml()}${dealsHead}</tr></thead><tbody>${body}</tbody></table></div></div>`;
@@ -1077,7 +1204,7 @@ function renderCoverage(f){
   const main=THEMES.filter(t=>t.type!=="manual"), vid=f.filter(isVideoRow);
   const manHtml=THEMES.filter(t=>t.type==="manual"&&vid.some(r=>(r[t.dim]||"").toString().trim())).map(t=>themeHtml(t,vid)).join("");
   const totDeals=dealsForRows(f);
-  document.getElementById("tab-breakdowns").innerHTML=bdBar()+
+  document.getElementById("tab-breakdowns").innerHTML=bdBar()+BD_NOTE()+
     `<div class="note" style="margin:-6px 0 14px;">Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b> on ${money(tot.spend)}. ${SCORE_RULE}${totDeals.deals?` Green line in a box = ${dealsCrmName()} deals created in these dates whose contact first clicked an ad in that group. All Meta ads: <b>${dealsLine(totDeals)}</b>.`:""}</div>
      ${main.length?`<div class="card">${main.map(t=>themeHtml(t,f)).join("")}</div>`:`<div class="card"><div class="note">No creative themes are set up for this client yet.</div></div>`}
      ${manHtml?`<div class="card"><div class="cov-group">Video details</div>${manHtml}</div>`:""}`;
@@ -1098,7 +1225,7 @@ function renderCombo(f){
     `<tr><td>All</td>${colsK.map(b=>td(agg(colT[b]),colT[b])).join("")}${td(tot,f)}</tr>`;
   const pairs=Object.entries(cell).map(([k,rs])=>({k:k.replace("|"," + "),...agg(rs)})).filter(x=>x.spend>=bdMin).sort(rankBest);
   const under=Object.keys(cell).length-pairs.length;
-  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+
+  document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+BD_NOTE()+
     `<div class="card"><h2>${esc(bdA)} and ${esc(bdB)} together</h2>
        <div class="note" style="margin:-8px 0 12px;">Each cell is ${SCORE_NAME} for ads that are both. Account: <b>${scoreTxt(tot)}</b>.</div>
        <div style="overflow-x:auto"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
@@ -1135,6 +1262,15 @@ function renderSparkLoopTab(){
       if((a.status==="active")!==(b.status==="active")) return a.status==="active"?-1:1;
       return b.cpa-a.cpa; })
     .map(p=>`<tr><td>${p.name}</td><td>${p.status.replace(/_/g," ")}</td><td class="num">${money(p.cpa)}</td><td class="num">${money(p.maxPayout)}</td></tr>`).join("");
+  // Ads x earnings labels: on the secondary result (Registrations, "(CR)") when the client has one,
+  // as theunsealed.html words it; else on the primary result.
+  const SLN=SECONDARY
+    ? {title:`Ads x Earnings, Net Effective CPA per ${SEC_ONE.charAt(0).toUpperCase()+SEC_ONE.slice(1)}`,
+       sub:`<div class="note" style="margin:-8px 0 10px;">FB Spend vs SL Earnings, with CPA and Net CPA per ${SEC_ABBR} (monthly)</div>`,
+       spend:"FB Spend", res:`${SEC_LABEL} (${SEC_ABBR})`, cpa:`CPA (${SEC_ABBR})`, net:`Net CPA (${SEC_ABBR})`,
+       note:"Net Spend = FB Spend minus SparkLoop earnings paid that month. Directional: payouts lag signups (weekly cycles + up to 14-day pending), and earnings include signups from all sources, not only ads."}
+    : {title:`Ads and earnings: net effective cost per ${RESULT_ONE}`, sub:"", spend:"Spend", res:RESULT_LABEL, cpa:"CPA", net:"Net CPA",
+       note:"Net Spend = ad spend minus SparkLoop earnings paid that month. Directional: payouts lag signups (weekly cycles + pending period), and earnings include signups from all sources, not only ads."};
   document.getElementById("tab-sparkloop").innerHTML=`
     <div class="kpis">
       <div class="kpi"><div class="label">Lifetime Paid</div><div class="val">${money(lifetime)}</div></div>
@@ -1149,12 +1285,12 @@ function renderSparkLoopTab(){
       <table><thead><tr><th>Month</th><th class="num">Paid</th><th class="num">Payouts</th></tr></thead><tbody>${moRows}</tbody></table></div></div>
     <div class="card"><h2>Payout history (weekly)</h2><div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
       <table><thead><tr><th>Week Ending</th><th class="num">Amount</th><th>Status</th></tr></thead><tbody>${poRows}</tbody></table></div></div>
-    <div class="card"><h2>Ads and earnings: net effective cost per ${RESULT_ONE}</h2>
+    <div class="card"><h2>${SLN.title}</h2>${SLN.sub}
       <div class="chart-wrap" style="height:280px;"><canvas id="slNetChart"></canvas></div>
       <div style="overflow-x:auto;max-height:300px;overflow-y:auto;margin-top:10px;">
-      <table><thead><tr><th>Month</th><th class="num">Spend</th><th class="num">${RESULT_LABEL}</th><th class="num">CPA</th>
-        <th class="num">SL Earnings</th><th class="num">Net Spend</th><th class="num">Net CPA</th></tr></thead><tbody id="slNetBody"></tbody></table></div>
-      <div class="note" style="margin-top:8px;">Net Spend = ad spend minus SparkLoop earnings paid that month. Directional: payouts lag signups (weekly cycles + pending period), and earnings include signups from all sources, not only ads.</div></div>
+      <table><thead><tr><th>Month</th><th class="num">${SLN.spend}</th><th class="num">${SLN.res}</th><th class="num">${SLN.cpa}</th>
+        <th class="num">SL Earnings</th><th class="num">Net Spend</th><th class="num">${SLN.net}</th></tr></thead><tbody id="slNetBody"></tbody></table></div>
+      <div class="note" style="margin-top:8px;">${SLN.note}</div></div>
     <div class="card"><h2>Partner programs (by CPA)</h2><div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
       <table><thead><tr><th>Partner Program</th><th>Status</th><th class="num">CPA</th><th class="num">Max Payout</th></tr></thead><tbody>${paRows}</tbody></table></div></div>`;
   makeChart("slPayChart",{type:"bar",
@@ -1171,10 +1307,11 @@ function renderSparkLoopTab(){
       scales:{x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:18}},
               y:{beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}}}}});
 
-  // Ads x earnings: monthly ad spend + results vs SL earnings -> net effective CPA
+  // Ads x earnings: monthly ad spend + results vs SL earnings -> net effective CPA. Results = the
+  // secondary result (Registrations) when configured, since SparkLoop pays on signups, else the primary.
   const adM={};
   ROWS.forEach(r=>{ if(!r._date) return; const m=r._date.slice(0,7);
-    (adM[m]=adM[m]||{spend:0,res:0}); adM[m].spend+=r._spend; adM[m].res+=r._leads; });
+    (adM[m]=adM[m]||{spend:0,res:0}); adM[m].spend+=r._spend; adM[m].res+=SECONDARY?r._sec:r._leads; });
   const combined=Object.keys(adM).sort().map(m=>{
     const spend=adM[m].spend, res=adM[m].res, earn=monthMap[m]?monthMap[m].amount:0, net=spend-earn;
     return {month:m,spend,res,earn,net,cpa:res>0?spend/res:0,netCpa:res>0?net/res:0}; });
@@ -1185,10 +1322,10 @@ function renderSparkLoopTab(){
   makeChart("slNetChart",{type:"bar",
     data:{labels:combined.map(c=>c.month),
       datasets:[
-        {label:"Spend",data:combined.map(c=>c.spend),backgroundColor:COLORS[1],borderRadius:2,yAxisID:"y",order:2},
+        {label:SLN.spend,data:combined.map(c=>c.spend),backgroundColor:COLORS[1],borderRadius:2,yAxisID:"y",order:2},
         {label:"SL Earnings",data:combined.map(c=>c.earn),backgroundColor:COLORS[0],borderRadius:2,yAxisID:"y",order:2},
-        {label:"CPA",type:"line",data:combined.map(c=>c.cpa),borderColor:COLORS[3],backgroundColor:COLORS[3],yAxisID:"y1",tension:.25,order:1},
-        {label:"Net CPA",type:"line",data:combined.map(c=>c.netCpa),borderColor:COLORS[7],backgroundColor:COLORS[7],yAxisID:"y1",tension:.25,order:1}]},
+        {label:SLN.cpa,type:"line",data:combined.map(c=>c.cpa),borderColor:COLORS[3],backgroundColor:COLORS[3],yAxisID:"y1",tension:.25,order:1},
+        {label:SLN.net,type:"line",data:combined.map(c=>c.netCpa),borderColor:COLORS[7],backgroundColor:COLORS[7],yAxisID:"y1",tension:.25,order:1}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
       plugins:{legend:{position:"top"}},
       scales:{y:{position:"left",beginAtZero:true,ticks:{callback:v=>"$"+v.toLocaleString()}},
@@ -1273,8 +1410,9 @@ function renderModeled(){
 
 /* ── Pipeline & Revenue: CRM deals joined to spend (optional, registry `deals`) ──
    Ported from sog.html. Spend by (month, source) comes from the modeled rows
-   (MOD.rows); spend by campaign comes from this dashboard's daily ad rows
-   (ROWS, Meta unless a Platform column says google). There are no keyword
+   (MOD.rows); spend by campaign and platform inside the date window comes from
+   this dashboard's ad-level rows (Ad Daily = Meta, plus the Google Ad Detail
+   pseudo-ads, Platform "Google", when configured). There are no keyword
    rows on the ad-ID product sheet, so the keyword breakout carries no spend.
    Follows the page's global date range (state.from / state.to). */
 var DEALS_LINES = ['Design', 'Install', 'Caretaking', 'Eco Lawns'];
@@ -1501,7 +1639,7 @@ function renderDeals() {
   // rows are monthly and would overstate spend for a partial month).
   function spendPlatWindow(p) {
     var t = 0;
-    ROWS.forEach(function(c) {
+    allBase().forEach(function(c) {
       if (!c._date || c._date < winFrom || c._date > winTo) return;
       var plat = String(c["Platform"] || 'meta').trim().toLowerCase() === 'google' ? 'google' : 'meta';
       if (plat === p) t += c._spend;
@@ -1509,7 +1647,7 @@ function renderDeals() {
     return t;
   }
   var campSpendWin = {};
-  ROWS.forEach(function(c) {
+  allBase().forEach(function(c) {
     if (!c._date || !c["Campaign"]) return;
     var plat = String(c["Platform"] || 'meta').trim().toLowerCase() === 'google' ? 'google' : 'meta';
     var key = plat + '|' + dealsNormName(c["Campaign"]);
@@ -1673,7 +1811,7 @@ function renderDeals() {
 /* ── Keywords (Google layer only; ported from sog.html). Date-filtered; the campaign, ad set and
    platform pickers list Meta objects, so they do not apply here. ── */
 let kwGroup="keyword", kwGroup2="", kwSort={col:"spend",asc:false};
-const KW_DIMS=[["keyword","Keyword"],["match_type","Match Type"],["campaign","Campaign"],["ad_group","Ad Group"]];
+const KW_DIMS=[["keyword","Keyword"],["match_type","Match Type"],["campaign","Campaign"],["ad_group","Ad Group"]].concat(KW_THEMES.length?[["keyword_theme","Keyword Theme"]]:[]);
 function renderKeywords(){
   const rows=GKW.filter(r=>r._date>=state.from && r._date<=state.to);
   const lbl=Object.fromEntries(KW_DIMS);
@@ -1687,7 +1825,7 @@ function renderKeywords(){
   const sorted=out.slice().sort((a,b)=>{ const c=kwSort.col, s=kwSort.asc?1:-1; const va=c==="k"?a.k.toLowerCase():a[c], vb=c==="k"?b.k.toLowerCase():b[c]; return va<vb?-s:va>vb?s:0; });
   const trunc=(t,n)=>t.length>n?t.slice(0,n-3)+"...":t;
   document.getElementById("tab-keywords").innerHTML=
-    `<div class="info-bar">Google Ads search keywords for these dates. The campaign, ad set and platform pickers above list Meta objects and do not apply to this tab. Results = the Conversions column.</div>
+    `<div class="info-bar">Google Ads search keywords for these dates. The campaign, ad set and platform pickers above do not apply to this tab. Results = the Conversions column.${KW_THEMES.length?" Keyword Theme groups keywords by the words they contain ("+KW_THEMES.map(t=>esc(t.name)).join(", ")+", else Other); a keyword can sit in more than one theme.":""}</div>
      <div class="bd-bar"><label>Group by: ${sel("kwGroup",kwGroup,KW_DIMS)}</label><label>Cross-cut: ${sel("kwGroup2",kwGroup2,[["","None"]].concat(KW_DIMS))}</label></div>
      <div class="chart-row">
        <div class="card"><h2>${RESULT_LABEL} by ${esc(dimLabel)}</h2><div class="chart-wrap"><canvas id="kwRes"></canvas></div></div>
@@ -1720,18 +1858,18 @@ function renderExplorer(f){
   const arr=c=>axSort.col===c?(axSort.asc?" ▲":" ▼"):"";
   const sth=(c,l,cls)=>`<th class="${cls||""}" data-sort="${c}">${l}${arr(c)}</th>`;
   const head=`<tr><th></th>${sth("name","Ad")}${sth("campaign","Campaign")}${sth("adset","Ad Set")}${sth("format","Format")}${sth("funnel","Funnel")}${sth("spend","Spend","num")}${sth("imp","Impr","num")}${sth("clicks","Clicks","num")}${sth("ctr","CTR","num")}${sth("cpc","CPC","num")}${sth("cpm","CPM","num")}${sth("leads",RESULT_LABEL,"num")}`+
-    (IS_ROAS?sth("roas","ROAS","num")+sth("rev","Revenue","num"):sth("cpa","CPA","num"))+sth("lpv","LPV","num")+sth("atc","ATC","num")+`</tr>`;
+    (IS_ROAS?sth("roas","ROAS","num")+sth("rev","Revenue","num"):sth("cpa","CPA","num"))+(SECONDARY?sth("sec",SEC_LABEL,"num")+sth("cps",SEC_COST_LABEL,"num"):"")+sth("lpv","LPV","num")+sth("atc","ATC","num")+`</tr>`;
   const rows=ads.map(a=>`<tr class="clickable" data-adid="${esc(a.id)}"><td>${a.thumb?`<img class="thumb" src="${esc(a.thumb)}" alt="" onerror="this.style.display='none'">`:""}</td><td class="adname">${esc(a.name||"")}</td><td>${esc(a.campaign||NA)}</td><td>${esc(a.adset||NA)}</td><td><span class="pill">${esc(a.format||NA)}</span></td><td>${esc(a.funnel||NA)}</td>
     <td class="num">${money(a.spend)}</td><td class="num">${num(a.imp)}</td><td class="num">${num(a.clicks)}</td><td class="num">${pct(a.ctr)}</td><td class="num">${cpcFmt(a)}</td><td class="num">${cpmFmt(a)}</td><td class="num">${num(a.leads)||NA}</td>`+
-    (IS_ROAS?`<td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${roasFmt(a)}</td><td class="num">${money(a.rev)}</td>`:`<td class="num">${cpaFmt(a)}</td>`)+
-    `<td class="num">${num(a.lpv)||NA}</td><td class="num">${num(a.atc)||NA}</td></tr>`).join("")||`<tr><td colspan="17" class="note">No ads match.</td></tr>`;
+    (IS_ROAS?`<td class="num ${a.rev?(a.roas>=1?"good":"bad"):""}">${roasFmt(a)}</td><td class="num">${money(a.rev)}</td>`:`<td class="num">${cpaFmt(a)}</td>`)+secCellsHtml(a)+
+    `<td class="num">${num(a.lpv)||NA}</td><td class="num">${num(a.atc)||NA}</td></tr>`).join("")||`<tr><td colspan="19" class="note">No ads match.</td></tr>`;
   document.getElementById("tab-explorer").innerHTML=
     `<input type="text" class="search-box" id="axSearch" placeholder="Search by ad, campaign or ad set..." value="${esc(axSearch)}">
-     <div class="card"><h2>All ads <span class="mini">click a row for daily detail</span></h2><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
+     <div class="card"><h2>All ads <span class="mini">click a row for daily detail</span></h2>${GROWS.length?`<div class="note" style="margin:-8px 0 10px;">Google ad groups appear as "Ad Group (Google RSA)" rows with Platform Google. LPV and ATC are Meta pixel counts, so they are blank on Google rows.</div>`:""}<div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
   const sb=document.getElementById("axSearch");
   sb.addEventListener("input",e=>{ axSearch=e.target.value; const pos=sb.selectionStart; renderExplorer(filtered()); const n=document.getElementById("axSearch"); n.focus(); n.setSelectionRange(pos,pos); });
   document.querySelectorAll("#tab-explorer th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
-    const c=th.dataset.sort; if(axSort.col===c)axSort.asc=!axSort.asc; else {axSort.col=c; axSort.asc=["name","campaign","adset","format","funnel","cpa","cpc","cpm"].includes(c);}
+    const c=th.dataset.sort; if(axSort.col===c)axSort.asc=!axSort.asc; else {axSort.col=c; axSort.asc=["name","campaign","adset","format","funnel","cpa","cps","cpc","cpm"].includes(c);}
     renderExplorer(filtered());
   }));
   document.querySelectorAll("#tab-explorer tr.clickable").forEach(tr=>tr.addEventListener("click",()=>openAdPanel(tr.dataset.adid)));
@@ -1741,16 +1879,19 @@ function openAdPanel(adId){
   if(!rows.length) return;
   const a=agg(rows), s=rows[0];
   document.getElementById("axTitle").textContent=s["Ad Name"]||adId;
-  document.getElementById("axSub").innerHTML=`Campaign: ${esc(s["Campaign"]||NA)} &nbsp;|&nbsp; Ad Set: ${esc(s["Ad Set"]||NA)}`+
-    ` &nbsp;|&nbsp; <a class="ax-link" href="https://www.facebook.com/ads/library/?id=${encodeURIComponent(adId)}" target="_blank" rel="noopener">Open in Facebook Ads Library</a>`;
+  const isG=!!s._isGoogle;
+  document.getElementById("axSub").innerHTML=`Campaign: ${esc(s["Campaign"]||NA)} &nbsp;|&nbsp; ${isG?"Ad Group":"Ad Set"}: ${esc(s["Ad Set"]||NA)}`+
+    (isG?` &nbsp;|&nbsp; Google Ads (one row per ad group from the Google Ad Detail tab)`
+        :` &nbsp;|&nbsp; <a class="ax-link" href="https://www.facebook.com/ads/library/?id=${encodeURIComponent(adId)}" target="_blank" rel="noopener">Open in Facebook Ads Library</a>`);
   const badges=DERIVED_DIMS.concat(AI_DIMS).map(d=>{ const v=(s[d]||"").toString().trim(); return v?`<span class="badge${DERIVED_DIMS.includes(d)?" dim":""}" title="${esc(d)}">${esc(d)}: ${esc(v)}</span>`:""; }).join("");
   document.getElementById("axBadges").innerHTML=badges;
-  const noReach=!!state.platform;
+  const noReach=!!state.platform||isG;
+  const secTiles=SECONDARY?[[SEC_LABEL,num(a.sec)],[SEC_COST_LABEL,cpsFmt(a)]]:[];
   const tiles=IS_ROAS
     ? [["Spend",money(a.spend)],["Impressions",num(a.imp)],["Clicks",num(a.clicks)],["CTR",pct(a.ctr)],["CPC",cpcFmt(a)],["CPM",cpmFmt(a)],
-       [RESULT_LABEL,num(a.leads)],["CPA",cpaFmt(a)],["Revenue",money(a.rev)],["ROAS",roasFmt(a)],["Landing Page Views",num(a.lpv)],["Adds to Cart",num(a.atc)]]
+       [RESULT_LABEL,num(a.leads)],["CPA",cpaFmt(a)],["Revenue",money(a.rev)],["ROAS",roasFmt(a)]].concat(secTiles,[["Landing Page Views",isG?"n/a":num(a.lpv)],["Adds to Cart",isG?"n/a":num(a.atc)]])
     : [["Spend",money(a.spend)],["Impressions",num(a.imp)],["Reach",noReach?"n/a":num(a.reach)],["Frequency",noReach?"n/a":(a.reach?a.freq.toFixed(2):NA)],["Clicks",num(a.clicks)],["CTR",pct(a.ctr)],
-       ["CPC",cpcFmt(a)],["CPM",cpmFmt(a)],[RESULT_LABEL,num(a.leads)],[COST_LABEL,cpaFmt(a)],["Landing Page Views",num(a.lpv)],["Registrations",num(a.regs)]];
+       ["CPC",cpcFmt(a)],["CPM",cpmFmt(a)],[RESULT_LABEL,num(a.leads)],[COST_LABEL,cpaFmt(a)]].concat(secTiles,[["Landing Page Views",isG?"n/a":num(a.lpv)]]);
   document.getElementById("axKpis").innerHTML=tiles.map(([l,v])=>`<div class="ax-kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`).join("");
   const by={}; rows.forEach(r=>{ (by[r._date]=by[r._date]||[]).push(r); });
   const days=Object.keys(by).sort(), d=days.map(k=>agg(by[k]));
@@ -1760,9 +1901,9 @@ function openAdPanel(adId){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"top"}},
       scales:{y:{position:"left",beginAtZero:true,ticks:{callback:v=>"$"+(+v).toFixed(0)}},y1:{position:"right",beginAtZero:true,grid:{drawOnChartArea:false},ticks:{precision:0}},x:{ticks:{maxRotation:45,autoSkip:true,maxTicksLimit:25}}}}});
   document.getElementById("axHead").innerHTML=`<tr><th>Date</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th><th class="num">CPC</th><th class="num">${RESULT_LABEL}</th>`+
-    (IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">CPA</th>`)+`</tr>`;
+    (IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:`<th class="num">CPA</th>`)+secHeadHtml()+`</tr>`;
   document.getElementById("axBody").innerHTML=days.map((k,i)=>{ const x=d[i]; return `<tr><td>${k}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.imp)}</td><td class="num">${num(x.clicks)}</td><td class="num">${pct(x.ctr)}</td><td class="num">${cpcFmt(x)}</td><td class="num">${num(x.leads)||NA}</td>`+
-    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${roasFmt(x)}</td>`:`<td class="num">${cpaFmt(x)}</td>`)+`</tr>`; }).join("");
+    (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${roasFmt(x)}</td>`:`<td class="num">${cpaFmt(x)}</td>`)+secCellsHtml(x)+`</tr>`; }).join("");
   document.getElementById("axOverlay").classList.add("open");
 }
 function closeAdPanel(){ document.getElementById("axOverlay").classList.remove("open"); if(charts.axChart){ charts.axChart.destroy(); delete charts.axChart; } }
@@ -1786,7 +1927,10 @@ function assetTable(rows,title,what){
 function renderHeadlines(f){
   const inScope=r=>r._date>=state.from && r._date<=state.to && (!state.campaign||r["Campaign"]===state.campaign) && (!state.adset||r["Ad Set"]===state.adset);
   const heads=HEADS.filter(inScope), bodies=BODIES.filter(inScope);
+  f=metaOnly(f);   // the Meta asset tabs and the fallback grouping are Meta rows only
   const tot=agg(f);
+  // The per-asset tabs carry no secondary result column, so it cannot be shown per headline or text.
+  const metaNotes=metaOnlyNote("per-asset rows")+(SECONDARY?`<div class="note" style="margin:0 0 10px;">${SEC_LABEL} are not reported per asset by Meta.</div>`:"");
   let meta;
   if(HEADS.length||BODIES.length){
     meta=`<div class="bd-bar"><label>Min spend $ <input type="number" id="hcMin" value="${hcMin}" style="width:80px;"></label>
@@ -1826,75 +1970,138 @@ function renderHeadlines(f){
       document.querySelectorAll("#gaTbl th[data-gsort]").forEach(th=>th.addEventListener("click",()=>{ const x=th.dataset.gsort; if(gAssetSort.col===x) gAssetSort.asc=!gAssetSort.asc; else { gAssetSort.col=x; gAssetSort.asc=(x==="k"||x==="cpa"||x==="cpc"); } renderHeadlines(filtered()); }));
     },0);
   }
-  document.getElementById("tab-headlines").innerHTML=`<h2 style="font-size:18px;margin:0 0 12px;">Meta</h2>`+meta+google;
+  document.getElementById("tab-headlines").innerHTML=`<h2 style="font-size:18px;margin:0 0 12px;">Meta</h2>`+metaNotes+meta+google;
   const hm=document.getElementById("hcMin"); if(hm) hm.addEventListener("change",e=>{hcMin=Math.max(0,+e.target.value||0); renderHeadlines(filtered());});
 }
 
 /* ── Funnel: step cards + log-scale bar (ported from theunsealed.html), then the By Funnel stage grouping ── */
 function renderFunnel(f){
-  const t=agg(f);
+  // Step funnel = Meta rows only (landing page views and cart steps are Meta pixel counts); the
+  // By Funnel stage grouping below uses every row, Google included.
+  const fm=metaOnly(f), t=agg(fm);
   const purchases=t.purch||t.leads;
+  // The secondary result is a parallel result, not a step after the primary one: it gets a card
+  // with its share of impressions and cost, but no "% from" line.
+  const secStage=SECONDARY?[[SEC_LABEL,t.sec,true]]:[];
   const stages=IS_ROAS
-    ? [["Impressions",t.imp],["Clicks",t.clicks],["Landing Page Views",t.lpv],["Adds to Cart",t.atc],["Checkouts Initiated",t.ckt],["Purchases",purchases]]
-    : [["Impressions",t.imp],["Clicks",t.clicks],["Landing Page Views",t.lpv],[RESULT_LABEL,t.leads]].concat(t.regs>0&&RESULT_LABEL!=="Registrations"?[["Registrations",t.regs]]:[]);
+    ? [["Impressions",t.imp],["Clicks",t.clicks],["Landing Page Views",t.lpv],["Adds to Cart",t.atc],["Checkouts Initiated",t.ckt],["Purchases",purchases]].concat(secStage)
+    : [["Impressions",t.imp],["Clicks",t.clicks],["Landing Page Views",t.lpv],[RESULT_LABEL,t.leads]].concat(secStage);
   const imp=stages[0][1]||1;
-  const cards=stages.map(([label,v],i)=>{
+  const cards=stages.map(([label,v,isSec],i)=>{
     const prev=i?stages[i-1][1]:0, conv=prev?v/prev*100:0, share=v/imp*100;
     const w=Math.max(25,Math.min(100,share));
-    return (i?`<div class="funnel-arrow">▼</div>`:"")+
-      `<div class="funnel-stage" style="width:${w}%"><div class="funnel-stage-label">${label}</div><div class="funnel-stage-count">${num(v)}</div>
-        <div class="funnel-stage-pct">${share.toFixed(2)}% of impressions</div>${i?`<div class="funnel-stage-drop">${conv.toFixed(2)}% from ${stages[i-1][0]}</div>`:""}
+    return (i?`<div class="funnel-arrow">${isSec?"":"▼"}</div>`:"")+
+      `<div class="funnel-stage" style="width:${w}%${isSec?";border-style:dashed":""}"><div class="funnel-stage-label">${label}${isSec?' <span class="mini">secondary result</span>':""}</div><div class="funnel-stage-count">${num(v)}</div>
+        <div class="funnel-stage-pct">${share.toFixed(2)}% of impressions</div>${i&&!isSec?`<div class="funnel-stage-drop">${conv.toFixed(2)}% from ${stages[i-1][0]}</div>`:""}
         <div class="funnel-stage-cost">Cost per: ${v?money(t.spend/v):NA}</div></div>`; }).join("");
   const out=aggByDim(f,"Funnel");
   document.getElementById("tab-funnel").innerHTML=
-    `<div class="card"><h2>Step funnel</h2><div class="funnel-wrap">${cards}</div>
-       <div class="note">Landing page views, adds to cart and checkouts are Meta-attributed pixel counts for the filtered ads. Stages after Clicks are 0 on sheets that predate these columns.</div></div>
+    `<div class="card"><h2>Step funnel</h2>${metaOnlyNote("landing page views or pixel steps")}<div class="funnel-wrap">${cards}</div>
+       <div class="note">Landing page views, adds to cart and checkouts are Meta-attributed pixel counts for the filtered ads. Stages after Clicks are 0 on sheets that predate these columns.${SECONDARY?` ${SEC_LABEL} run alongside ${RESULT_LABEL.toLowerCase()} rather than after them, so no step rate is shown for them.`:""}</div></div>
      <div class="card"><h2>Funnel Visualization <span class="mini">log scale</span></h2><div class="chart-wrap" style="height:260px;"><canvas id="funBar"></canvas></div></div>
      <div class="card"><h2>By Funnel stage</h2><div class="chart-wrap" style="height:260px;"><canvas id="funChart"></canvas></div></div>
-     <div class="card">${dimTable(out,"Funnel stage")}<div class="note">Funnel stage is read from campaign and ad set names (Prospecting / Retargeting / Winback...). Rename in Ads Manager to change it.</div></div>`;
+     <div class="card">${dimTable(out,"Funnel stage")}<div class="note">Funnel stage is read from campaign and ad set names (Prospecting / Retargeting / Winback...). Rename in Ads Manager to change it.${GROWS.length?" Google rows are included here and read Prospecting unless the Google Ad Detail tab carries a Funnel column.":""}</div></div>`;
   makeChart("funBar",{type:"bar",data:{labels:stages.map(s=>s[0]),datasets:[{label:"Count",data:stages.map(s=>s[1]>0?s[1]:null),backgroundColor:stages.map((_,i)=>COLORS[i%COLORS.length]),borderRadius:4}]},
     options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const v=stages[c.dataIndex][1];return `${num(v)} | cost per: ${v?money(t.spend/v):NA}`;}}}},
       scales:{x:{type:"logarithmic",min:1,ticks:{callback:v=>[1,10,100,1000,10000,100000,1000000,10000000].includes(v)?v.toLocaleString():""}}}}});
   dimChart("funChart",out);
 }
 
-/* ── Site Events: Meta ads-attributed pixel events from the Meta Event Detail tab ── */
+/* ── Site Events: Meta ads-attributed pixel events from the Meta Event Detail tab, then (registry
+   `ga4Events`) the site-wide GA4 section ported from sog.html: all-traffic event tiles, daily stacked
+   bar, source breakdown, and the GA4-vs-Meta table. The two systems sit side by side, never summed. ── */
+// KPI delta markup for a tile (periodDelta renders the table flavour)
+const kpiDelta=(cur,prev,invert,fmt)=>prev?periodDelta(cur,prev,invert,fmt).replace("tbl-delta","kpi-delta").replace("<span","<div").replace("</span>","</div>"):"";
 function renderSiteEvents(){
   const inScope=r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset);
   const cur=EVENTS.filter(r=>inScope(r)&&r._date>=state.from&&r._date<=state.to);
   const spanDays=Math.round((new Date(state.to+"T00:00:00")-new Date(state.from+"T00:00:00"))/86400000)+1;
   const pTo=shiftDays(state.from,1), pFrom=shiftDays(state.from,spanDays);
   const prev=state.cmp?EVENTS.filter(r=>inScope(r)&&r._date>=pFrom&&r._date<=pTo):[];
-  const intro=`<div class="info-bar">Meta ads-attributed pixel events for these dates (7-day click, 1-day view). Not site-wide traffic.${state.platform?" The platform filter does not apply to pixel events.":""}</div>`;
-  if(!cur.length){ document.getElementById("tab-siteevents").innerHTML=intro+`<div class="card"><div class="note">No pixel events in the selected range.</div></div>`; return; }
-  const totals=rows=>{ const t={}; rows.forEach(r=>{ const e=t[r.event]=t[r.event]||{count:0,value:0}; e.count+=r.count; e.value+=r.value; }); return t; };
-  const T=totals(cur), P=totals(prev);
-  const events=Object.keys(T).sort((a,b)=>T[b].count-T[a].count), top=events.slice(0,10);
-  const spend=agg(filteredAdDaily()).spend;
-  const kpis=top.map(e=>{ const c=T[e], p=P[e];
-    const d=p&&p.count?periodDelta(c.count,p.count,false,num).replace("tbl-delta","kpi-delta").replace("<span","<div").replace("</span>","</div>"):"";
-    return `<div class="kpi"><div class="label">${esc(e)}</div><div class="val">${num(c.count)}</div>${d}${c.value?`<div class="sublabel">${money(c.value)} value</div>`:""}</div>`; }).join("");
-  const days=[...new Set(cur.map(r=>r._date))].sort();
-  const byDay={}; cur.forEach(r=>{ byDay[r._date+"|"+r.event]=(byDay[r._date+"|"+r.event]||0)+r.count; });
-  const byCamp={}; cur.forEach(r=>{ const c=r["Campaign"]||"(none)"; const o=byCamp[c]=byCamp[c]||{}; o[r.event]=(o[r.event]||0)+r.count; });
-  const camps=Object.keys(byCamp).sort((a,b)=>Object.values(byCamp[b]).reduce((s,v)=>s+v,0)-Object.values(byCamp[a]).reduce((s,v)=>s+v,0));
-  document.getElementById("tab-siteevents").innerHTML=intro+
-    `<div class="kpis">${kpis}</div>
-     <div class="card"><h2>Daily events</h2><div class="chart-wrap"><canvas id="seChart"></canvas></div></div>
-     <div class="card"><h2>By event</h2><div style="overflow-x:auto"><table><thead><tr><th>Event</th><th class="num">Count</th><th class="num">Value</th><th class="num">Cost per event</th></tr></thead>
-       <tbody>${events.map(e=>`<tr><td>${esc(e)}</td><td class="num">${num(T[e].count)}</td><td class="num">${T[e].value?money(T[e].value):NA}</td><td class="num">${T[e].count&&spend?money(spend/T[e].count):NA}</td></tr>`).join("")}</tbody></table></div>
-       <div class="note">Cost per event = ad spend for the same campaign, ad set and dates (${money(spend)}) divided by the event count. Raw Meta action types that mean the same event are de-duplicated, never summed.</div></div>
-     <div class="card"><h2>By campaign</h2><div style="overflow-x:auto"><table><thead><tr><th>Campaign</th>${top.map(e=>`<th class="num">${esc(e)}</th>`).join("")}</tr></thead>
-       <tbody>${camps.map(c=>`<tr><td class="adname">${esc(c)}</td>${top.map(e=>`<td class="num">${byCamp[c][e]?num(byCamp[c][e]):NA}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
-  makeChart("seChart",{type:"bar",data:{labels:days,datasets:top.map((e,i)=>({label:e,backgroundColor:COLORS[i%COLORS.length],data:days.map(d=>byDay[d+"|"+e]||0)}))},
+  const intro=`<div class="info-bar">Meta ads-attributed pixel events for these dates (7-day click, 1-day view). Not site-wide traffic.${state.platform?" The platform filter does not apply to pixel events.":""}</div>`+metaOnlyNote("pixel events");
+  let metaHtml, seTop=[], seDays=[], seByDay={};
+  if(!HAS_EVENT_TAB) metaHtml=intro+`<div class="card"><div class="note">This sheet has no ${EVENT_TAB} tab yet.</div></div>`;
+  else if(!cur.length) metaHtml=intro+`<div class="card"><div class="note">No pixel events in the selected range.</div></div>`;
+  else {
+    const totals=rows=>{ const t={}; rows.forEach(r=>{ const e=t[r.event]=t[r.event]||{count:0,value:0}; e.count+=r.count; e.value+=r.value; }); return t; };
+    const T=totals(cur), P=totals(prev);
+    const events=Object.keys(T).sort((a,b)=>T[b].count-T[a].count), top=events.slice(0,10);
+    const spend=agg(filteredAdDaily()).spend;
+    const kpis=top.map(e=>{ const c=T[e], p=P[e];
+      return `<div class="kpi"><div class="label">${esc(e)}</div><div class="val">${num(c.count)}</div>${kpiDelta(c.count,p&&p.count,false,num)}${c.value?`<div class="sublabel">${money(c.value)} value</div>`:""}</div>`; }).join("");
+    seDays=[...new Set(cur.map(r=>r._date))].sort(); seTop=top;
+    cur.forEach(r=>{ seByDay[r._date+"|"+r.event]=(seByDay[r._date+"|"+r.event]||0)+r.count; });
+    const byCamp={}; cur.forEach(r=>{ const c=r["Campaign"]||"(none)"; const o=byCamp[c]=byCamp[c]||{}; o[r.event]=(o[r.event]||0)+r.count; });
+    const camps=Object.keys(byCamp).sort((a,b)=>Object.values(byCamp[b]).reduce((s,v)=>s+v,0)-Object.values(byCamp[a]).reduce((s,v)=>s+v,0));
+    metaHtml=intro+
+      `<div class="kpis">${kpis}</div>
+       <div class="card"><h2>Daily events</h2><div class="chart-wrap"><canvas id="seChart"></canvas></div></div>
+       <div class="card"><h2>By event</h2><div style="overflow-x:auto"><table><thead><tr><th>Event</th><th class="num">Count</th><th class="num">Value</th><th class="num">Cost per event</th></tr></thead>
+         <tbody>${events.map(e=>`<tr><td>${esc(e)}</td><td class="num">${num(T[e].count)}</td><td class="num">${T[e].value?money(T[e].value):NA}</td><td class="num">${T[e].count&&spend?money(spend/T[e].count):NA}</td></tr>`).join("")}</tbody></table></div>
+         <div class="note">Cost per event = Meta ad spend for the same campaign, ad set and dates (${money(spend)}) divided by the event count. Raw Meta action types that mean the same event are de-duplicated, never summed.</div></div>
+       <div class="card"><h2>By campaign</h2><div style="overflow-x:auto"><table><thead><tr><th>Campaign</th>${top.map(e=>`<th class="num">${esc(e)}</th>`).join("")}</tr></thead>
+         <tbody>${camps.map(c=>`<tr><td class="adname">${esc(c)}</td>${top.map(e=>`<td class="num">${byCamp[c][e]?num(byCamp[c][e]):NA}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
+  }
+  const g=GA4E?ga4SectionHtml(pFrom,pTo):{html:"",chart:null};
+  document.getElementById("tab-siteevents").innerHTML=metaHtml+g.html;
+  if(seTop.length) makeChart("seChart",{type:"bar",data:{labels:seDays,datasets:seTop.map((e,i)=>({label:e,backgroundColor:COLORS[i%COLORS.length],data:seDays.map(d=>seByDay[d+"|"+e]||0)}))},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}});
+  if(g.chart) makeChart("ga4Chart",g.chart);
+}
+// GA4 site-wide section (all traffic). Follows the date filter only; campaign, ad set and platform are
+// ad-side filters and do not apply to site-wide counts. The Meta column of the comparison table comes
+// from the campaign-level Meta Event Detail on the same sheet and follows the campaign filter, as in sog.html.
+function ga4SectionHtml(pFrom,pTo){
+  const L=GA4E.labels||{}, CALL=new Set(GA4E.callSources||[]), PAIRS=GA4E.pairs||[], MONLY=GA4E.metaOnly||{};
+  const grp=r=>{ if(CALL.size && r.event==="form_submit" && !CALL.has(r.source)) return "Other Form Submits"; return L[r.event]||r.event; };
+  const inRange=GA4.rows.filter(r=>r._date>=state.from&&r._date<=state.to);
+  const prev=state.cmp?GA4.rows.filter(r=>r._date>=pFrom&&r._date<=pTo):[];
+  const metaIn=GA4.meta.filter(r=>r._date>=state.from&&r._date<=state.to&&(!state.campaign||r["Campaign"]===state.campaign));
+  const head=`<h2 style="font-size:18px;margin:18px 0 10px;">Site-wide (GA4, all traffic)</h2>
+    <div class="info-bar">Every visitor from every source, as GA4 records it. The date filter applies; the campaign, ad set and platform filters do not (they describe ads, not site traffic).</div>`;
+  if(!inRange.length && !metaIn.length) return {html:head+`<div class="card"><div class="note">No site events in the selected range.</div></div>`, chart:null};
+  const totals=rows=>{ const t={}; rows.forEach(r=>{ const k=grp(r); const e=t[k]=t[k]||{count:0,revenue:0}; e.count+=r.count; e.revenue+=r.revenue; }); return t; };
+  const T=totals(inRange), P=totals(prev);
+  // Tile order: the registry's label order (then Other Form Submits), unknown events after, by count.
+  const order=Object.keys(L).map(k=>L[k]).concat(CALL.size?["Other Form Submits"]:[]);
+  const groups=order.filter(g=>T[g]||P[g]).concat(Object.keys(T).filter(g=>!order.includes(g)).sort((a,b)=>T[b].count-T[a].count));
+  const kpis=groups.map(g=>{ const c=T[g]||{count:0,revenue:0}, p=P[g];
+    return `<div class="kpi"><div class="label">${esc(g)}</div><div class="val">${num(c.count)}</div>${kpiDelta(c.count,p&&p.count,false,num)}${c.revenue>0?`<div class="sublabel">${money(c.revenue)} revenue</div>`:""}</div>`; }).join("");
+  const days=[...new Set(inRange.map(r=>r._date))].sort();
+  const byDay={}; inRange.forEach(r=>{ const k=r._date+"|"+grp(r); byDay[k]=(byDay[k]||0)+r.count; });
+  const chartGroups=groups.filter(g=>T[g]);
+  // Source breakdown
+  const bySrc={}; inRange.forEach(r=>{ const k=grp(r)+"|"+r.source; const o=bySrc[k]=bySrc[k]||{group:grp(r),source:r.source,count:0,revenue:0}; o.count+=r.count; o.revenue+=r.revenue; });
+  const srcRows=Object.values(bySrc).sort((a,b)=>b.count-a.count);
+  // GA4 vs Meta (labeled, never summed). The call-form GA4 twin excludes non-call form_submit sources.
+  const ga4By={}; inRange.forEach(r=>{ if(CALL.size && r.event==="form_submit" && !CALL.has(r.source)) return; ga4By[r.event]=(ga4By[r.event]||0)+r.count; });
+  const metaBy={}; metaIn.forEach(r=>{ const m=metaBy[r.event]=metaBy[r.event]||{count:0,value:0}; m.count+=r.count; m.value+=r.value; });
+  let comp="";
+  PAIRS.forEach(([mEv,gEv])=>{ const gv=ga4By[gEv]||0, m=metaBy[mEv]||{count:0,value:0}; if(!gv&&!m.count) return;
+    comp+=`<tr><td>${esc((L[gEv]||mEv)+" ("+mEv+")")}</td><td class="num">${num(gv)}</td><td class="num">${num(m.count)}</td><td class="num">${m.value>0?money(m.value):NA}</td></tr>`; });
+  Object.keys(MONLY).forEach(mEv=>{ const m=metaBy[mEv]; if(!m||!m.count) return;
+    comp+=`<tr><td>${esc(MONLY[mEv]+" ("+mEv+")")}</td><td class="num">${NA}</td><td class="num">${num(m.count)}</td><td class="num">${m.value>0?money(m.value):NA}</td></tr>`; });
+  if(!PAIRS.length && !Object.keys(MONLY).length) Object.keys(metaBy).sort((a,b)=>metaBy[b].count-metaBy[a].count).forEach(mEv=>{ const m=metaBy[mEv];
+    comp+=`<tr><td>${esc(mEv)}</td><td class="num">${num(ga4By[mEv]||0)}</td><td class="num">${num(m.count)}</td><td class="num">${m.value>0?money(m.value):NA}</td></tr>`; });
+  const html=head+
+    `<div class="kpis">${kpis}</div>
+     <div class="card"><h2>Daily Site Events (GA4, all traffic)</h2><div class="chart-wrap"><canvas id="ga4Chart"></canvas></div></div>
+     <div class="card"><h2>Source Breakdown (GA4, all traffic)</h2><div style="overflow-x:auto"><table><thead><tr><th>Event</th><th>Source</th><th class="num">Count</th><th class="num">Revenue</th></tr></thead>
+       <tbody>${srcRows.map(r=>`<tr><td>${esc(r.group)}</td><td>${esc(r.source||NA)}</td><td class="num">${num(r.count)}</td><td class="num">${r.revenue>0?money(r.revenue):NA}</td></tr>`).join("")||`<tr><td colspan="4" class="note">No GA4 rows in range.</td></tr>`}</tbody></table></div></div>
+     <div class="card"><h2>GA4 Site-Wide vs Meta Ads-Attributed</h2>
+       <div class="note" style="margin:-8px 0 8px;">Two measurement systems, shown side by side on purpose. GA4 counts every visitor; Meta counts only what it attributes to ads and over-counts relative to site-side truth. Never sum the two columns.${state.campaign?" The Meta column follows the campaign filter; the GA4 column does not.":""}</div>
+       <div style="overflow-x:auto"><table><thead><tr><th>Event</th><th class="num">GA4 (all traffic)</th><th class="num">Meta ads-attributed</th><th class="num">Meta value</th></tr></thead>
+       <tbody>${comp||`<tr><td colspan="4" class="note">No events in range on either side yet.</td></tr>`}</tbody></table></div></div>`;
+  const chart=days.length?{type:"bar",data:{labels:days,datasets:chartGroups.map((g,i)=>({label:g,backgroundColor:COLORS[i%COLORS.length],data:days.map(d=>byDay[d+"|"+g]||0)}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true,beginAtZero:true,ticks:{precision:0}}}}}:null;
+  return {html, chart};
 }
 
 /* ── Budget Pacing (ported from birdandbean.html + daily bars) ── */
 function renderPacing(f){
   // pacing is month-to-date for the current month vs the sheet's Budgets tab (or a typed budget)
   const today=DMAX; const ym=today.slice(0,7); const monthStart=ym+"-01";
-  const mtdRows=ROWS.filter(r=>r._date>=monthStart && r._date<=today);
+  const mtdRows=allBase().filter(r=>r._date>=monthStart && r._date<=today);   // Meta + Google when configured
   const m=agg(mtdRows); const mtd=m.spend;
   const dayNum=+today.slice(8,10); const daysInMonth=new Date(+ym.slice(0,4), +ym.slice(5,7), 0).getDate();
   const projected=dayNum?mtd/dayNum*daysInMonth:0;
@@ -1927,7 +2134,7 @@ function renderPacing(f){
       </div>
       <div style="background:var(--header-bg);border-radius:9px;height:26px;overflow:hidden;margin-top:6px;">
         <div style="height:100%;width:${Math.min(pacePct,100)}%;background:${statusColor};"></div></div>
-      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`+(override?" · manual override (clear the box to use the sheet)":sheetBudget?" · from the sheet's Budgets tab":" · from the client config"):"Enter a monthly budget here, or add a row to the sheet's Budgets tab (Month, Budget)."} Month to date ignores the campaign, ad set and platform filters.</div>
+      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`+(override?" · manual override (clear the box to use the sheet)":sheetBudget?" · from the sheet's Budgets tab":" · from the client config"):"Enter a monthly budget here, or add a row to the sheet's Budgets tab (Month, Budget)."} Month to date ignores the campaign, ad set and platform filters.${GROWS.length?" Spend here is Meta + Google.":""}</div>
     </div>
     <div class="card"><h2>Cumulative spend vs target pace</h2><div class="chart-wrap" style="height:260px;"><canvas id="pcChart"></canvas></div></div>
     <div class="card"><h2>Daily spend vs daily target</h2><div class="chart-wrap" style="height:240px;"><canvas id="pcDaily"></canvas></div></div>`;
@@ -1947,6 +2154,7 @@ function renderPacing(f){
 /* ── Creative: tagging surface (birdandbean.html version + the sog.html bulk-edit bar) ── */
 let crSort={col:null,asc:true}, crNeeds=false;
 function renderCreative(f){
+  f=metaOnly(f);   // Google rows carry no creative themes
   let ads=adsAgg(f);
   const sval=(a,c)=>{ if(["spend","leads","rev","cpa","roas","aov"].includes(c)) return a[c]; if(c==="name") return (a.name||"").toLowerCase();
     if(c==="format") return (a.format||"").toLowerCase(); if(c==="funnel") return (a.funnel||"").toLowerCase();
@@ -1970,11 +2178,12 @@ function renderCreative(f){
   const bf=Object.keys(EDIT_OPTIONS);
   const bulk=bf.length?`<div class="cr-bulk" id="crBulk" style="display:none"><b id="crBulkN">0 selected</b> · Set <select id="crBulkField">${bf.map(d=>`<option>${esc(d)}</option>`).join("")}</select> to <select id="crBulkVal">${EDIT_OPTIONS[bf[0]].map(v=>`<option>${esc(v)}</option>`).join("")}</select>
       <button id="crBulkApply">Apply to selected</button> <button class="sec" id="crBulkClear">Clear</button></div>`:"";
-  document.getElementById("tab-creative").innerHTML=kpiHtml(f)+
+  document.getElementById("tab-creative").innerHTML=metaOnlyNote("creative themes")+kpiHtml(f,metaOnly)+
     `<div class="card"><h2>Ads ranked by ${SCORE_NAME}
        <span class="aimark">✨ themes tagged by Claude</span></h2>
        ${MAN.length&&(needN||crNeeds)?`<div class="needs-bar"><span><b>${needN}</b> video${needN===1?"":"s"} not yet reviewed for: ${MAN.map(esc).join(", ")}.</span><button id="crNeedsBtn">${crNeeds?"Show all ads":"Show only these"}</button></div>`:""}
        <div class="warn-bar">✎ Click any tag to edit it, or tick rows to set one tag on several ads at once. Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL?"":" (saving not configured for this client yet)"}.</div>
+       ${MANAGE_TAGS?`<div class="cr-tools"><button class="cr-managebtn" id="crManage">Manage tags</button><span class="note" style="margin:0;">Add, rename or re-value the tag dimensions on the sheet's Taxonomy tab.</span></div>`:""}
        ${bulk}
        <div style="overflow-x:auto"><table id="crTbl"><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
   document.querySelectorAll("#tab-creative th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
@@ -1999,6 +2208,7 @@ function wireCreativeEdit(){
   if(!el || el._wired) return; el._wired=true;   // delegate once; survives re-renders
   el.addEventListener("click", e=>{
     const t=e.target;
+    if(t.id==="crManage"){ openManage(); return; }
     if(t.id==="crBulkApply"){ confirmThenEdit(applyBulk); return; }
     if(t.id==="crBulkClear"){ el.querySelectorAll(".cr-chk").forEach(c=>c.checked=false); const sa=document.getElementById("crSelAll"); if(sa) sa.checked=false; updateBulk(); return; }
     const cell=t.closest("td.edit");
@@ -2054,6 +2264,58 @@ function commitEdit(cell,field,value){
   cell.classList.remove("saved"); cell.classList.add("unsaved");
   saveTag(adid,field,value).then(()=>{cell.classList.remove("unsaved");cell.classList.add("saved");}).catch(()=>{});
 }
+
+/* ── Manage tag dimensions (registry `manageTags`; ported from sog.html). Edits the sheet's Taxonomy
+   tab through the same webhook as tag edits, posting tax_set per kept row and tax_del per removed
+   dimension, then re-reads the Taxonomy tab and re-renders the open tab. ── */
+const attr=s=>esc(s).replace(/"/g,"&quot;");
+function saveTax(params){
+  if(!WEBHOOK_URL) return Promise.resolve();
+  return fetch(WEBHOOK_URL,{method:"POST",mode:"no-cors",body:new URLSearchParams(params)}).catch(()=>{});
+}
+function manageRow(t){
+  const cur=(t.type||"select").toLowerCase(), known=cur==="select"||cur==="text";
+  // The dialog offers select / text as sog.html does; a row the sync typed auto or manual keeps that type unless changed here.
+  const sel=`<select class="m-type"><option value="select"${cur==="select"?" selected":""}>select</option><option value="text"${cur==="text"?" selected":""}>text</option>${known?"":`<option value="${attr(cur)}" selected>${esc(cur)}</option>`}</select>`;
+  const vals=Array.isArray(t.values)?t.values.join(", "):(t.values||"");
+  return `<tr><td><input class="m-dim" value="${attr(t.dim||"")}"></td><td>${sel}</td>`+
+    `<td><input class="m-vals" value="${attr(vals)}" placeholder="comma, separated, values"></td>`+
+    `<td><input class="m-hint" value="${attr(t.hint||"")}"></td><td><button class="m-del" title="remove">&#x2715;</button></td></tr>`;
+}
+function openManage(){
+  const m=document.getElementById("manageModal");
+  if(!m._wired){ m._wired=true; m.addEventListener("click",onManageClick); }
+  const list=TAX_ROWS.length?TAX_ROWS:THEMES;
+  document.getElementById("mRows").innerHTML=`<tr><th>Dimension</th><th>Type</th><th>Values</th><th>Hint</th><th></th></tr>`+list.map(manageRow).join("");
+  m._orig=list.map(t=>t.dim);
+  document.getElementById("mStatus").textContent=WEBHOOK_URL?"":"Saving is not on yet. Deploy the webhook to enable it.";
+  m.classList.add("show");
+}
+function onManageClick(e){
+  const t=e.target, m=document.getElementById("manageModal");
+  if(t.id==="mAddRow"){ document.getElementById("mRows").insertAdjacentHTML("beforeend",manageRow({dim:"",type:"select",values:[],hint:""})); return; }
+  if(t.classList.contains("m-del")){ t.closest("tr").remove(); return; }
+  if(t.id==="mCancel"){ m.classList.remove("show"); return; }
+  if(t.id==="mSave") saveManage();
+}
+function saveManage(){
+  const m=document.getElementById("manageModal");
+  const rows=[...m.querySelectorAll("#mRows tr")].slice(1), cur=[];
+  rows.forEach(tr=>{
+    const di=tr.querySelector(".m-dim"); if(!di) return;
+    const d=di.value.trim(); if(!d) return;
+    cur.push(d);
+    saveTax({action:"tax_set", dimension:d, type:tr.querySelector(".m-type").value,
+             values:tr.querySelector(".m-vals").value.trim(), hint:tr.querySelector(".m-hint").value.trim()});
+  });
+  (m._orig||[]).forEach(od=>{ if(cur.indexOf(od)<0) saveTax({action:"tax_del", dimension:od}); });
+  const st=document.getElementById("mStatus");
+  if(!WEBHOOK_URL){ st.textContent="Not saved. The webhook is not deployed yet, so nothing was written."; return; }
+  st.textContent="Saved. Reloading...";
+  setTimeout(()=>{ m.classList.remove("show"); reloadTaxonomy(); },1600);
+}
+function reloadTaxonomy(){ return fetchTab(SHEET_ID,"Taxonomy").then(t=>{ applyTaxonomy(t); render(); }); }
+
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeAdPanel(); });
 </script>
 
@@ -2063,6 +2325,16 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeAdPanel(); })
     <p>This replaces the tag Claude generated and saves it to your tagging sheet. The AI won't change it back unless you run a full re-tag.</p>
     <label><input type="checkbox" id="dontWarn"> Don't warn me again this session</label>
     <div class="row"><button id="warnCancel">Cancel</button><button class="primary" id="warnOk">Got it, edit</button></div>
+  </div>
+</div>
+<div class="modal-bg" id="manageModal">
+  <div class="modal wide">
+    <h3>Manage tag dimensions</h3>
+    <p>Edit values, switch a dimension between dropdown (select) and free-text, or add or remove dimensions. Saves to the Taxonomy tab. After adding or changing a dimension, re-run the sync so Claude fills it.</p>
+    <table class="cr-mtbl" id="mRows"></table>
+    <button class="sec" id="mAddRow" style="margin-top:6px;">+ Add dimension</button>
+    <div class="row" style="margin-top:14px;"><button id="mCancel">Close</button><button class="primary" id="mSave">Save changes</button></div>
+    <div id="mStatus" class="note" style="margin-top:8px;"></div>
   </div>
 </div>
 <div class="ax-overlay" id="axOverlay" onclick="if(event.target===this) closeAdPanel()">

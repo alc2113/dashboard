@@ -20,13 +20,58 @@
 
    google (optional, may point at a DIFFERENT sheet): adds the Keywords tab and the
    Google section of Headlines & Copy from the tabs scripts/sog_sync.py writes.
+     adDetailTab    Google Ad Detail   one row per ad group x day, MERGED into the base ad rows as
+                                       "<Ad Group> (Google RSA)" pseudo-ads (Platform "Google", Format
+                                       "RSA", Ad Set = Ad Group, Funnel from the sheet else "Prospecting",
+                                       results = the Leads / Conversions column). Google rows carry no
+                                       reach, pixel events, themes or platform breakdown, so Breakdowns,
+                                       Site Events (Meta section), Creative and the Meta headline section
+                                       stay Meta-only and say so.
+     keywordThemes  [{name, match:[substrings]}]  optional keyword classifier for the Keywords tab's
+                                       "Keyword Theme" grouping. A keyword can match several themes
+                                       (joined with a comma); no match = "Other".
+
+   brand: { name, initial, color } is the base every client has (header initial square + login
+   card text). Optional client rebrand keys, all read by ads.html:
+     logo         header image path (replaces the initial square), e.g. "assets/sog-badge.png"
+     wordmark     login card image (replaces the brand name text), e.g. "assets/sog-wordmark.png"
+     font         Google Fonts family to load for the whole page, e.g. "Montserrat"
+     colors       { primary, primaryDark, accent, secondary, good, bad } CSS variable overrides;
+                  only the keys given apply. primary / secondary / accent also become the first
+                  three chart palette colors.
+     headerName   text next to the logo, e.g. "SHADES OF GREEN" (default: brand.name)
+     loginFooter  small line under the login card, e.g. "Prepared by CASSA STRATEGY"
+
+   manageTags (optional, boolean): shows the Creative tab's "Manage tags" button + "Manage tag
+   dimensions" dialog, which edits the sheet's Taxonomy tab by posting `tax_set` / `tax_del` to
+   webhookUrl (the sog.html Apps Script contract). Only set it when that webhook handles those actions.
+
+   secondaryResult (optional): { col, label, abbr }. A second conversion column on Ad Daily + Platform
+   Daily (e.g. Registrations for The Unsealed) shown next to the primary result everywhere the
+   primary result appears: tiles, WoW/MoM, Campaigns, Ad Explorer, Breakdowns, Leaderboard,
+   Trends and Funnel. The asset tabs do not carry it, so Headlines & Copy shows a note instead.
+   On the SparkLoop tab the "Ads x Earnings" block runs on this result instead of the primary one,
+   labelled with abbr in parentheses (default "CR", the complete_registration event).
+
+   ga4Events (optional): { sheetId, tab, metaTab, labels, callSources, pairs, metaOnly }. Adds the
+   "Site-wide (GA4, all traffic)" section to the Site Events tab from the tabs sog_sync.py writes
+   (GA4 site events + the campaign-level Meta Event Detail on the same sheet), compared side by
+   side with Meta ads-attributed counts and never summed. labels / pairs / metaOnly are the site's
+   GTM tag map (GA4 event -> plain name; Meta pixel event <-> GA4 twin; Meta-only events).
 
    NOTE (multi-tenant): this file is public, so every client's sheet ID and password
    is visible in page source. The password gate is a courtesy, not security.
    ============================================================ */
 window.AD_CLIENTS = {
   sog: {
-    brand:    { name: "CASSA STRATEGY", initial: "C", color: "#209D50" },
+    // Client rebrand carried over from sog.html (style sheet by figdesign): badge + wordmark assets,
+    // Montserrat, primary greens #20534b / #83c48c / #c3e1b4, navy #34344a, coral #f26b6c, teal #65c8d0.
+    // Mapped: primary = dark green, accent = coral (theme share bars), secondary = teal (2nd chart color).
+    // Brand green #83c48c, mint #c3e1b4 and navy #34344a were only chart palette slots 4-5 in sog.html.
+    brand:    { name: "CASSA STRATEGY", initial: "C", color: "#20534b",
+                logo: "assets/sog-badge.png", wordmark: "assets/sog-wordmark.png", font: "Montserrat",
+                colors: { primary: "#20534b", primaryDark: "#173d37", accent: "#f26b6c", secondary: "#65c8d0" },
+                headerName: "SHADES OF GREEN", loginFooter: "Prepared by CASSA STRATEGY" },
     title:    "Shades of Green, Ad Performance",
     subtitle: "Keyed on ad ID, so renames never break it.",
     sheetId:  "1gklZFfDPiH-5Rd-91cK6EpRAPJvLf2myedT0TE1Cqng",
@@ -42,16 +87,71 @@ window.AD_CLIENTS = {
     // Apps Script /exec that writes tag edits back to the Tagging + Ad Performance tabs.
     // Empty = edits work in the page but show as unsaved (webhook not configured).
     webhookUrl: "https://script.google.com/macros/s/AKfycbyIcrWD0Ac4RRbRtH4tDJMa7pigPDgS8TuL178KV_yFxFiw_-qz87nMfph_jsB4YzdEHA/exec",
+    manageTags: true,           // the SOG webhook handles tax_set / tax_del (Manage tag dimensions dialog)
     // "cpa" (lead-gen: Leads/CPA) | "roas" (ecommerce: Revenue/ROAS)
     resultMetric: "cpa",
-    resultLabel: "Leads",       // what the conversion is called (Leads / Purchases / Signups...)
+    resultLabel: "Calls",       // Complete Registration = a booked discovery call; tiles read Calls / Cost per call
     // Google Ads layer: Keywords + RSA headline/description tabs on the SOG main dashboard sheet.
     google: {
       sheetId: "19X1yl62Z_xSRic4Xz8JTurKjNNgcmRWuXNRYM5zYnfA",
-      adDetailTab: "Google Ad Detail",
+      adDetailTab: "Google Ad Detail",   // merged into the base ad rows as "<Ad Group> (Google RSA)"
       keywordsTab: "Keywords",
       headlineTab: "Headline Performance",
-      descriptionTab: "Description Performance"
+      descriptionTab: "Description Performance",
+      // Keyword Theme rules (ported from sog.html classifyKeywordTheme). Substrings are matched
+      // against the lower-cased keyword padded with a space on each side, so " sog " is a whole word.
+      keywordThemes: [
+        { name: "Branded SOG",    match: ["shades of green", "shadesofgreen", " sog "] },
+        { name: "Branded Brandy", match: ["brandy"] },
+        { name: "Atlanta",        match: ["atlanta"] },
+        { name: "Eco",            match: ["eco ", "eco-", "permaculture", "sustainable", "organic", "regenerative", "native",
+                                          "pollinator", "edible", "biodiversity", "habitat", "wildlife", "clover", "meadow",
+                                          "food forest", "rain garden", "drought", "xeriscap", "no mow", "rewild"] },
+        { name: "Landscape",      match: ["landscape", "landscaping", "landscaper", "yard design", "garden design",
+                                          "backyard", "hardscape", "yard architect", "outdoor architect", "lawn", " yard "] }
+      ]
+    },
+    // GA4 site-wide events (all traffic) + campaign-level Meta pixel events, both written by
+    // scripts/sog_sync.py to the SOG main dashboard sheet. Shown on the Site Events tab under the
+    // Meta pixel section, side by side and never summed. Mapping ported from sog.html (GTM tag map,
+    // spec 2026-07-20); labels are in display order.
+    ga4Events: {
+      sheetId: "19X1yl62Z_xSRic4Xz8JTurKjNNgcmRWuXNRYM5zYnfA",
+      tab: "Site Events",
+      metaTab: "Meta Event Detail",
+      labels: {
+        generate_lead: "Guide Downloads",
+        video_signup: "Intro Video Signups",
+        newsletter_signup: "Newsletter Signups",
+        try_waitlist: "TRY Waitlist",
+        careers_application: "Careers Applications",
+        volunteer_signup: "Volunteer Signups",
+        book_outbound_click: "Book Order Clicks",
+        purchase: "Book Purchases",
+        form_submit: "Discovery Calls"
+      },
+      // form_submit rows from any other source are grouped as "Other Form Submits"
+      callSources: ["discovery-call", "ecolawns-call"],
+      // Meta pixel event <-> GA4 twin
+      pairs: [
+        ["AddToWishlist", "generate_lead"],
+        ["StartTrial", "video_signup"],
+        ["Contact", "newsletter_signup"],
+        ["AddToCart", "try_waitlist"],
+        ["SubmitApplication", "careers_application"],
+        ["Donate", "volunteer_signup"],
+        ["FindLocation", "book_outbound_click"],
+        ["Subscribe", "purchase"],
+        ["CompleteRegistration", "form_submit"]
+      ],
+      // Meta-only events with no GA4 twin on the site side
+      metaOnly: {
+        InitiateCheckout: "Kajabi Checkout Started",
+        Schedule: "Webinar Registrations",
+        Purchase: "TRY Course Purchases",
+        "Custom (unmapped)": "Custom (unmapped pixel events)",
+        Lead: "Lead (Kajabi)"
+      }
     },
     // CRM truth layer (optional): adds a "Cost per Booking" tab reading monthly
     // Modeled Metrics (+ GA4 Traffic) tabs. May live in a different spreadsheet
@@ -107,10 +207,15 @@ window.AD_CLIENTS = {
     bodyTab: "Primary Text Performance",
     syncStatusTab: "Sync Status",
     password: "unsealed2026",
-    webhookUrl: "",
+    // Apps Script /exec from theunsealed.html (tag edits + Taxonomy edits).
+    webhookUrl: "https://script.google.com/macros/s/AKfycbyGfdQtwVnTyF_UzTBXJ6ta_QnAx4aGob5WuJiqRd9s59cDz7CZjl5YF7h0dYmkoekEKA/exec",
+    manageTags: true,
     // Subscription: purchases (sub starts) primary, ranked on cost per purchase.
     resultMetric: "cpa",
     resultLabel: "Purchases",
+    // Secondary conversion: SparkLoop signups (Meta complete_registration), reported on Ad Daily and
+    // Platform Daily as "Registrations". Shown beside purchases everywhere; never replaces them.
+    secondaryResult: { col: "Registrations", label: "Registrations" },
     // SparkLoop Earn tabs (written by scripts/unsealed_sparkloop_pull.py on the
     // main Unsealed dashboard sheet). Optional: tab appears only when data loads.
     sparkloop: {
@@ -137,7 +242,7 @@ window.AD_CLIENTS = {
   },
 
   birdandbean: {
-    brand:    { name: "BIRD & BEAN", initial: "B", color: "#3B4A63" },
+    brand:    { name: "BIRD & BEAN", initial: "B", color: "#3B4A63", loginFooter: "Prepared by CASSA STRATEGY" },
     title:    "Bird & Bean, Ad Performance",
     subtitle: "Meta ads only. Attribution 7-day click, 1-day view (the account setting). Refreshed nightly.",
     sheetId:  "1CoTnsa-aAU4nyPh83vuI0T2o7hhI2da5XVncMdXQvzQ",
@@ -152,12 +257,43 @@ window.AD_CLIENTS = {
     password: "birdandbean2026",
     // Saves tag edits to the B&B sheet (deployed by Amy 2026-09-17); copied from birdandbean.html.
     webhookUrl: "https://script.google.com/macros/s/AKfycbwHPIxdHxfJok4DxZySyev12tWqUerxx29UcF00JLoXYvbYvAXpaPb3NAXRe-q9KaQBwQ/exec",
+    // manageTags is deliberately NOT set: the B&B webhook may not handle the tax_set / tax_del actions.
+    // Confirm the Apps Script supports them before turning the Manage tags dialog on here.
     resultMetric: "roas",
     resultLabel: "Purchases",
     // Fallback only. The live theme list comes from the sheet's Taxonomy tab.
     aiDims: ["Selling angle", "Look", "What's shown", "Text on the creative", "AI-made", "Who's talking",
              "Shape", "Video length", "Hook", "Product line", "Background color", "Offer type", "Landing Page"],
     editOptions: {},
+  },
+
+  // Prospect demo (PJ's Pet Shop). Runs on the template as ads.html?client=demo; demo.html redirects here.
+  // Sheet generated by scripts/demo_template_generate.py (2026-09-22). Every layer reads the same sheetId.
+  demo: {
+    brand:    { name: "CASSA STRATEGY", initial: "C", color: "#209D50" },
+    title:    "PJ's Pet Shop, Ad Performance",
+    subtitle: "Demo data. Ecommerce, Meta + Google.",
+    sheetId:  "1l1tQTUmQoXggFWlDOMgGx152BbzX-_12suwlefabt9E",
+    dailyTab: "Ad Daily", tagTab: "Tagging", tab: "Ad Performance",
+    platformTab: "Platform Daily", eventTab: "Meta Event Detail",
+    headlineTab: "Headline Performance", bodyTab: "Primary Text Performance", syncStatusTab: "Sync Status",
+    password: "demo2026",
+    webhookUrl: "",
+    resultMetric: "roas",
+    resultLabel: "Purchases",
+    google: {
+      keywordsTab: "Keywords",
+      adDetailTab: "Google Ad Detail",
+      headlineTab: "Google Headline Performance",
+      descriptionTab: "Google Description Performance",
+      keywordThemes: [
+        { name: "Brand",      match: ["pj"] },
+        { name: "Competitor", match: ["chewy", "petco", "petsmart", "amazon"] }
+      ]
+    },
+    modeled: { tab: "Modeled Metrics", ga4Tab: "GA4 Traffic", noun: "Order", crmName: "CRM" },
+    deals:   { dealsTab: "HS Deals", changesTab: "HS Deal Changes", crmName: "CRM" },
+    aiDims: [], editOptions: {},   // fallback only; the sheet's Taxonomy tab is the live list
   },
 
   // Onboarding template (ecommerce shape). Copy, fill in, uncomment:
