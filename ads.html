@@ -24,7 +24,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Ar
 .brand .name{font-size:15px; font-weight:700; letter-spacing:2px; color:var(--primary);}
 .brand img.logo{width:38px; height:38px; border-radius:50%; display:block;}   /* registry brand.logo */
 .title{font-size:22px; font-weight:700;}
-.sub{font-size:13px; color:var(--muted); margin-bottom:16px;}
+.sub{font-size:13px; color:var(--muted); margin-bottom:16px;} #clientSub:empty{display:none;}
 .head-right{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
 .stamp{font-size:12px; color:var(--muted);}
 
@@ -233,7 +233,7 @@ select.cell-edit,input.cell-edit{font:inherit; padding:2px 4px; border:1px solid
     <div class="head-right"><div class="sub" id="range" style="margin:0;"></div><div class="stamp" id="stamp"></div></div>
   </div>
   <div class="title" id="clientTitle">Ad Performance</div>
-  <div class="sub" id="clientSub">Keyed on ad ID, so renames never break it.</div>
+  <div class="sub" id="clientSub"></div>
 
   <div id="content"><div class="loading">Loading live data...</div></div>
 </div>
@@ -656,7 +656,7 @@ function scoped(){ return baseRows().filter(r=>(!state.campaign||r["Campaign"]==
 function filtered(){ return scoped().filter(r=>r._date>=state.from && r._date<=state.to); }
 // Meta rows only (Google rows carry no themes, pixel events, reach or platform split).
 const metaOnly=rows=>GROWS.length?rows.filter(r=>!r._isGoogle):rows;
-const metaOnlyNote=what=>GROWS.length?`<div class="note" style="margin:0 0 10px;">Meta ads only. Google rows carry no ${what}.</div>`:"";
+const metaOnlyNote=what=>"";
 // Ad Daily rows under the same campaign / ad set / date filter, ignoring the platform filter
 // (used where a metric is not reported per platform, e.g. reach, or for pixel-event cost).
 function filteredAdDaily(){ return ROWS.filter(r=>(!state.campaign||r["Campaign"]===state.campaign)&&(!state.adset||r["Ad Set"]===state.adset)&&r._date>=state.from&&r._date<=state.to); }
@@ -1056,8 +1056,7 @@ function platformTableHtml(f){
   const row=(l,x,b)=>`<tr${b?' style="font-weight:600;"':""}><td>${l}</td><td class="num">${money(x.spend)}</td><td class="num">${num(x.leads)||NA}</td><td class="num">${cpaFmt(x)}</td>`+
     (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${roasFmt(x)}</td>`:"")+`</tr>`;
   return `<div class="card"><h2>By platform</h2><div style="overflow-x:auto"><table><thead><tr><th>Platform</th><th class="num">Spend</th><th class="num">${RESULT_LABEL}</th><th class="num">${COST_LABEL}</th>${IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:""}</tr></thead>
-    <tbody>${row("Meta",meta)}${row("Google",goog)}${row("Total",tot,true)}</tbody></table></div>
-    <div class="note">Google = the Google Ad Detail rows (one per ad group and day); Meta = the Ad Daily rows. Both follow the date, campaign, ad set and platform filters above. Each platform reports its own attributed ${RESULT_LABEL.toLowerCase()}, so the total is platform-claimed, not de-duplicated.</div></div>`;
+    <tbody>${row("Meta",meta)}${row("Google",goog)}${row("Total",tot,true)}</tbody></table></div></div>`;
 }
 
 function renderOverview(f){
@@ -1097,11 +1096,8 @@ function renderTrends(f){
       <div class="card"><h2>${effTitle}${trendTag(tE,!IS_ROAS,v=>IS_ROAS?(+v).toFixed(2)+"x":"$"+(+v).toFixed(2))}</h2><div class="chart-wrap"><canvas id="trEff"></canvas></div></div>
       <div class="card"><h2>CPC and CPM <span class="mini">CPC${trendTag(tC,true,v=>"$"+(+v).toFixed(2))||", not enough data"} <br>CPM${trendTag(tM,true,v=>"$"+(+v).toFixed(2))||", not enough data"}</span></h2><div class="chart-wrap"><canvas id="trCpcCpm"></canvas></div></div>
      </div>
-     ${IS_ROAS?`<div class="card"><h2>AOV${trendTag(tA,false,v=>"$"+(+v).toFixed(0))}</h2><div class="chart-wrap" style="height:240px;"><canvas id="trAov"></canvas></div>
-       <div class="note">Periods with no attributed ${RESULT_ONE} have no dot on the ${effTitle} and AOV charts; the rolling line still counts their spend.</div></div>`:
-       `<div class="note" style="margin:-8px 0 12px;">Periods with no ${RESULT_ONE} have no dot on the ${effTitle} chart; the rolling line still counts their spend.</div>`}
-     ${SECONDARY?`<div class="card"><h2>${SEC_LABEL} by ${unit}${trendTag(tX,false,v=>(+v).toFixed(1))}</h2><div class="chart-wrap" style="height:240px;"><canvas id="trSec"></canvas></div>
-       <div class="note">${SEC_LABEL} are the secondary result; ${RESULT_LABEL.toLowerCase()} above stay the primary one.</div></div>`:""}`;
+     ${IS_ROAS?`<div class="card"><h2>AOV${trendTag(tA,false,v=>"$"+(+v).toFixed(0))}</h2><div class="chart-wrap" style="height:240px;"><canvas id="trAov"></canvas></div></div>`:""}
+     ${SECONDARY?`<div class="card"><h2>${SEC_LABEL} by ${unit}${trendTag(tX,false,v=>(+v).toFixed(1))}</h2><div class="chart-wrap" style="height:240px;"><canvas id="trSec"></canvas></div></div>`:""}`;
   document.querySelectorAll("#tab-trends [data-gran]").forEach(b=>b.addEventListener("click",()=>{trGran=b.dataset.gran; renderTrends(filtered());}));
   const many=s.labels.length>60;
   const base={responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
@@ -1187,7 +1183,7 @@ function renderBreakdowns(f){
     if(sp.level==="account" && state.campaign) ignored.push("campaign");
     if(sp.level!=="ad" && state.adset) ignored.push("ad set");
     if(sp.level!=="ad" && state.platform) ignored.push("platform");
-    if(ignored.length) spNote=`<div class="note" style="margin:-4px 0 12px;">${bdDim} comes from Meta at ${sp.level} level, so the ${ignored.join(" and ")} filter${ignored.length>1?"s do":" does"} not apply to it.</div>`; }
+    if(ignored.length) spNote=""; }
   const g=groupBy(f,bdDim);
   let out=Object.entries(g).map(([k,rows])=>({k,...agg(rows),...dealsForRows(rows)}));
   out=out.filter(x=>x.k!=="(none)" || out.length===1);
@@ -1198,7 +1194,7 @@ function renderBreakdowns(f){
   const dealsCells=x=>hasDeals?`<td class="num">${x.deals?num(x.deals):""}</td><td class="num">${x.won?num(x.won):""}</td><td class="num">${x.wonValue?money(x.wonValue):""}</td>`:"";
   const body=out.map(x=>`<tr${x.spend<bdMin?' class="low"':""}><td>${esc(x.k)}${x.spend<bdMin?' <span class="pill">low spend</span>':""}</td><td class="num">${money(x.spend)}</td>${resCellsHtml(x)}${dealsCells(x)}</tr>`).join("");
   document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+BD_NOTE()+spNote+
-    `<div class="card"><h2>${esc(bdDim)}</h2><div class="note" style="margin:-8px 0 10px;">${THEME_Q[bdDim]||(THEMES.find(t=>t.dim===bdDim)||{}).hint||""}</div>
+    `<div class="card"><h2>${esc(bdDim)}</h2>
        <div class="chart-wrap" style="height:280px;"><canvas id="bdChart"></canvas></div></div>
      <div class="card"><div style="overflow-x:auto"><table><thead><tr><th>${esc(bdDim)}</th><th class="num">Spend</th>${resHeadHtml()}${dealsHead}</tr></thead><tbody>${body}</tbody></table></div></div>`;
   wireDetailPickers(); wireBdBar(); dimChart("bdChart",out);
@@ -1219,13 +1215,13 @@ function renderCoverage(f){
         <div class="r"><span>${share.toFixed(0)}% of spend</span><span class="v ${scoreCls(x,tot)}">${scoreTxt(x)}</span></div>
         <div class="n">${money(x.spend)} · ${num(x.leads)} ${RESULT_LABEL.toLowerCase()} · ${x.ads} ad${x.ads===1?"":"s"}</div>${dl?`<div class="n" style="color:var(--good);font-weight:600;">${dl}</div>`:""}</div>`; }).join("");
     const un=agg(g["(none)"]||[]);
-    return `<div class="cov-theme"><h3>${esc(t.dim)}</h3><div class="q">${THEME_Q[t.dim]||t.hint||""}</div><div class="cov-grid">${boxes}</div>
+    return `<div class="cov-theme"><h3>${esc(t.dim)}</h3><div class="cov-grid">${boxes}</div>
       ${un.spend?`<div class="note">${money(un.spend)} of spend is on ads not tagged for this theme yet.</div>`:""}</div>`; };
   const main=THEMES.filter(t=>t.type!=="manual"), vid=f.filter(isVideoRow);
   const manHtml=THEMES.filter(t=>t.type==="manual"&&vid.some(r=>(r[t.dim]||"").toString().trim())).map(t=>themeHtml(t,vid)).join("");
   const totDeals=dealsForRows(f);
   document.getElementById("tab-breakdowns").innerHTML=bdBar()+BD_NOTE()+
-    `<div class="note" style="margin:-6px 0 14px;">Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b> on ${money(tot.spend)}. ${SCORE_RULE}${totDeals.deals?` Green line in a box = ${dealsCrmName()} deals created in these dates whose contact first clicked an ad in that group. All Meta ads: <b>${dealsLine(totDeals)}</b>.`:""}</div>
+    `<div class="note" style="margin:-6px 0 14px;">Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b> on ${money(tot.spend)}.${totDeals.deals?` All Meta ads: <b>${dealsLine(totDeals)}</b>.`:""}</div>
      ${main.length?`<div class="card">${main.map(t=>themeHtml(t,f)).join("")}</div>`:`<div class="card"><div class="note">No creative themes are set up for this client yet.</div></div>`}
      ${manHtml?`<div class="card"><div class="cov-group">Video details</div>${manHtml}</div>`:""}`;
   wireBdBar();
@@ -1247,7 +1243,7 @@ function renderCombo(f){
   const under=Object.keys(cell).length-pairs.length;
   document.getElementById("tab-breakdowns").innerHTML=bdBar(detailPickers())+BD_NOTE()+
     `<div class="card"><h2>${esc(bdA)} and ${esc(bdB)} together</h2>
-       <div class="note" style="margin:-8px 0 12px;">Each cell is ${SCORE_NAME} for ads that are both. Account: <b>${scoreTxt(tot)}</b>.</div>
+       <div class="note" style="margin:-8px 0 12px;">Account: <b>${scoreTxt(tot)}</b>.</div>
        <div style="overflow-x:auto"><table class="mx"><thead>${head}</thead><tbody>${body}</tbody></table></div></div>
      <div class="card"><h2>Pairs ranked by ${SCORE_NAME}</h2>
        <div style="overflow-x:auto"><table><thead><tr><th>${esc(bdA)} + ${esc(bdB)}</th><th class="num">Spend</th>${resHeadHtml()}</tr></thead><tbody>${
@@ -1286,7 +1282,7 @@ function renderSparkLoopTab(){
   // as theunsealed.html words it; else on the primary result.
   const SLN=SECONDARY
     ? {title:`Ads x Earnings, Net Effective CPA per ${SEC_ONE.charAt(0).toUpperCase()+SEC_ONE.slice(1)}`,
-       sub:`<div class="note" style="margin:-8px 0 10px;">FB Spend vs SL Earnings, with CPA and Net CPA per ${SEC_ABBR} (monthly)</div>`,
+       sub:"",
        spend:"FB Spend", res:`${SEC_LABEL} (${SEC_ABBR})`, cpa:`CPA (${SEC_ABBR})`, net:`Net CPA (${SEC_ABBR})`,
        note:"Net Spend = FB Spend minus SparkLoop earnings paid that month. Directional: payouts lag signups (weekly cycles + up to 14-day pending), and earnings include signups from all sources, not only ads."}
     : {title:`Ads and earnings: net effective cost per ${RESULT_ONE}`, sub:"", spend:"Spend", res:RESULT_LABEL, cpa:"CPA", net:"Net CPA",
@@ -1309,8 +1305,7 @@ function renderSparkLoopTab(){
       <div class="chart-wrap" style="height:280px;"><canvas id="slNetChart"></canvas></div>
       <div style="overflow-x:auto;max-height:300px;overflow-y:auto;margin-top:10px;">
       <table><thead><tr><th>Month</th><th class="num">${SLN.spend}</th><th class="num">${SLN.res}</th><th class="num">${SLN.cpa}</th>
-        <th class="num">SL Earnings</th><th class="num">Net Spend</th><th class="num">${SLN.net}</th></tr></thead><tbody id="slNetBody"></tbody></table></div>
-      <div class="note" style="margin-top:8px;">${SLN.note}</div></div>
+        <th class="num">SL Earnings</th><th class="num">Net Spend</th><th class="num">${SLN.net}</th></tr></thead><tbody id="slNetBody"></tbody></table></div></div>
     <div class="card"><h2>Partner programs (by CPA)</h2><div style="overflow-x:auto;max-height:360px;overflow-y:auto;">
       <table><thead><tr><th>Partner Program</th><th>Status</th><th class="num">CPA</th><th class="num">Max Payout</th></tr></thead><tbody>${paRows}</tbody></table></div></div>`;
   makeChart("slPayChart",{type:"bar",
@@ -1380,7 +1375,7 @@ function renderModeled(){
     let pb=0,ps=0; paidSources.forEach(s=>{ const r=cellMap[lm+"|"+s]; if(r){pb+=adjB(s,r.bookings); ps+=r.spend;} });
     if(pb>0) kpis+=`<div class="kpi"><div class="label">All Paid Cost/${NOUN} (${lm})</div><div class="val">${money(ps/pb)}</div></div>`;
   }
-  const corrCtl=CORR?`<div style="margin:0 0 10px;font-size:13px;"><label style="cursor:pointer;"><input type="checkbox" id="modCorr"${modCorrOn?" checked":""}> Apply source-loss correction (&times;${CORR} on paid ${NOUN.toLowerCase()}s)</label><div class="note">${MODELED.corrNote||""}</div></div>`:"";
+  const corrCtl=CORR?`<div style="margin:0 0 10px;font-size:13px;"><label style="cursor:pointer;"><input type="checkbox" id="modCorr"${modCorrOn?" checked":""}> Apply source-loss correction (&times;${CORR} on paid ${NOUN.toLowerCase()}s)</label></div>`:"";
   const tblBody=MOD.rows.filter(r=>isAds(r.source)).sort((a,b)=>a.month===b.month?(a.source<b.source?-1:1):(a.month<b.month?1:-1)).map(r=>{
     const b=adjB(r.source,r.bookings), c=(r.spend>0&&b>0)?money(r.spend/b):"-";
     return `<tr><td>${r.month}${r.month===curMonth?" (MTD)":""}</td><td>${r.source}</td><td class="num">${(modCorrOn&&b!==r.bookings)?b.toFixed(1):num(r.bookings)}</td><td class="num">${num(r.cancels)||"-"}</td><td class="num">${r.spend>0?money(r.spend):"-"}</td><td class="num">${c}</td><td class="num">${r.claimed>0?num(r.claimed):"-"}</td></tr>`; }).join("");
@@ -1400,12 +1395,11 @@ function renderModeled(){
   const ga4Card=MOD.ga4.length?`<div class="card"><h2>GA4 sessions by paid channel (monthly)</h2><div class="chart-wrap"><canvas id="modGa4"></canvas></div></div>
     <div class="card"><h2>${NOUN} conversion rate (${CRM.toLowerCase()==="crm"?"CRM":CRM} ${NOUN.toLowerCase()}s &divide; GA4 sessions)</h2><div style="overflow-x:auto"><table><thead><tr><th>Month</th><th>Channel</th><th class="num">GA4 Sessions</th><th class="num">${NOUN}s</th><th class="num">CVR</th></tr></thead><tbody>${cvrBody}</tbody></table></div></div>`:"";
   document.getElementById("tab-modeled").innerHTML=
-    `<div class="note" style="margin-bottom:10px;">Paid sources only. ${NOUN}s are created in ${CRM}, counted once each by Create date and Original source (the truth layer). Platform-claimed conversions are reference only and are never summed across platforms. Monthly view; the date filter above does not apply.</div>
-     ${corrCtl}
+    `${corrCtl}
      <div class="kpis">${kpis}</div>
      <div class="card"><h2>Cost per ${NOUN.toLowerCase()} by source (${CRM} vs platform spend)</h2><div class="chart-wrap"><canvas id="modCpb"></canvas></div></div>
      <div class="card"><h2>${NOUN}s by source (${CRM}, monthly)</h2><div class="chart-wrap"><canvas id="modBook"></canvas></div></div>
-     <div class="card"><h2>Monthly detail</h2><div class="note">Platform Claimed = what the ad platform reports for the same month; treat as directional only.</div><div style="overflow-x:auto"><table><thead><tr><th>Month</th><th>Source</th><th class="num">${NOUN}s</th><th class="num">Cancels</th><th class="num">Spend</th><th class="num">Cost/${NOUN}</th><th class="num">Platform Claimed</th></tr></thead><tbody>${tblBody}</tbody></table></div></div>
+     <div class="card"><h2>Monthly detail</h2><div style="overflow-x:auto"><table><thead><tr><th>Month</th><th>Source</th><th class="num">${NOUN}s</th><th class="num">Cancels</th><th class="num">Spend</th><th class="num">Cost/${NOUN}</th><th class="num">Platform Claimed</th></tr></thead><tbody>${tblBody}</tbody></table></div></div>
      ${ga4Card}`;
   const corrEl=document.getElementById("modCorr");
   if(corrEl) corrEl.addEventListener("change",e=>{ modCorrOn=e.target.checked; renderModeled(); });
@@ -1522,12 +1516,6 @@ function dealsData_kw(r, attrib) {
 function dealsShellHtml() {
   var CRM = dealsCrmName();
   return `<div id="tab-deals" class="tab-content">
-    <div class="note" style="margin-bottom:6px;">
-      ${CRM} deals joined to ad spend. Paid sources are a <b>floor</b>: an ad click that arrives without campaign
-      tracking is recorded as Direct and cannot be recovered. Recent months are still maturing because open deals
-      have not converted yet, so read the trend, not the newest month. Revenue = the ${CRM} <b>Deal Value</b> field.
-      The date range above sets the window: deals by create date, spend by month.
-    </div>
     <div class="note" id="dealsAsOf" style="margin-bottom:12px;"></div>
     <div class="controls" style="gap:14px;">
       <label>Attribution
@@ -1545,7 +1533,6 @@ function dealsShellHtml() {
           <tbody id="dealsScoreBody"></tbody>
         </table>
       </div>
-      <div class="note" style="margin-top:6px;" id="dealsScoreNote">Deals attributed by ${CRM} source. Win rate rises as open deals close.</div>
     </div>
 
     <div class="card">
@@ -1555,10 +1542,6 @@ function dealsShellHtml() {
 
     <div class="card">
       <h2>Monthly Trend by Channel (deals grouped by the month they were created)</h2>
-      <div class="note" style="margin-bottom:8px;">
-        Read across to see the cycle shift. Won and value follow the deal's create month, so the newest three months
-        (marked) still have open deals and will rise. Spend is the platform spend in that month.
-      </div>
       <div style="overflow-x:auto">
         <table class="deals-tbl" id="dealsPivotTable">
           <thead id="dealsPivotHead"></thead>
@@ -1575,11 +1558,6 @@ function dealsShellHtml() {
           <option value="meta">Meta</option>
         </select>
       </h2>
-      <div class="note" style="margin-bottom:8px;">
-        Paid deals created in the window. Design and Install read the full ladder. Caretaking and Eco Lawns read
-        Created, Won, Complete only, because deals on those lines are usually created at the stage the work has already
-        reached. A stage counts when the deal reached it or any later stage. Percentages are of Created.
-      </div>
       <div style="overflow-x:auto">
         <table class="deals-tbl" id="dealsFunnelTable">
           <thead><tr><th>Service Line</th><th>Created</th><th>Lead Call</th><th>Proposal</th><th>Won</th><th>Complete</th><th>Won Value</th></tr></thead>
@@ -1597,7 +1575,6 @@ function dealsShellHtml() {
           <option value="ad" id="dealsDimAd" disabled>By Meta ad (needs the click-to-ad map)</option>
         </select>
       </h2>
-      <div class="note" style="margin-bottom:8px;" id="dealsDimNote"></div>
       <div style="overflow-x:auto">
         <table class="deals-tbl" id="dealsDimTable">
           <thead><tr><th>Row</th><th>Platform</th><th>Deals</th><th>Lead Call</th><th>Proposal</th><th>Won</th><th>Win Rate</th><th>Won Value</th><th>Spend</th><th>Cost / Won</th><th>Value per $1</th></tr></thead>
@@ -1632,8 +1609,6 @@ function renderDeals() {
   var winTo = state.to || todayStr;
   var winToMonth = winTo.slice(0, 7) < curMonth ? winTo.slice(0, 7) : curMonth;
   document.getElementById('dealsScoreTitle').textContent = '(deals created ' + winFrom + ' to ' + winTo + ')';
-  document.getElementById('dealsScoreNote').textContent = 'Deals attributed by ' + CRM + ' source. Win rate rises as open deals close.' +
-    (winFrom < spendStart + '-01' ? ' Spend on this sheet starts ' + monthLabel(spendStart) + ', so deals created before that carry no spend and cost figures read low.' : '');
 
   // Attribution view + paid-only working set
   var deals = dealsData.map(function(r) {
@@ -1816,7 +1791,6 @@ function renderDeals() {
   if (dim === 'keyword') note = 'Google deals only. PMax has no keywords, so its deals sit on one row. This dashboard has no keyword spend rows, so cost columns are blank here.';
   if (dim === 'line') note = 'Service line by platform. Spend is not split by service line, so cost columns are blank here; use the scorecard for cost.';
   if (dim === 'ad') note = 'Meta deals by the ad the contact clicked, read from the contact\'s first-visit URL in the CRM. Ad-level spend is not joined here; use the campaign view for cost.';
-  document.getElementById('dealsDimNote').textContent = note;
   var bKeys = Object.keys(brows).sort(function(a, b) { return brows[b].deals - brows[a].deals || brows[b].wonValue - brows[a].wonValue; });
   var bMax = { wonValue: 0, spend: 0, deals: 0 };
   bKeys.forEach(function(k) { bMax.wonValue = Math.max(bMax.wonValue, brows[k].wonValue); bMax.spend = Math.max(bMax.spend, brows[k].spend); bMax.deals = Math.max(bMax.deals, brows[k].deals); });
@@ -1885,7 +1859,7 @@ function renderExplorer(f){
     `<td class="num">${num(a.lpv)||NA}</td><td class="num">${num(a.atc)||NA}</td></tr>`).join("")||`<tr><td colspan="22" class="note">No ads match.</td></tr>`;
   document.getElementById("tab-explorer").innerHTML=
     `<input type="text" class="search-box" id="axSearch" placeholder="Search by ad, campaign or ad set..." value="${esc(axSearch)}">
-     <div class="card"><h2>All ads <span class="mini">click a row for daily detail</span></h2>${GROWS.length?`<div class="note" style="margin:-8px 0 10px;">Google ad groups appear as "Ad Group (Google RSA)" rows with Platform Google. LPV and ATC are Meta pixel counts, so they are blank on Google rows.</div>`:""}<div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
+     <div class="card"><h2>All ads <span class="mini">click a row for daily detail</span></h2><div style="overflow-x:auto"><table><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
   const sb=document.getElementById("axSearch");
   sb.addEventListener("input",e=>{ axSearch=e.target.value; const pos=sb.selectionStart; renderExplorer(filtered()); const n=document.getElementById("axSearch"); n.focus(); n.setSelectionRange(pos,pos); });
   document.querySelectorAll("#tab-explorer th[data-sort]").forEach(th=>th.addEventListener("click",()=>{
@@ -1942,8 +1916,7 @@ function assetTable(rows,title,what){
     `<td class="num">${x.leads?`<span class="${low(x)?"":scoreCls(x,tot)}" style="font-weight:700;">${money(x.cpa)}</span>`:NA}</td>`+
     (IS_ROAS?`<td class="num">${money(x.rev)}</td><td class="num">${x.rev?`<span class="${low(x)?"":scoreCls(x,tot)}" style="font-weight:700;">${x.roas.toFixed(2)}x</span>`:NA}</td>`:"")+`</tr>`).join("");
   return `<div class="card"><h2>${title}</h2><div style="overflow-x:auto"><table><thead><tr><th>Text</th><th class="num">Ads</th><th class="num">Spend</th><th class="num">Impr</th><th class="num">Clicks</th><th class="num">CTR</th><th class="num">${RESULT_LABEL}</th><th class="num">${COST_LABEL}</th>${IS_ROAS?`<th class="num">Revenue</th><th class="num">ROAS</th>`:""}</tr></thead>
-    <tbody>${body||`<tr><td colspan="10" class="note">No ${what} rows for the ads in these dates.</td></tr>`}</tbody></table></div>
-    <div class="note">Per-asset numbers reported by Meta. Revenue at asset level is not guaranteed by Meta.</div></div>`;
+    <tbody>${body||`<tr><td colspan="10" class="note">No ${what} rows for the ads in these dates.</td></tr>`}</tbody></table></div></div>`;
 }
 function renderHeadlines(f){
   const inScope=r=>r._date>=state.from && r._date<=state.to && (!state.campaign||r["Campaign"]===state.campaign) && (!state.adset||r["Ad Set"]===state.adset);
@@ -1951,11 +1924,11 @@ function renderHeadlines(f){
   f=metaOnly(f);   // the Meta asset tabs and the fallback grouping are Meta rows only
   const tot=agg(f);
   // The per-asset tabs carry no secondary result column, so it cannot be shown per headline or text.
-  const metaNotes=metaOnlyNote("per-asset rows")+(SECONDARY?`<div class="note" style="margin:0 0 10px;">${SEC_LABEL} are not reported per asset by Meta.</div>`:"");
+  const metaNotes="";
   let meta;
   if(HEADS.length||BODIES.length){
     meta=`<div class="bd-bar"><label>Min spend $ <input type="number" id="hcMin" value="${hcMin}" style="width:80px;"></label>
-        <span>Ranked by ${SCORE_NAME}${IS_ROAS?" (highest first)":" (cheapest first)"}. Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b>. ${SCORE_RULE} Rows under the minimum are greyed and unranked.${state.platform?" The platform filter does not apply to asset rows.":""}</span></div>`+
+        <span>Ranked by ${SCORE_NAME}${IS_ROAS?" (highest first)":" (cheapest first)"}. Account ${SCORE_NAME} for these dates: <b>${scoreTxt(tot)}</b>.</span></div>`+
       assetTable(heads,"By Headline","headline")+assetTable(bodies,"By Primary Text","primary text");
   } else {
     // Older sheets: no per-asset tabs yet. Group the filtered ad rows by the ad's first headline / text.
@@ -2017,11 +1990,10 @@ function renderFunnel(f){
         <div class="funnel-stage-cost">Cost per: ${v?money(t.spend/v):NA}</div></div>`; }).join("");
   const out=aggByDim(f,"Funnel");
   document.getElementById("tab-funnel").innerHTML=
-    `<div class="card"><h2>Step funnel</h2>${metaOnlyNote("landing page views or pixel steps")}<div class="funnel-wrap">${cards}</div>
-       <div class="note">Landing page views, adds to cart and checkouts are Meta-attributed pixel counts for the filtered ads. Stages after Clicks are 0 on sheets that predate these columns.${SECONDARY?` ${SEC_LABEL} run alongside ${RESULT_LABEL.toLowerCase()} rather than after them, so no step rate is shown for them.`:""}</div></div>
+    `<div class="card"><h2>Step funnel</h2>${metaOnlyNote("landing page views or pixel steps")}<div class="funnel-wrap">${cards}</div></div>
      <div class="card"><h2>Funnel Visualization <span class="mini">log scale</span></h2><div class="chart-wrap" style="height:260px;"><canvas id="funBar"></canvas></div></div>
      <div class="card"><h2>By Funnel stage</h2><div class="chart-wrap" style="height:260px;"><canvas id="funChart"></canvas></div></div>
-     <div class="card">${dimTable(out,"Funnel stage")}<div class="note">Funnel stage is read from campaign and ad set names (Prospecting / Retargeting / Winback...). Rename in Ads Manager to change it.${GROWS.length?" Google rows are included here and read Prospecting unless the Google Ad Detail tab carries a Funnel column.":""}</div></div>`;
+     <div class="card">${dimTable(out,"Funnel stage")}</div>`;
   makeChart("funBar",{type:"bar",data:{labels:stages.map(s=>s[0]),datasets:[{label:"Count",data:stages.map(s=>s[1]>0?s[1]:null),backgroundColor:stages.map((_,i)=>COLORS[i%COLORS.length]),borderRadius:4}]},
     options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const v=stages[c.dataIndex][1];return `${num(v)} | cost per: ${v?money(t.spend/v):NA}`;}}}},
       scales:{x:{type:"logarithmic",min:1,ticks:{callback:v=>[1,10,100,1000,10000,100000,1000000,10000000].includes(v)?v.toLocaleString():""}}}}});
@@ -2058,8 +2030,7 @@ function renderSiteEvents(){
       `<div class="kpis">${kpis}</div>
        <div class="card"><h2>Daily events</h2><div class="chart-wrap"><canvas id="seChart"></canvas></div></div>
        <div class="card"><h2>By event</h2><div style="overflow-x:auto"><table><thead><tr><th>Event</th><th class="num">Count</th><th class="num">Value</th><th class="num">Cost per event</th></tr></thead>
-         <tbody>${events.map(e=>`<tr><td>${esc(e)}</td><td class="num">${num(T[e].count)}</td><td class="num">${T[e].value?money(T[e].value):NA}</td><td class="num">${T[e].count&&spend?money(spend/T[e].count):NA}</td></tr>`).join("")}</tbody></table></div>
-         <div class="note">Cost per event = Meta ad spend for the same campaign, ad set and dates (${money(spend)}) divided by the event count. Raw Meta action types that mean the same event are de-duplicated, never summed.</div></div>
+         <tbody>${events.map(e=>`<tr><td>${esc(e)}</td><td class="num">${num(T[e].count)}</td><td class="num">${T[e].value?money(T[e].value):NA}</td><td class="num">${T[e].count&&spend?money(spend/T[e].count):NA}</td></tr>`).join("")}</tbody></table></div></div>
        <div class="card"><h2>By campaign</h2><div style="overflow-x:auto"><table><thead><tr><th>Campaign</th>${top.map(e=>`<th class="num">${esc(e)}</th>`).join("")}</tr></thead>
          <tbody>${camps.map(c=>`<tr><td class="adname">${esc(c)}</td>${top.map(e=>`<td class="num">${byCamp[c][e]?num(byCamp[c][e]):NA}</td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`;
   }
@@ -2110,7 +2081,6 @@ function ga4SectionHtml(pFrom,pTo){
      <div class="card"><h2>Source Breakdown (GA4, all traffic)</h2><div style="overflow-x:auto"><table><thead><tr><th>Event</th><th>Source</th><th class="num">Count</th><th class="num">Revenue</th></tr></thead>
        <tbody>${srcRows.map(r=>`<tr><td>${esc(r.group)}</td><td>${esc(r.source||NA)}</td><td class="num">${num(r.count)}</td><td class="num">${r.revenue>0?money(r.revenue):NA}</td></tr>`).join("")||`<tr><td colspan="4" class="note">No GA4 rows in range.</td></tr>`}</tbody></table></div></div>
      <div class="card"><h2>GA4 Site-Wide vs Meta Ads-Attributed</h2>
-       <div class="note" style="margin:-8px 0 8px;">Two measurement systems, shown side by side on purpose. GA4 counts every visitor; Meta counts only what it attributes to ads and over-counts relative to site-side truth. Never sum the two columns.${state.campaign?" The Meta column follows the campaign filter; the GA4 column does not.":""}</div>
        <div style="overflow-x:auto"><table><thead><tr><th>Event</th><th class="num">GA4 (all traffic)</th><th class="num">Meta ads-attributed</th><th class="num">Meta value</th></tr></thead>
        <tbody>${comp||`<tr><td colspan="4" class="note">No events in range on either side yet.</td></tr>`}</tbody></table></div></div>`;
   const chart=days.length?{type:"bar",data:{labels:days,datasets:chartGroups.map((g,i)=>({label:g,backgroundColor:COLORS[i%COLORS.length],data:days.map(d=>byDay[d+"|"+g]||0)}))},
@@ -2156,7 +2126,7 @@ function renderPacing(f){
       </div>
       <div style="background:var(--header-bg);border-radius:9px;height:26px;overflow:hidden;margin-top:6px;">
         <div style="height:100%;width:${Math.min(pacePct,100)}%;background:${statusColor};"></div></div>
-      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`+(override?" · manual override (clear the box to use the sheet)":sheetBudget?" · from the sheet's Budgets tab":" · from the client config"):"Enter a monthly budget here, or add a row to the sheet's Budgets tab (Month, Budget)."} Month to date ignores the campaign, ad set and platform filters.${GROWS.length?" Spend here is Meta + Google.":""}</div>
+      <div class="note">${budget?`Projected ${pacePct.toFixed(0)}% of budget · day ${dayNum} of ${daysInMonth}`+(override?" · manual override":""):""}</div>
     </div>
     <div class="card"><h2>Cumulative spend vs target pace</h2><div class="chart-wrap" style="height:260px;"><canvas id="pcChart"></canvas></div></div>
     <div class="card"><h2>Daily spend vs daily target</h2><div class="chart-wrap" style="height:240px;"><canvas id="pcDaily"></canvas></div></div>`;
@@ -2205,7 +2175,7 @@ function renderCreative(f){
        <span class="aimark">✨ themes tagged by Claude</span></h2>
        ${MAN.length&&(needN||crNeeds)?`<div class="needs-bar"><span><b>${needN}</b> video${needN===1?"":"s"} not yet reviewed for: ${MAN.map(esc).join(", ")}.</span><button id="crNeedsBtn">${crNeeds?"Show all ads":"Show only these"}</button></div>`:""}
        <div class="warn-bar">✎ Click any tag to edit it, or tick rows to set one tag on several ads at once. Your change overrides the AI and saves to the tagging sheet${WEBHOOK_URL?"":" (saving not configured for this client yet)"}.</div>
-       ${MANAGE_TAGS?`<div class="cr-tools"><button class="cr-managebtn" id="crManage">Manage tags</button><span class="note" style="margin:0;">Add, rename or re-value the tag dimensions on the sheet's Taxonomy tab.</span></div>`:""}
+       ${MANAGE_TAGS?`<div class="cr-tools"><button class="cr-managebtn" id="crManage">Manage tags</button></div>`:""}
        ${bulk}
        <div style="overflow-x:auto"><table id="crTbl"><thead>${head}</thead><tbody>${rows}</tbody></table></div></div>`;
   document.querySelectorAll("#tab-creative th[data-sort]").forEach(th=>th.addEventListener("click",()=>{

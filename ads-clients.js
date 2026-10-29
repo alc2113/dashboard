@@ -73,7 +73,6 @@ window.AD_CLIENTS = {
                 colors: { primary: "#20534b", primaryDark: "#173d37", accent: "#f26b6c", secondary: "#65c8d0" },
                 headerName: "SHADES OF GREEN", loginFooter: "Prepared by CASSA STRATEGY" },
     title:    "Shades of Green, Ad Performance",
-    subtitle: "Keyed on ad ID, so renames never break it.",
     sheetId:  "1gklZFfDPiH-5Rd-91cK6EpRAPJvLf2myedT0TE1Cqng",
     dailyTab: "Ad Daily",       // daily ad-level rows (date filter / trends / breakdowns)
     tagTab:   "Tagging",        // AI tags by Ad ID (joined onto the daily rows)
@@ -196,7 +195,6 @@ window.AD_CLIENTS = {
   unsealed: {
     brand:    { name: "CASSA STRATEGY", initial: "C", color: "#209D50" },
     title:    "The Unsealed, Ad Performance",
-    subtitle: "Ranked by cost per purchase. Keyed on ad ID, so renames never break it.",
     sheetId:  "1vtKRPmM5A4WVkTIv4KsO2BSUeWhpVi9XDt3nN5Bkq0o",
     dailyTab: "Ad Daily",
     tagTab:   "Tagging",
@@ -244,7 +242,6 @@ window.AD_CLIENTS = {
   birdandbean: {
     brand:    { name: "BIRD & BEAN", initial: "B", color: "#3B4A63", loginFooter: "Prepared by CASSA STRATEGY" },
     title:    "Bird & Bean, Ad Performance",
-    subtitle: "Meta ads only. Attribution 7-day click, 1-day view (the account setting). Refreshed nightly.",
     sheetId:  "1CoTnsa-aAU4nyPh83vuI0T2o7hhI2da5XVncMdXQvzQ",
     dailyTab: "Ad Daily",
     tagTab:   "Tagging",
@@ -274,7 +271,6 @@ window.AD_CLIENTS = {
   demo: {
     brand:    { name: "CASSA STRATEGY", initial: "C", color: "#209D50" },
     title:    "PJ's Pet Shop, Ad Performance",
-    subtitle: "Demo data. Ecommerce, Meta + Google.",
     sheetId:  "1l1tQTUmQoXggFWlDOMgGx152BbzX-_12suwlefabt9E",
     dailyTab: "Ad Daily", tagTab: "Tagging", tab: "Ad Performance",
     platformTab: "Platform Daily", eventTab: "Meta Event Detail",
@@ -302,7 +298,6 @@ window.AD_CLIENTS = {
   // swick: {
   //   brand:    { name: "CASSA STRATEGY", initial: "C", color: "#7b1e3b" },
   //   title:    "Swick Wines, Ad Performance",
-  //   subtitle: "Ranked by ROAS. Keyed on ad ID, so renames never break it.",
   //   sheetId:  "<published sheet id>",
   //   dailyTab: "Ad Daily", tagTab: "Tagging", tab: "Ad Performance",
   //   platformTab: "Platform Daily", eventTab: "Meta Event Detail",
